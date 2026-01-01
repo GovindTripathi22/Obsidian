@@ -24,7 +24,7 @@ export async function WorkspaceSidebar() {
             <div className="flex-1 overflow-hidden py-4">
                 <div className="px-4 mb-4">
                     <Button className="w-full justify-start gap-2 bg-white text-black hover:bg-zinc-200" size="sm" asChild>
-                        <Link href="/workspace/project/new">
+                        <Link href="/workspace/project/new" target="_blank">
                             <Plus className="h-4 w-4" />
                             New Project
                         </Link>

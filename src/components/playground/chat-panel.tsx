@@ -91,6 +91,12 @@ export function ChatPanel({ setHtmlCode, initialPrompt, initialMessages, project
         }
     }, [initialPrompt, hasRunInitial]);
 
+    // Auto-scroll to bottom
+    useEffect(() => {
+        const bottom = document.getElementById("scroll-bottom");
+        bottom?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, isLoading]);
+
     return (
         <div className="flex h-full flex-col bg-transparent">
             {/* Header */}
@@ -134,6 +140,7 @@ export function ChatPanel({ setHtmlCode, initialPrompt, initialMessages, project
                             </div>
                         </div>
                     )}
+                    <div id="scroll-bottom" />
                 </div>
             </ScrollArea>
 

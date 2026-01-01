@@ -30,7 +30,7 @@ export function LandingPageClient() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (inputValue.trim()) {
-            window.location.href = `/workspace/project/new?prompt=${encodeURIComponent(inputValue)}`;
+            window.open(`/workspace/project/new?prompt=${encodeURIComponent(inputValue)}`, '_blank');
         }
     };
 
@@ -68,7 +68,7 @@ export function LandingPageClient() {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
                                     if (inputValue.trim()) {
-                                        window.location.href = `/workspace/project/new?prompt=${encodeURIComponent(inputValue)}`;
+                                        window.open(`/workspace/project/new?prompt=${encodeURIComponent(inputValue)}`, '_blank');
                                     }
                                 }
                             }}
