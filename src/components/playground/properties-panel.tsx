@@ -51,7 +51,7 @@ export function PropertiesPanel({ element, onUpdate, onClose }: PropertiesPanelP
                                     <Type className="h-3 w-3" /> Content
                                 </div>
                                 <Button
-                                    size="xs"
+
                                     variant="ghost"
                                     className="h-5 gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10 px-1.5"
                                     onClick={async () => {

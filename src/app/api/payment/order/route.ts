@@ -1,11 +1,14 @@
-
 import { Cashfree } from "cashfree-pg";
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
-Cashfree.XClientId = process.env.CASHFREE_APP_ID!;
-Cashfree.XClientSecret = process.env.CASHFREE_SECRET_KEY!;
-Cashfree.XEnvironment = Cashfree.Environment.SANDBOX; // Change to PRODUCTION for live
+// Initialize Cashfree Instance
+// Constructor: (Env, ClientId, ClientSecret) - Env: 1=Sandbox, 2=Production
+const cashfree = new Cashfree(
+    process.env.CASHFREE_ENV === "PRODUCTION" ? 2 : 1,
+    process.env.CASHFREE_APP_ID,
+    process.env.CASHFREE_SECRET_KEY
+);
 
 export async function POST() {
     const { userId } = await auth();
@@ -14,7 +17,7 @@ export async function POST() {
 
     const orderId = `order_${Date.now()}`;
     const userEmail = user.emailAddresses[0]?.emailAddress || "customer@example.com";
-    const userPhone = "9999999999"; // Cashfree requires phone, using dummy if not available
+    const userPhone = "9999999999";
 
     const request = {
         order_amount: 79.00,
@@ -32,7 +35,7 @@ export async function POST() {
     };
 
     try {
-        const response = await Cashfree.PGCreateOrder("2023-08-01", request);
+        const response = await cashfree.PGCreateOrder(request as any);
         return NextResponse.json(response.data);
     } catch (error: any) {
         console.error("Cashfree Error:", error?.response?.data || error);

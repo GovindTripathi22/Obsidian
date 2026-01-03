@@ -6,9 +6,12 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 
-Cashfree.XClientId = process.env.CASHFREE_APP_ID!;
-Cashfree.XClientSecret = process.env.CASHFREE_SECRET_KEY!;
-Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
+// Initialize Cashfree Instance
+const cashfree = new Cashfree(
+    process.env.CASHFREE_ENV === "PRODUCTION" ? 2 : 1,
+    process.env.CASHFREE_APP_ID,
+    process.env.CASHFREE_SECRET_KEY
+);
 
 export async function POST(req: Request) {
     const { userId } = await auth();
@@ -17,7 +20,7 @@ export async function POST(req: Request) {
     const { orderId } = await req.json();
 
     try {
-        const response = await Cashfree.PGOrderFetchPayments("2023-08-01", orderId);
+        const response = await cashfree.PGOrderFetchPayments(orderId);
         // Check if any transaction is SUCCESS
         const successfulPayment = response.data.find((tx: any) => tx.payment_status === "SUCCESS");
 
@@ -27,7 +30,7 @@ export async function POST(req: Request) {
                 .set({
                     credits: sql`${users.credits} + 100`
                 })
-                .where(eq(users.id, userId));
+                .where(eq(users.clerkId, userId));
 
             return NextResponse.json({ success: true });
         } else {
