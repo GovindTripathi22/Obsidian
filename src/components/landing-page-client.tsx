@@ -73,7 +73,31 @@ export function LandingPageClient() {
                                 }
                             }}
                         />
-                        <div className="absolute bottom-4 right-4">
+                        <div className="absolute bottom-4 right-4 flex gap-2">
+                            <Button
+                                type="button"
+                                size="icon"
+                                className="h-10 w-10 rounded-lg bg-zinc-800 text-emerald-400 hover:bg-zinc-700 hover:text-emerald-300 transition-all border border-emerald-500/20"
+                                title="Enhance Prompt with AI"
+                                onClick={async () => {
+                                    if (!inputValue) return;
+                                    const original = inputValue;
+                                    setInputValue("Enhancing...");
+                                    try {
+                                        const res = await fetch("/api/ai/rewrite", {
+                                            method: "POST",
+                                            body: JSON.stringify({ text: original, tone: "detailed, structural, and precise for an AI website builder prompt" })
+                                        });
+                                        const data = await res.json();
+                                        if (data.text) setInputValue(data.text);
+                                    } catch (e) {
+                                        setInputValue(original);
+                                    }
+                                }}
+                                disabled={!inputValue}
+                            >
+                                <Sparkles className="h-5 w-5" />
+                            </Button>
                             <Button type="submit" size="icon" className="h-10 w-10 rounded-lg bg-white text-black hover:bg-zinc-200 transition-all hover:scale-105">
                                 <ArrowRight className="h-5 w-5" />
                             </Button>

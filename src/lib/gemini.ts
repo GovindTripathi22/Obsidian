@@ -6,5 +6,5 @@ export function getGeminiModel() {
         throw new Error("Missing GEMINI_API_KEY environment variable");
     }
     const genAI = new GoogleGenerativeAI(apiKey);
-    return genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    return genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 }

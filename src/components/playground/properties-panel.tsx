@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Type, Palette, Layout, Box } from "lucide-react";
+import { X, Type, Palette, Layout, Box, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -46,8 +46,34 @@ export function PropertiesPanel({ element, onUpdate, onClose }: PropertiesPanelP
                     <TabsContent value="visual" className="p-4 space-y-6 m-0">
                         {/* Content Section */}
                         <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                                <Type className="h-3 w-3" /> Content
+                            <div className="flex items-center justify-between text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                                <div className="flex items-center gap-2">
+                                    <Type className="h-3 w-3" /> Content
+                                </div>
+                                <Button
+                                    size="xs"
+                                    variant="ghost"
+                                    className="h-5 gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10 px-1.5"
+                                    onClick={async () => {
+                                        const original = element.textContent;
+                                        if (!original) return;
+                                        // Simple optimistic UI could happen here or loading state
+                                        try {
+                                            const res = await fetch("/api/ai/rewrite", {
+                                                method: "POST",
+                                                body: JSON.stringify({ text: original })
+                                            });
+                                            const data = await res.json();
+                                            if (data.text) {
+                                                onUpdate("content", data.text);
+                                            }
+                                        } catch (e) {
+                                            console.error(e);
+                                        }
+                                    }}
+                                >
+                                    <Sparkles className="h-3 w-3" /> AI Rewrite
+                                </Button>
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-xs text-zinc-400">Text</Label>

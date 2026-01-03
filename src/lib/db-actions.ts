@@ -101,3 +101,12 @@ export async function getProjectChats(projectId: string) {
         orderBy: [asc(chats.createdAt)],
     });
 }
+
+export async function saveChatMessage(projectId: string, role: "user" | "ai", message: string) {
+    const { chats } = await import("@/db/schema");
+    return await db.insert(chats).values({
+        projectId,
+        role,
+        message,
+    }).returning();
+}

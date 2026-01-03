@@ -39,6 +39,9 @@ export async function SiteHeader() {
           </SignedOut>
           <SignedIn>
             <Button variant="ghost" asChild className="text-zinc-400 hover:text-white hover:bg-zinc-900 mr-2">
+              <Link href="/pricing">Pricing</Link>
+            </Button>
+            <Button variant="ghost" asChild className="text-zinc-400 hover:text-white hover:bg-zinc-900 mr-2">
               <Link href="/workspace">My Projects</Link>
             </Button>
             <UserButton

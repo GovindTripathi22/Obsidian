@@ -1,8 +1,8 @@
-
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Bot, User } from "lucide-react";
+import { Send, Bot, User, Sparkles } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 
 interface Message {
@@ -40,16 +40,18 @@ export function ChatPanel({ setHtmlCode, initialPrompt, initialMessages, project
                 body: JSON.stringify({ prompt: userMessage }),
             });
 
+            // Save User Message
+            if (projectId) {
+                fetch(`/api/projects/${projectId}/message`, {
+                    method: "POST",
+                    body: JSON.stringify({ role: "user", message: userMessage })
+                }).catch(console.error);
+            }
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`Generation failed: ${response.status} ${response.statusText}`, errorText);
-                let errorData = {};
-                try {
-                    errorData = JSON.parse(errorText);
-                } catch (e) {
-                    // Not JSON
-                }
-                throw new Error((errorData as any).error || (errorData as any).details || errorText || `Failed: ${response.status}`);
+                throw new Error(errorText);
             }
             if (!response.body) throw new Error("No response body");
 
@@ -66,7 +68,7 @@ export function ChatPanel({ setHtmlCode, initialPrompt, initialMessages, project
                 generatedCode += chunk;
 
                 // Clean markdown if present (client-side safety)
-                const cleanCode = generatedCode.replace(/^```html\s*/, '').replace(/^```\s*/, '').replace(/```$/, '');
+                const cleanCode = generatedCode.replace(/^```html\s * /, '').replace(/ ^ ```\s*/, '').replace(/```$ /, '');
                 setHtmlCode(cleanCode);
             }
 
@@ -76,11 +78,26 @@ export function ChatPanel({ setHtmlCode, initialPrompt, initialMessages, project
                 return newMessages;
             });
 
+            // Save AI Message
+            if (projectId) {
+                fetch(`/api/projects/${projectId}/message`, {
+                    method: "POST",
+                    body: JSON.stringify({ role: "ai", message: "Code generated successfully!" })
+                }).catch(console.error);
+            }
+
         } catch (error) {
             console.error(error);
             setMessages(prev => [...prev, { role: "ai", content: "Sorry, something went wrong." }]);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSend(input);
         }
     };
 
@@ -135,8 +152,10 @@ export function ChatPanel({ setHtmlCode, initialPrompt, initialMessages, project
                             <div className="h-8 w-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center shrink-0">
                                 <Bot className="h-4 w-4 text-white animate-pulse" />
                             </div>
-                            <div className="rounded-2xl p-4 text-sm bg-zinc-900/50 text-zinc-400 border border-white/5">
-                                <span className="animate-pulse">Thinking...</span>
+                            <div className="rounded-2xl p-4 text-sm bg-zinc-900/50 text-zinc-400 border border-white/5 space-y-2 w-full max-w-[200px]">
+                                <Skeleton className="h-4 w-32 bg-white/10" />
+                                <Skeleton className="h-4 w-48 bg-white/10" />
+                                <Skeleton className="h-4 w-24 bg-white/10" />
                             </div>
                         </div>
                     )}
@@ -165,28 +184,49 @@ export function ChatPanel({ setHtmlCode, initialPrompt, initialMessages, project
 
                 <div className="relative group">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-zinc-700 to-zinc-800 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-                    <div className="relative flex items-end gap-2 bg-black/80 rounded-xl border border-white/10 p-2">
+                    <div className="relative">
                         <Textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Describe changes..."
+                            onKeyDown={handleKeyDown}
+                            placeholder={isLoading ? "Building..." : "Ask Obsidian to build..."}
+                            className="min-h-[60px] w-full resize-none rounded-2xl border-white/10 bg-zinc-900 pr-20 pt-4 text-sm focus-visible:ring-emerald-500/50"
                             disabled={isLoading}
-                            className="min-h-[40px] max-h-[120px] w-full resize-none bg-transparent border-0 text-sm text-white placeholder:text-zinc-500 focus-visible:ring-0 p-2"
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSend(input);
-                                }
-                            }}
                         />
-                        <Button
-                            size="icon"
-                            onClick={() => handleSend(input)}
-                            disabled={isLoading || !input.trim()}
-                            className="h-8 w-8 rounded-lg bg-white text-black hover:bg-zinc-200 disabled:opacity-50 shrink-0 mb-1"
-                        >
-                            <Send className="h-4 w-4" />
-                        </Button>
+                        <div className="absolute bottom-3 right-3 flex gap-2">
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 rounded-xl text-emerald-400 hover:bg-emerald-400/10 hover:text-emerald-300"
+                                title="AI Copywriter (Enhance Prompt)"
+                                onClick={async () => {
+                                    if (!input) return;
+                                    const original = input;
+                                    setInput("Enhancing...");
+                                    try {
+                                        const res = await fetch("/api/ai/rewrite", {
+                                            method: "POST",
+                                            body: JSON.stringify({ text: original, tone: "detailed, structural, and precise for an AI website builder prompt" })
+                                        });
+                                        const data = await res.json();
+                                        if (data.text) setInput(data.text);
+                                    } catch (e) {
+                                        setInput(original); // Revert on error
+                                    }
+                                }}
+                                disabled={!input || isLoading}
+                            >
+                                <Sparkles className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                size="icon"
+                                className="h-8 w-8 rounded-xl bg-emerald-500 text-black hover:bg-emerald-400 disabled:opacity-50"
+                                onClick={() => handleSend(input)}
+                                disabled={!input.trim() || isLoading}
+                            >
+                                <Send className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
