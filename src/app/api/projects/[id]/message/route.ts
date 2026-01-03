@@ -3,16 +3,17 @@ import { NextResponse } from "next/server";
 
 export async function POST(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const { role, message } = await req.json();
+        const { id } = await params;
 
         if (!role || !message) {
             return NextResponse.json({ error: "Missing role or message" }, { status: 400 });
         }
 
-        await saveChatMessage(params.id, role, message);
+        await saveChatMessage(id, role, message);
 
         return NextResponse.json({ success: true });
     } catch (error) {
