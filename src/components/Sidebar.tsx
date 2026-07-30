@@ -29,7 +29,7 @@ export const Sidebar: React.FC = () => {
   const navItems = [
     { name: "Home", href: "/", icon: Home },
     { name: "Shopify Theme Builder", href: "/builder", icon: ShoppingBag },
-    { name: "Projects", href: "/projects", icon: FolderKanban },
+    { name: "Projects", href: "/projects?tab=shopify", icon: FolderKanban },
     { name: "Inspiration", href: "/inspiration", icon: Sparkles },
     { name: "Billing & Plans", href: "/billing", icon: CreditCard },
     { name: "Design System", href: "/design-system", icon: Palette },

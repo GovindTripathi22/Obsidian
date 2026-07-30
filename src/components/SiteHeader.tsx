@@ -39,7 +39,7 @@ export const SiteHeader: React.FC = () => {
             <span>Shopify Theme Builder</span>
           </Link>
 
-          <Link href="/projects" className="text-xs font-medium text-zinc-400 hover:text-white transition-colors px-2 py-1 hidden md:block">
+          <Link href="/projects?tab=website" className="text-xs font-medium text-zinc-400 hover:text-white transition-colors px-2 py-1 hidden md:block">
             My Projects
           </Link>
           <Link href="/billing" className="text-xs font-medium text-zinc-400 hover:text-white transition-colors px-2 py-1 hidden md:block">
