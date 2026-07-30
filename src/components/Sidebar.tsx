@@ -21,8 +21,8 @@ export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
 
-  // Hide global sidebar inside editor page layout
-  if (pathname?.startsWith("/editor")) {
+  // Hide sidebar on home page (uses its own dark SiteHeader) and editor pages
+  if (pathname === "/" || pathname?.startsWith("/editor")) {
     return null;
   }
 

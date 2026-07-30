@@ -2,12 +2,17 @@
 
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { LogIn, UserPlus, LogOut, Sparkles, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 export const Header: React.FC = () => {
   const { user, signOut, loading } = useAuth();
+  const pathname = usePathname();
+
+  // Home page uses its own dark SiteHeader — hide global white header
+  if (pathname === "/") return null;
 
   return (
     <header className="fixed top-0 right-0 left-64 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/90 z-30 flex items-center justify-between px-6 transition-all duration-200 shadow-xs">
