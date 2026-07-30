@@ -54,6 +54,8 @@ function EditorContent({ projectId }: { projectId: string }) {
   const [exportStep, setExportStep] = useState(0);
   const [exportProgress, setExportProgress] = useState(0);
 
+  const [activeView, setActiveView] = useState<"preview" | "liquid" | "schema">("preview");
+
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -69,14 +71,26 @@ function EditorContent({ projectId }: { projectId: string }) {
         body: JSON.stringify({ prompt, projectId, pageName }),
       });
 
-      const html = await res.text();
-      setPageCodes((prev) => ({
-        ...prev,
-        [pageName]: {
-          html,
-          css: "body { background: #f8fafc; color: #0f172a; }",
-        },
-      }));
+      if (!res.body) throw new Error("No response body returned");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += decoder.decode(value, { stream: true });
+        
+        // Update pageCodes with accumulated HTML in real time
+        setPageCodes(prev => ({
+          ...prev,
+          [pageName]: {
+            html: accumulated,
+            css: 'body{background:#f8fafc;color:#0f172a;}'
+          }
+        }));
+      }
 
       setChatMessages((prev) => [
         ...prev,
@@ -254,7 +268,9 @@ function EditorContent({ projectId }: { projectId: string }) {
             size="sm"
             variant="pink"
             onClick={handleExportShopify}
-            leftIcon={<ShoppingBag className="w-3.5 h-3.5" />}
+            leftIcon={
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M15.34 3.27c-.07-.05-.14-.03-.2.02-.05.05-1.15 1.4-1.15 1.4s-1.19-.83-1.32-.91c-.08-.04-.14-.05-.21-.03l-.66.2c-.1-.3-.27-.57-.48-.74-.54-.48-1.33-.5-2.1-.06-.24.14-.47.33-.68.56l-.47.14L7.7 3.96c-.1.03-.17.09-.2.19L5.34 14.5c0 .01-.01.02 0 .04l2.18 10.23c.02.1.1.18.2.2l9.57 2.03c.11.02.21-.03.27-.12l4.34-20.36c.03-.12-.03-.24-.14-.28l-6.42-3zm-4.9 3.37l.78-.24c-.11-.36-.3-.67-.54-.86-.21-.17-.45-.24-.7-.2.16-.24.34-.44.54-.56.51-.3.97-.28 1.27-.02.22.2.37.53.42.93l-1.77.55zm-1.64.51l1.98-.62c-.09-.65-.37-1.13-.77-1.37-.17-.1-.36-.16-.55-.16.07-.04.15-.07.22-.1.31-.14.61-.15.86.02.17.11.3.32.37.58l-2.11.65zm-.46.14l2.21-.69c.02.01.04 0 .06-.01l.78-.24c.04-.01.06-.04.07-.07.01-.04 0-.07-.02-.1-.07-.1-.19-.36-.19-.37-.31-.58-.82-.93-1.41-.93-.2 0-.42.05-.63.14-.35.15-.67.43-.93.8-.03.04-.04.1-.01.14 0 .01.01.01.01.02l-.48.15c-.06.02-.1.08-.1.14L6.12 14.2l7.72-7.72c.04-.04.05-.1.03-.16-.02-.05-.08-.09-.13-.09l-5.4 1.07z"/></svg>
+            }
           >
             Export to Shopify
           </Button>
@@ -344,8 +360,22 @@ function EditorContent({ projectId }: { projectId: string }) {
 
         {/* Right Panel: Live Canvas (65% Width) */}
         <div className="flex-1 bg-slate-100 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+          
+          {/* Multi-View Inspector Tabs */}
+          <div className="flex bg-slate-200/50 p-1 rounded-xl border border-slate-200 mb-4 self-center shadow-xs">
+            <button onClick={() => setActiveView("preview")} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeView === "preview" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}>
+              🖥️ Live Preview
+            </button>
+            <button onClick={() => setActiveView("liquid")} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeView === "liquid" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}>
+              📄 Liquid Code
+            </button>
+            <button onClick={() => setActiveView("schema")} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeView === "schema" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}>
+              ⚙️ Schema
+            </button>
+          </div>
+
           <div
-            className={`h-full bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300 relative flex flex-col ${
+            className={`flex-1 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300 relative flex flex-col ${
               viewport === "desktop"
                 ? "w-full"
                 : viewport === "tablet"
@@ -359,22 +389,48 @@ function EditorContent({ projectId }: { projectId: string }) {
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
               </div>
-              <div className="flex-1 max-w-sm mx-auto bg-white rounded-md px-2 py-0.5 text-[10px] font-mono text-slate-500 text-center truncate border border-slate-200">
-                https://store-preview.insforge.dev/{activePageTab.toLowerCase().replace(/\s+/g, "-")}
+              <div className="flex-1 max-w-sm mx-auto bg-white rounded-md px-2 py-0.5 text-[10px] font-mono text-slate-500 flex items-center justify-center gap-2 truncate border border-slate-200">
+                {isGenerating ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-emerald-600 font-semibold">Streaming...</span>
+                  </>
+                ) : (
+                  `https://store-preview.insforge.dev/${activePageTab.toLowerCase().replace(/\s+/g, "-")}`
+                )}
               </div>
             </div>
 
-            <div className="flex-1 relative overflow-auto cursor-pointer" onClick={handleIframeClick}>
-              <iframe
-                ref={iframeRef}
-                title="Store Preview Canvas"
-                srcDoc={`<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"></script><style>body{margin:0;padding:0;background:#f8fafc;color:#0f172a;}</style></head><body>${currentHtml}</body></html>`}
-                className="w-full h-full border-none"
-              />
+            <div className="flex-1 relative overflow-auto">
+              {activeView === "preview" && (
+                <div className="w-full h-full cursor-pointer" onClick={handleIframeClick}>
+                  <iframe
+                    ref={iframeRef}
+                    title="Store Preview Canvas"
+                    srcDoc={`<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"></script><style>body{margin:0;padding:0;background:#f8fafc;color:#0f172a;}</style></head><body>${currentHtml}</body></html>`}
+                    className="w-full h-full border-none"
+                  />
+                </div>
+              )}
+              {activeView === "liquid" && (
+                <pre className="bg-slate-900 text-emerald-400 font-mono text-xs p-4 overflow-auto w-full h-full m-0">
+                  <code>{currentHtml || "<!-- No code generated yet -->"}</code>
+                </pre>
+              )}
+              {activeView === "schema" && (
+                <pre className="bg-slate-900 text-amber-400 font-mono text-xs p-4 overflow-auto w-full h-full m-0">
+                  <code>{JSON.stringify({
+                    name: `${activePageTab} Template`,
+                    sections: {
+                      main: { type: "main-content", settings: {} }
+                    }
+                  }, null, 2)}</code>
+                </pre>
+              )}
             </div>
           </div>
 
-          {selectedElement && (
+          {selectedElement && activeView === "preview" && (
             <InlineCustomizer
               element={selectedElement}
               onClose={() => setSelectedElement(null)}

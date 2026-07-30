@@ -60,19 +60,26 @@ export const Sidebar: React.FC = () => {
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
+            const isShopify = item.name === 'Shopify Theme Builder';
 
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                   isActive
-                    ? "bg-slate-900 text-white shadow-sm"
+                    ? isShopify ? "bg-emerald-700 text-white shadow-sm" : "bg-slate-900 text-white shadow-sm"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-pink-400" : "text-slate-400"}`} />
-                <span>{item.name}</span>
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? (isShopify ? "text-emerald-300" : "text-pink-400") : "text-slate-400"}`} />
+                  <span>
+                    {item.name}
+                    {isShopify && isActive && <span className="ml-1.5 text-sm">🛍️</span>}
+                  </span>
+                </div>
+                {isShopify && !isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />}
               </Link>
             );
           })}
