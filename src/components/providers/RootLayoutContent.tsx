@@ -10,14 +10,15 @@ export function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const isHome = pathname === "/";
   const isEditor = pathname?.startsWith("/editor");
 
-  // Home page: full-width dark layout, no sidebar or top header
+  // Home page: full-width, no sidebar (uses its own SiteHeader)
+  // Editor: full-width, no sidebar (has its own layout)
   if (isHome || isEditor) {
     return <>{children}</>;
   }
 
-  // All other pages: white Stitch layout with sidebar + top header
+  // All other pages: dark sidebar + dark header shell
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
+    <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />

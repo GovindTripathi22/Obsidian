@@ -23,20 +23,20 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
   ) => {
     const variantConfig = {
       info: {
-        container: "bg-blue-50/80 border-blue-200 text-blue-900 shadow-sm",
-        icon: <Info className="w-5 h-5 text-blue-600 shrink-0" />,
+        container: "bg-blue-950/50 border-blue-800/60 text-blue-200",
+        icon: <Info className="w-5 h-5 text-blue-400 shrink-0" />,
       },
       success: {
-        container: "bg-emerald-50/80 border-emerald-200 text-emerald-900 shadow-sm",
-        icon: <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />,
+        container: "bg-emerald-950/50 border-emerald-800/60 text-emerald-200",
+        icon: <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />,
       },
       warning: {
-        container: "bg-amber-50/80 border-amber-200 text-amber-900 shadow-sm",
-        icon: <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />,
+        container: "bg-amber-950/50 border-amber-800/60 text-amber-200",
+        icon: <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />,
       },
       danger: {
-        container: "bg-rose-50/80 border-rose-200 text-rose-900 shadow-sm",
-        icon: <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />,
+        container: "bg-red-950/50 border-red-800/60 text-red-200",
+        icon: <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />,
       },
     };
 
@@ -60,7 +60,7 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
         {onClose && (
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-black/5 text-current opacity-70 hover:opacity-100 transition-opacity"
+            className="p-1 rounded-lg hover:bg-white/10 text-current opacity-70 hover:opacity-100 transition-opacity"
             aria-label="Close alert"
           >
             <X className="w-4 h-4" />

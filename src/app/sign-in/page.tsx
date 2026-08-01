@@ -31,24 +31,26 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] bg-slate-50">
-      <Card className="max-w-md w-full bg-white border-slate-200 shadow-xl space-y-6">
+    <div className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] bg-zinc-950 text-zinc-100">
+      <Card glass={false} className="max-w-md w-full bg-zinc-900 border-zinc-800 shadow-2xl space-y-6">
         <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-pink-50 border border-pink-200 flex items-center justify-center text-pink-600 mb-2">
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center text-emerald-400 mb-2">
             <Sparkles className="w-6 h-6" />
           </div>
-          <CardTitle className="text-2xl font-black text-slate-900">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your InsForge database session & saved Shopify projects.</CardDescription>
+          <CardTitle className="text-2xl font-black font-heading text-zinc-100">Welcome Back</CardTitle>
+          <CardDescription className="text-zinc-400 text-sm">
+            Sign in to your InsForge database session & saved Shopify projects.
+          </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <Button
             variant="secondary"
-            className="w-full justify-center"
+            className="w-full justify-center bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700"
             onClick={handleGoogle}
             isLoading={isSubmitting || loading}
           >
-            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 mr-2 shrink-0" viewBox="0 0 24 24">
               <path
                 fill="#EA4335"
                 d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
@@ -70,8 +72,8 @@ export default function SignInPage() {
           </Button>
 
           <div className="relative flex items-center justify-center my-4">
-            <div className="border-t border-slate-200 w-full" />
-            <span className="bg-white px-3 text-xs text-slate-400 font-mono absolute">OR EMAIL</span>
+            <div className="border-t border-zinc-800 w-full" />
+            <span className="bg-zinc-900 px-3 text-xs text-zinc-500 font-mono absolute">OR EMAIL</span>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -79,7 +81,8 @@ export default function SignInPage() {
               label="Email Address"
               type="email"
               placeholder="user@example.com"
-              leftIcon={<Mail className="w-4 h-4" />}
+              leftIcon={<Mail className="w-4 h-4 text-zinc-400" />}
+              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -88,15 +91,15 @@ export default function SignInPage() {
               label="Password"
               type="password"
               placeholder="••••••••"
-              leftIcon={<Lock className="w-4 h-4" />}
+              leftIcon={<Lock className="w-4 h-4 text-zinc-400" />}
+              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
             <Button
               type="submit"
-              variant="primary"
-              className="w-full"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-lg shadow-emerald-900/20 border-0"
               isLoading={isSubmitting || loading}
               leftIcon={<LogIn className="w-4 h-4" />}
             >
@@ -105,9 +108,9 @@ export default function SignInPage() {
           </form>
         </CardContent>
 
-        <CardFooter className="text-center justify-center text-xs text-slate-500 border-slate-100">
+        <CardFooter className="text-center justify-center text-xs text-zinc-400 border-zinc-800">
           Don't have an account?{" "}
-          <Link href="/sign-up" className="text-pink-600 font-bold hover:underline ml-1">
+          <Link href="/sign-up" className="text-emerald-400 font-bold hover:underline ml-1">
             Sign Up
           </Link>
         </CardFooter>

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
-import { Sidebar } from "@/components/Sidebar";
-import { Header } from "@/components/Header";
 import { RootLayoutContent } from "@/components/providers/RootLayoutContent";
 
 export const metadata: Metadata = {
@@ -18,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-black text-white font-sans selection:bg-zinc-800 selection:text-white">
+      <body className="min-h-full bg-zinc-950 text-zinc-100 font-sans selection:bg-emerald-900/40 selection:text-white">
         <AuthProvider>
           <RootLayoutContent>{children}</RootLayoutContent>
         </AuthProvider>

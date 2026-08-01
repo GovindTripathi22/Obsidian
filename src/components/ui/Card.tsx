@@ -10,11 +10,11 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     return (
       <div
         ref={ref}
-        className={`rounded-2xl border border-slate-200/80 p-6 transition-all duration-300 ${
-          glass ? "bg-white/80 backdrop-blur-md shadow-sm" : "bg-white shadow-sm"
+        className={`rounded-2xl border border-zinc-800 p-6 transition-all duration-300 ${
+          glass ? "bg-zinc-900/80 backdrop-blur-md" : "bg-zinc-900"
         } ${
           hoverable
-            ? "hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/60 hover:-translate-y-1 cursor-pointer"
+            ? "hover:border-zinc-700 hover:shadow-xl hover:shadow-black/20 hover:-translate-y-1 cursor-pointer"
             : ""
         } ${className}`}
         {...props}
@@ -42,7 +42,7 @@ export const CardTitle = ({
   ...props
 }: React.HTMLAttributes<HTMLHeadingElement>) => (
   <h3
-    className={`text-lg font-bold text-slate-900 tracking-tight ${className}`}
+    className={`text-lg font-bold text-zinc-100 tracking-tight ${className}`}
     {...props}
   >
     {children}
@@ -54,7 +54,7 @@ export const CardDescription = ({
   children,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) => (
-  <p className={`text-sm text-slate-500 leading-relaxed ${className}`} {...props}>
+  <p className={`text-sm text-zinc-400 leading-relaxed ${className}`} {...props}>
     {children}
   </p>
 );
@@ -64,7 +64,7 @@ export const CardContent = ({
   children,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`text-sm text-slate-700 ${className}`} {...props}>
+  <div className={`text-sm text-zinc-300 ${className}`} {...props}>
     {children}
   </div>
 );
@@ -75,7 +75,7 @@ export const CardFooter = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={`mt-6 flex items-center justify-between border-t border-slate-100 pt-4 ${className}`}
+    className={`mt-6 flex items-center justify-between border-t border-zinc-800 pt-4 ${className}`}
     {...props}
   >
     {children}

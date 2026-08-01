@@ -35,15 +35,15 @@ const INSPIRATION_GALLERY = [
 
 export default function InspirationPage() {
   return (
-    <div className="flex-1 p-8 max-w-6xl mx-auto w-full space-y-8 bg-slate-50 min-h-screen">
+    <div className="flex-1 p-8 max-w-6xl mx-auto w-full space-y-8 bg-zinc-950 min-h-screen text-zinc-100">
       {/* Header */}
-      <div className="border-b border-slate-200 pb-6 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-mono text-pink-600 font-semibold">
-          <Sparkles className="w-4 h-4 text-pink-500" />
+      <div className="border-b border-zinc-800 pb-6 space-y-2">
+        <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 font-semibold">
+          <Sparkles className="w-4 h-4 text-emerald-400" />
           <span>CURATED SHOPIFY STORE GALLERY</span>
         </div>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Store Inspiration & Templates</h1>
-        <p className="text-slate-500 text-sm">
+        <h1 className="text-3xl font-black font-heading text-zinc-100 tracking-tight">Store Inspiration & Templates</h1>
+        <p className="text-zinc-400 text-sm">
           Explore high-converting store concepts built with StitchStore AI, Gemini 2.5 Flash, and Shopify Liquid 2.0.
         </p>
       </div>
@@ -51,39 +51,39 @@ export default function InspirationPage() {
       {/* Gallery Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {INSPIRATION_GALLERY.map((item) => (
-          <Card key={item.title} hoverable className="group flex flex-col justify-between overflow-hidden bg-white">
+          <Card key={item.title} hoverable glass={false} className="group flex flex-col justify-between overflow-hidden bg-zinc-900 border-zinc-800 hover:border-zinc-700">
             <div>
-              <div className="aspect-video bg-slate-100 rounded-xl overflow-hidden mb-4 relative border border-slate-200">
+              <div className="aspect-video bg-zinc-950 rounded-xl overflow-hidden mb-4 relative border border-zinc-800">
                 <img
                   src={item.image}
                   alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-                <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-lg text-[10px] font-mono text-amber-700 border border-amber-200 flex items-center gap-1 font-bold shadow-xs">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-500" /> {item.rating}
+                <span className="absolute top-2 right-2 bg-zinc-950/90 backdrop-blur-md px-2 py-0.5 rounded-lg text-[10px] font-mono text-amber-400 border border-amber-500/30 flex items-center gap-1 font-bold shadow-xs">
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {item.rating}
                 </span>
               </div>
 
               <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                 {item.tags.map((t) => (
-                  <span key={t} className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
+                  <span key={t} className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 font-semibold">
                     {t}
                   </span>
                 ))}
               </div>
 
-              <h3 className="text-lg font-bold text-slate-900 group-hover:text-pink-600 transition-colors">
+              <h2 className="text-lg font-bold font-heading text-zinc-100 group-hover:text-emerald-400 transition-colors">
                 {item.title}
-              </h3>
-              <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
                 {item.prompt}
               </p>
             </div>
 
-            <CardFooter className="pt-4 border-slate-100">
-              <span className="text-xs font-mono text-slate-400">{item.category}</span>
+            <CardFooter className="pt-4 border-zinc-800">
+              <span className="text-xs font-mono text-zinc-500">{item.category}</span>
               <Link href={`/?prompt=${encodeURIComponent(item.prompt)}`}>
-                <Button size="sm" variant="pink" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-md shadow-emerald-900/20" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
                   Use Template
                 </Button>
               </Link>

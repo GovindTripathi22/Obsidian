@@ -25,23 +25,23 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      "relative inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed select-none rounded-xl overflow-hidden group";
+      "relative inline-flex items-center justify-center font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed select-none rounded-xl overflow-hidden group";
 
     const variantStyles = {
       primary:
-        "bg-slate-900 hover:bg-slate-800 text-white shadow-md shadow-slate-900/15 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] focus:ring-slate-900",
+        "bg-white hover:bg-zinc-200 text-zinc-950 shadow-md shadow-white/5 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] focus:ring-white/50",
       secondary:
-        "bg-white hover:bg-slate-100 text-slate-800 border border-slate-200/90 shadow-sm hover:border-slate-300 hover:-translate-y-0.5 active:scale-[0.98] focus:ring-slate-400",
+        "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 shadow-sm hover:-translate-y-0.5 active:scale-[0.98] focus:ring-zinc-600",
       outline:
-        "border border-slate-300/80 bg-white/80 hover:bg-slate-100/80 text-slate-700 hover:text-slate-900 hover:border-slate-400 hover:-translate-y-0.5 active:scale-[0.98] focus:ring-slate-400",
+        "border border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 hover:border-zinc-600 hover:-translate-y-0.5 active:scale-[0.98] focus:ring-zinc-600",
       ghost:
-        "bg-transparent hover:bg-slate-100 text-slate-600 hover:text-slate-900 focus:ring-slate-400",
+        "bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 focus:ring-zinc-600",
       pink:
-        "bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-600 hover:to-rose-600 text-white shadow-md shadow-pink-500/20 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] focus:ring-pink-500",
+        "bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-500 hover:to-emerald-500 text-white shadow-md shadow-emerald-500/20 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] focus:ring-emerald-500",
       cyan:
-        "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-md shadow-indigo-500/20 hover:-translate-y-0.5 active:scale-[0.98] focus:ring-indigo-500",
+        "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-md shadow-indigo-500/20 hover:-translate-y-0.5 active:scale-[0.98] focus:ring-indigo-500",
       danger:
-        "bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-500/20 hover:-translate-y-0.5 active:scale-[0.98] focus:ring-rose-500",
+        "bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-500/20 hover:-translate-y-0.5 active:scale-[0.98] focus:ring-red-500",
     };
 
     const sizeStyles = {

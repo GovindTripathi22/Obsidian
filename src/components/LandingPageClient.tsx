@@ -57,8 +57,8 @@ export function LandingPageClient() {
       thumbnail_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
       created_at: new Date().toISOString(),
     };
-    const existing = JSON.parse(localStorage.getItem("insforge_projects") || "[]");
-    localStorage.setItem("insforge_projects", JSON.stringify([newProject, ...existing]));
+    const existing = JSON.parse(localStorage.getItem("obsidian_website_projects") || "[]");
+    localStorage.setItem("obsidian_website_projects", JSON.stringify([newProject, ...existing]));
     refreshProjectCount();
     router.push(`/editor/${projectId}?initialPrompt=${encodeURIComponent(inputValue)}`);
   };
@@ -107,7 +107,7 @@ export function LandingPageClient() {
           v1.0 Public Beta
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500">
+        <h1 className="font-heading text-5xl md:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-500">
           Craft Code from Chaos.
         </h1>
 
