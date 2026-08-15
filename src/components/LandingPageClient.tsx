@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Hexagon } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 
@@ -27,7 +27,7 @@ const SUGGESTIONS = [
     prompt: "Build a cozy, inviting website for an artisanal coffee shop. Use a warm color palette (browns, creams, earthly greens). Include a hero section with a video background placeholder, a menu section with prices, an 'Our Story' section with image placeholders, and a footer with location and hours. Use a serif font for headings to give it a classic feel.",
   },
   {
-    label: "Waitlist Page",
+    label: "Viral Waitlist Page",
     prompt: "Create a viral waitlist page for a stealth startup. The design should be hype-driven and futuristic. Center the email capture form and make it the focal point. Add a countdown timer placeholder. Include a 'Why Join?' section with exclusive benefits. Use a dark background with neon gradients and glow effects.",
   },
 ];
@@ -60,14 +60,14 @@ export function LandingPageClient() {
     const existing = JSON.parse(localStorage.getItem("obsidian_website_projects") || "[]");
     localStorage.setItem("obsidian_website_projects", JSON.stringify([newProject, ...existing]));
     refreshProjectCount();
-    router.push(`/editor/${projectId}?initialPrompt=${encodeURIComponent(inputValue)}`);
+    router.push(`/editor/${projectId}?type=website&initialPrompt=${encodeURIComponent(inputValue)}`);
   };
 
   const handleEnhance = async () => {
     if (!inputValue.trim() || isEnhancing) return;
     const original = inputValue;
     setIsEnhancing(true);
-    setInputValue("✨ Enhancing your prompt with AI...");
+    setInputValue("✨ Enhancing your prompt with AI architecture...");
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -99,35 +99,35 @@ export function LandingPageClient() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center px-4 pt-20 md:pt-32 pb-20">
+    <main className="flex flex-col items-center justify-center px-4 pt-16 md:pt-28 pb-20 smooth-gpu page-transition-enter">
       {/* Hero Section */}
-      <div className="text-center max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-        <div className="inline-flex items-center rounded-full border border-zinc-800 bg-zinc-900/50 px-3 py-1 text-sm text-zinc-400 backdrop-blur-sm">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
-          v1.0 Public Beta
+      <div className="text-center max-w-3xl mx-auto space-y-6">
+        <div className="inline-flex items-center rounded-full border border-zinc-800 bg-zinc-900/80 px-3.5 py-1 text-xs text-zinc-300 backdrop-blur-xl shadow-lg">
+          <span className="flex h-2 w-2 rounded-full bg-emerald-400 mr-2 animate-pulse" />
+          <span className="font-mono">Obsidian AI Engine v2.5 Active</span>
         </div>
 
-        <h1 className="font-heading text-5xl md:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-500">
+        <h1 className="font-heading text-5xl md:text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-500 leading-tight">
           Craft Code from Chaos.
         </h1>
 
-        <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-          Generate production-ready websites with a single prompt.
-          Edit visually. Export clean code.
+        <p className="text-base md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+          Generate production-ready websites and landing pages with a single prompt.
+          Edit visually with real-time streaming. Export clean code.
         </p>
       </div>
 
       {/* Main Prompt Input */}
-      <div className="w-full max-w-2xl mt-12 relative group animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-        <div className="absolute -inset-1 bg-gradient-to-r from-zinc-700 to-zinc-800 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-500" />
+      <div className="w-full max-w-2xl mt-10 relative group">
+        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600/30 to-zinc-700/40 rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition duration-500" />
         <div className="relative">
           <form onSubmit={handleSubmit}>
             <textarea
               name="prompt"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Describe your dream website... (e.g., 'A minimalist portfolio for a photographer with a dark theme')"
-              className="min-h-[140px] w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/80 pt-6 px-6 pb-16 text-base text-white placeholder:text-zinc-600 focus:border-zinc-700 focus:outline-none shadow-2xl backdrop-blur-xl transition-colors"
+              placeholder="Describe your dream website or SaaS product... (e.g. 'A high-converting B2B SaaS landing page with dark theme, pricing table, and feature cards')"
+              className="min-h-[140px] w-full resize-none rounded-2xl border border-zinc-800 bg-zinc-950/90 pt-6 px-6 pb-16 text-base text-white placeholder:text-zinc-600 focus:border-emerald-500/50 focus:outline-none shadow-2xl backdrop-blur-2xl transition-all"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -137,7 +137,7 @@ export function LandingPageClient() {
             />
 
             {/* Bottom bar: Tier selector left, action buttons right */}
-            <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 p-1 rounded-lg">
+            <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 p-1 rounded-xl">
               <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider pl-1.5">Tier:</span>
               <select
                 value={qualityTier}
@@ -163,18 +163,19 @@ export function LandingPageClient() {
                 title="Enhance Prompt with AI"
                 disabled={!inputValue.trim() || isEnhancing}
                 onClick={handleEnhance}
-                className="h-10 w-10 rounded-lg bg-zinc-800 text-emerald-400 hover:bg-zinc-700 hover:text-emerald-300 transition-all border border-emerald-500/20 flex items-center justify-center disabled:opacity-40"
+                className="h-10 w-10 rounded-xl bg-zinc-900 text-emerald-400 hover:bg-zinc-800 hover:text-emerald-300 transition-all border border-emerald-500/30 flex items-center justify-center disabled:opacity-40 cursor-pointer"
               >
-                <Sparkles className={`h-5 w-5 ${isEnhancing ? "animate-spin" : ""}`} />
+                <Sparkles className={`h-4 w-4 ${isEnhancing ? "animate-spin" : ""}`} />
               </button>
 
               {/* Submit button */}
               <button
                 type="submit"
                 disabled={!inputValue.trim()}
-                className="h-10 w-10 rounded-lg bg-white text-black hover:bg-zinc-200 transition-all hover:scale-105 flex items-center justify-center disabled:opacity-40"
+                className="h-10 px-4 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 transition-all hover:scale-105 flex items-center justify-center font-bold text-xs gap-1.5 disabled:opacity-40 cursor-pointer shadow-lg"
               >
-                <ArrowRight className="h-5 w-5" />
+                <span>Generate</span>
+                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </form>
@@ -182,72 +183,74 @@ export function LandingPageClient() {
       </div>
 
       {/* Suggestion Pills */}
-      <div className="mt-8 flex flex-wrap justify-center gap-3 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+      <div className="mt-8 flex flex-wrap justify-center gap-2.5 max-w-2xl">
         {SUGGESTIONS.map((s) => (
           <button
             key={s.label}
             onClick={() => setInputValue(s.prompt)}
-            className="px-4 py-2 rounded-full border border-zinc-800 bg-zinc-900/30 text-sm text-zinc-500 hover:text-white hover:border-zinc-700 transition-colors"
+            className="px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/40 text-xs text-zinc-400 hover:text-white hover:border-zinc-700 hover:bg-zinc-900 transition-all cursor-pointer"
           >
             {s.label}
           </button>
         ))}
       </div>
 
-      {/* ── Shopify Theme Builder Callout Card ── */}
-      <div className="mt-16 w-full max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-400">
+      {/* ── Seamless Switch to Shopify Studio Callout Card ── */}
+      <div className="mt-14 w-full max-w-2xl">
         <Link
           href="/builder"
-          className="group block p-6 rounded-2xl border border-emerald-900/60 bg-gradient-to-r from-emerald-950/60 via-zinc-950/80 to-emerald-950/60 hover:from-emerald-950/80 hover:border-emerald-700/50 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-950/40"
+          className="group block p-6 rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/70 via-zinc-950/90 to-emerald-950/70 hover:from-emerald-950/90 hover:border-emerald-500/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-950/60"
         >
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-700/30 border border-emerald-600/30 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-700/50 transition-colors shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-600/40 group-hover:scale-105 transition-all shrink-0 shadow-lg shadow-emerald-950/50">
                 <ShopifyIcon className="w-6 h-6 fill-emerald-400" />
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <p className="text-sm font-bold text-white">Shopify Theme Builder Studio</p>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-400 border border-emerald-700/30">
-                    NEW MODULE
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-base font-bold text-white font-heading">Shopify AI Theme Studio</p>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
+                    DEDICATED STUDIO
                   </span>
                 </div>
-                <p className="text-xs text-zinc-500 leading-relaxed">
-                  Generate Liquid 2.0 themes with real-time AI streaming, inline editing, ImageKit transforms & one-click Shopify ZIP export.
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Switch to the dedicated Shopify Liquid 2.0 Theme Generator with live cart drawer simulation, section schema inspector, and 1-click ZIP export.
                 </p>
               </div>
             </div>
-            <ArrowRight className="h-5 w-5 text-zinc-600 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all shrink-0" />
+            <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-emerald-400 group-hover:border-emerald-500/40 group-hover:translate-x-1 transition-all shrink-0">
+              <ArrowRight className="h-4 w-4" />
+            </div>
           </div>
         </Link>
       </div>
 
       {/* Feature Grid */}
-      <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-4 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
+      <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-4">
         {[
           {
-            title: "AI Generation",
-            desc: "Powered by Gemini 2.5 Flash for intelligent code synthesis from any text prompt.",
+            title: "Streaming AI Synthesis",
+            desc: "Powered by Gemini 2.5 Flash for sub-second token streaming and real-time live preview rendering.",
             icon: "✦",
           },
           {
-            title: "Live Visual Editing",
-            desc: "Click and edit any section directly on the live canvas with real-time streaming preview.",
+            title: "Live Visual Inspection",
+            desc: "Click and edit any section directly on the live canvas with instant CSS styling and text editing.",
             icon: "⬡",
           },
           {
-            title: "Clean Code Export",
-            desc: "Get production-ready HTML + Tailwind or full Shopify Liquid 2.0 theme ZIP packages.",
+            title: "Clean Production Export",
+            desc: "Download complete production HTML + Tailwind CSS zip bundles or publish live in seconds.",
             icon: "↓",
           },
         ].map((f, i) => (
           <div
             key={i}
-            className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/20 hover:bg-zinc-900/40 transition-colors group"
+            className="p-6 rounded-3xl border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-zinc-700 transition-all duration-300 group"
           >
-            <p className="text-3xl font-black text-white mb-4 group-hover:text-emerald-400 transition-colors">{f.icon}</p>
-            <h3 className="text-lg font-semibold text-white mb-2">{f.title}</h3>
-            <p className="text-zinc-400 text-sm leading-relaxed">{f.desc}</p>
+            <p className="text-2xl font-black text-emerald-400 mb-3 group-hover:scale-110 transition-transform inline-block">{f.icon}</p>
+            <h3 className="text-base font-bold text-white mb-2 font-heading">{f.title}</h3>
+            <p className="text-zinc-400 text-xs leading-relaxed">{f.desc}</p>
           </div>
         ))}
       </div>
