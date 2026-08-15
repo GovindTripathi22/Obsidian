@@ -6,17 +6,23 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { BuilderSwitcher } from "@/components/ui/BuilderSwitcher";
 import {
   ArrowRight,
   Flame,
   ArrowUpRight,
   Hexagon,
   Sparkles,
+  Zap,
+  Layers,
+  Code2,
+  Sliders,
+  CheckCircle2,
+  ShoppingBag,
 } from "lucide-react";
 import { ProjectRecord } from "@/lib/insforge";
 
-/* ─── Official Shopify SVG Brand Icon ─── */
+/* ── Official Shopify SVG Brand Icon ── */
 const ShopifyIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg viewBox="0 0 109.5 124.5" className={className} fill="currentColor">
     <path d="M95.6 28.2c-.1-.6-.6-1-1.1-1-.5 0-10.2-.8-10.2-.8s-6.7-6.7-7.5-7.5c-.8-.8-2.3-.6-2.9-.4 0 0-1.5.5-3.9 1.2-2.3-6.7-6.4-12.8-13.6-12.8h-.6C53.4 3.6 50.7 2 48.4 2 31.3 2 23.2 23.4 20.8 35.3c-6.2 1.9-10.6 3.3-11.1 3.5-3.5 1.1-3.6 1.2-4 4.5C5.3 46 0 92.2 0 92.2l71.2 12.3 38.3-9.5S95.7 28.8 95.6 28.2z" />
@@ -28,28 +34,28 @@ const STORE_TEMPLATES = [
     id: "luxe-fashion",
     title: "Luxury Cosmetics & Skincare",
     prompt: "Create an ultra-luxurious skincare storefront with rose pink accents, sticky cart preview, product grid, customer reviews slider, and Shopify Liquid 2.0 theme compatibility.",
-    tag: "Beauty",
+    tag: "Beauty & Cosmetics",
     icon: "💄",
   },
   {
     id: "streetwear-booth",
     title: "Minimalist Apparel & Streetwear",
     prompt: "Design a high-contrast minimalist streetwear shop with lookbook gallery, custom product size filters, dark slate buttons, and Shopify theme sections.",
-    tag: "Apparel",
+    tag: "Apparel & Streetwear",
     icon: "👕",
   },
   {
     id: "tech-hardware",
     title: "Cybernetic Tech & Hardware",
     prompt: "Build an industrial tech store for custom hardware, spec comparison tables, instant quote request popover, and Liquid theme templates.",
-    tag: "Tech",
+    tag: "Electronics & Tech",
     icon: "⚡",
   },
   {
     id: "artisanal-coffee",
     title: "Artisanal Coffee & Roasters",
     prompt: "Create a warm artisanal lifestyle roastery store with recurring subscription plans, customer reviews slider, and full Shopify theme export.",
-    tag: "Lifestyle",
+    tag: "Lifestyle & Food",
     icon: "☕",
   },
 ];
@@ -60,7 +66,16 @@ export default function BuilderPage() {
 
   const [promptText, setPromptText] = useState("");
   const [storeName, setStoreName] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Fashion & Beauty");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const categories = [
+    "Fashion & Beauty",
+    "Streetwear",
+    "Electronics",
+    "Artisanal & Coffee",
+    "Jewelry & Watches",
+  ];
 
   const handleSelectTemplate = (prompt: string, name: string) => {
     setPromptText(prompt);
@@ -90,62 +105,84 @@ export default function BuilderPage() {
 
     setTimeout(() => {
       router.push(`/editor/${newProjectId}?type=shopify&initialPrompt=${encodeURIComponent(promptText)}`);
-    }, 400);
+    }, 350);
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 max-w-7xl mx-auto w-full space-y-10 min-h-screen transition-colors duration-500 font-sans bg-zinc-900 dark:bg-zinc-950 text-zinc-100">
-      {/* ── Studio Top Bar: Obsidian Return Button & Dark Mode Toggle ── */}
-      <div className="flex items-center justify-between flex-wrap gap-4 border-b border-zinc-800 pb-6">
+    <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 max-w-7xl mx-auto w-full space-y-10 min-h-screen font-sans bg-zinc-950 text-zinc-100">
+      {/* ── Studio Top Toolbar: Dual-Mode Switcher ── */}
+      <div className="flex items-center justify-between flex-wrap gap-4 border-b border-zinc-800/80 pb-6">
         <div className="flex items-center gap-3">
-          {/* Direct Return Button to Obsidian Website Builder */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-zinc-100 bg-zinc-900 border border-zinc-800 shadow-xs hover:bg-zinc-800 transition-all duration-200 hover:-translate-y-0.5"
-          >
-            <Hexagon className="w-4 h-4 fill-zinc-100 text-zinc-100" />
-            <span>← Website Builder</span>
-          </Link>
-
-          <span className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-400">
-            <ShopifyIcon className="w-3.5 h-3.5 fill-current" />
-            <span>Shopify Liquid 2.0 Studio</span>
-          </span>
+          <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-950/40">
+            <ShopifyIcon className="w-6 h-6 fill-emerald-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-white">Shopify Theme Studio</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Liquid 2.0
+              </span>
+            </div>
+            <p className="text-xs text-zinc-500 font-mono">Specialized E-Commerce AI Architecture</p>
+          </div>
         </div>
 
-        {/* Animated Dark Mode SVG Toggle */}
+        {/* Prominent Builder Switcher */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl border bg-zinc-900 border-zinc-800 shadow-xs">
-            <span className="text-xs font-mono font-semibold text-zinc-400">Theme Mode:</span>
-            <ThemeToggle />
-          </div>
+          <BuilderSwitcher active="shopify" size="md" />
         </div>
       </div>
 
-      {/* ── Title Banner ── */}
+      {/* ── Studio Hero Banner ── */}
       <div className="space-y-3">
-        <h1 className="text-4xl sm:text-5xl font-heading font-black tracking-tight flex items-center gap-3 text-zinc-100">
-          <ShopifyIcon className="w-10 h-10 fill-emerald-500 shrink-0" />
-          Shopify AI Theme Studio
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-400">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>AI-Powered Shopify Liquid Theme Generator</span>
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-heading font-black tracking-tight flex items-center gap-3 text-white">
+          Architect High-Converting Shopify Stores.
         </h1>
         <p className="text-sm max-w-2xl leading-relaxed text-zinc-400">
-          Generate production-ready Liquid 2.0 themes with real-time AI streaming, interactive section editing, and instant ZIP export.
+          Generate complete Shopify Liquid 2.0 themes with real-time streaming preview, customizable sections, schema settings, and one-click production ZIP export.
         </p>
       </div>
 
-      {/* ── Main Prompt Studio ── */}
+      {/* ── Main Studio Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Prompt Studio Form */}
+        {/* Left 2 Columns: Prompt Studio Form */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6 sm:p-8 shadow-sm space-y-6 relative overflow-hidden backdrop-blur-xl">
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/90 p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden backdrop-blur-xl">
             <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4">
               <div className="flex items-center gap-2 text-xs font-bold font-mono tracking-wider text-emerald-400 uppercase">
-                <Sparkles className="w-4 h-4 text-emerald-500" />
-                <span>Store Prompt Generator</span>
+                <Code2 className="w-4 h-4 text-emerald-400" />
+                <span>Shopify Liquid Prompt Engine</span>
               </div>
               <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                Gemini 2.5 Flash
+                Gemini 2.5 Flash • Streaming
               </span>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-zinc-300">
+                Store Niche / Category
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                      selectedCategory === cat
+                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/60"
+                        : "bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700/60 border border-zinc-700/40"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <form onSubmit={handleLaunchBuilder} className="space-y-5">
@@ -157,31 +194,32 @@ export default function BuilderPage() {
                   placeholder="e.g. LuxeAura Cosmetics, Velvet & Vow Apparel..."
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
-                  className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 font-medium text-sm"
+                  className="bg-zinc-950 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 font-medium text-sm"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold mb-2 text-zinc-300">
-                  Store Design Prompt & Concept
+                  Store Design Prompt & Liquid Requirements
                 </label>
                 <textarea
                   value={promptText}
                   onChange={(e) => setPromptText(e.target.value)}
-                  placeholder="Describe your store vision: layout, color theme, typography, hero banner, featured collection grid, reviews, sticky footer..."
+                  placeholder="Describe your Shopify store concept: layout, color theme, typography, hero banner, featured collection grid, customer reviews slider, sticky cart..."
                   rows={5}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none font-medium leading-relaxed"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 resize-none font-medium leading-relaxed"
                 />
                 <div className="flex items-center justify-between mt-2 text-[10px] font-mono text-zinc-500">
                   <span>{promptText.length} characters</span>
-                  <span>HTML + Tailwind CSS + Liquid 2.0</span>
+                  <span>Compiles Liquid 2.0 sections + JSON Schema + CSS</span>
                 </div>
               </div>
 
               <div className="flex items-center justify-between border-t border-zinc-800/80 pt-5">
-                <span className="text-xs font-mono text-zinc-400">
-                  Compiles valid Liquid sections & snippets
-                </span>
+                <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Ready for 1-Click Shopify ZIP Export</span>
+                </div>
                 <Button
                   type="submit"
                   size="md"
@@ -189,7 +227,7 @@ export default function BuilderPage() {
                   disabled={!promptText.trim()}
                   leftIcon={<ShopifyIcon className="w-4 h-4 fill-white" />}
                   rightIcon={<ArrowRight className="w-4 h-4" />}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white border-0"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950/60 font-bold"
                 >
                   Generate Shopify Store
                 </Button>
@@ -197,11 +235,11 @@ export default function BuilderPage() {
             </form>
           </div>
 
-          {/* Preset Cards */}
+          {/* Curated Preset Cards */}
           <div className="space-y-4">
             <h2 className="text-xs font-heading font-mono uppercase tracking-wider font-bold flex items-center gap-2 text-zinc-400">
               <Flame className="w-4 h-4 text-rose-500" />
-              Featured Shopify Presets
+              Curated Shopify Theme Presets
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -209,7 +247,7 @@ export default function BuilderPage() {
                 <div
                   key={tmpl.id}
                   onClick={() => handleSelectTemplate(tmpl.prompt, tmpl.title)}
-                  className="p-5 rounded-2xl border border-zinc-800 bg-zinc-900 hover:border-emerald-500/50 transition-all duration-300 cursor-pointer shadow-xs hover:shadow-md space-y-2.5 group"
+                  className="p-5 rounded-2xl border border-zinc-800 bg-zinc-900/90 hover:border-emerald-500/50 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-0.5 space-y-2.5 group"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-2xl">{tmpl.icon}</span>
@@ -230,16 +268,16 @@ export default function BuilderPage() {
           </div>
         </div>
 
-        {/* Right Col: Live Canvas Simulation */}
+        {/* Right Column: Live Mockup Canvas Simulation */}
         <div className="space-y-6">
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5 space-y-4 shadow-xs">
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/90 p-5 space-y-4 shadow-xl">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               </div>
-              <span className="text-[10px] font-mono text-zinc-400">Live Preview Simulation</span>
+              <span className="text-[10px] font-mono text-zinc-400">Liquid 2.0 Live Simulation</span>
             </div>
 
             <div className="aspect-[4/3] rounded-2xl bg-slate-950 p-4 border border-zinc-800 flex flex-col justify-between relative overflow-hidden group">
@@ -264,6 +302,28 @@ export default function BuilderPage() {
               <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 border-t border-zinc-800/50 pt-2">
                 <span>layout/theme.liquid</span>
                 <span className="text-emerald-400">✓ Ready for Export</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Engine Architecture Details */}
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/90 p-5 space-y-3 shadow-sm">
+            <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-emerald-400" />
+              Shopify Liquid Architecture
+            </h3>
+            <div className="space-y-2.5 text-xs text-zinc-400">
+              <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-950 border border-zinc-800">
+                <span className="font-mono text-[11px]">layout/theme.liquid</span>
+                <span className="text-[10px] text-emerald-400 font-bold">Main Shell</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-950 border border-zinc-800">
+                <span className="font-mono text-[11px]">templates/index.json</span>
+                <span className="text-[10px] text-emerald-400 font-bold">Sections Map</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-950 border border-zinc-800">
+                <span className="font-mono text-[11px]">sections/*.liquid</span>
+                <span className="text-[10px] text-emerald-400 font-bold">Modular Blocks</span>
               </div>
             </div>
           </div>

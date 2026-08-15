@@ -13,6 +13,7 @@ import {
   Palette,
   ShoppingBag,
   Hexagon,
+  ArrowRight,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -30,13 +31,15 @@ export const Sidebar: React.FC = () => {
     return null;
   }
 
+  const isShopify = pathname === "/builder";
+
   const navItems = [
-    { name: "Website Builder", href: "/", icon: Hexagon, accent: "emerald" as const },
-    { name: "Shopify Studio", href: "/builder", icon: ShoppingBag, accent: "emerald" as const },
-    { name: "Projects", href: "/projects", icon: FolderKanban, accent: "zinc" as const },
-    { name: "Inspiration", href: "/inspiration", icon: Sparkles, accent: "zinc" as const },
-    { name: "Billing", href: "/billing", icon: CreditCard, accent: "zinc" as const },
-    { name: "Design System", href: "/design-system", icon: Palette, accent: "zinc" as const },
+    { name: "Website Builder", href: "/", icon: Hexagon, isSpecial: false },
+    { name: "Shopify Studio", href: "/builder", icon: ShoppingBag, isSpecial: false },
+    { name: "Projects Workspace", href: isShopify ? "/projects?tab=shopify" : "/projects?tab=website", icon: FolderKanban },
+    { name: "Inspiration Gallery", href: "/inspiration", icon: Sparkles },
+    { name: "Billing & Plans", href: "/billing", icon: CreditCard },
+    { name: "Design System", href: "/design-system", icon: Palette },
   ];
 
   const projectCount = user?.projectCount || 1;
@@ -44,47 +47,78 @@ export const Sidebar: React.FC = () => {
   const usagePercentage = user?.plan === "pro" ? 20 : (projectCount / 2) * 100;
 
   return (
-    <aside className="fixed top-0 left-0 bottom-0 w-64 bg-zinc-950 border-r border-zinc-800/80 z-40 flex flex-col justify-between p-5">
+    <aside className="fixed top-0 left-0 bottom-0 w-64 bg-zinc-950 border-r border-zinc-800/80 z-40 flex flex-col justify-between p-5 font-sans">
       <div className="space-y-6">
-        {/* Brand */}
+        {/* Brand Header */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg shadow-emerald-600/20">
+          <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg shadow-emerald-600/30">
             <Hexagon className="w-5 h-5 text-white fill-white" />
           </div>
           <div>
             <span className="font-heading font-extrabold text-white text-lg tracking-tight">
-              Obsidian
+              Obsidian <span className="text-zinc-500 font-normal">AI</span>
             </span>
-            <p className="text-[10px] font-mono text-zinc-500">AI Builder v2.5</p>
+            <p className="text-[10px] font-mono text-zinc-500">Dual-Engine Studio</p>
           </div>
         </Link>
 
-        {/* Nav */}
-        <nav className="space-y-1">
+        {/* Quick Switch Banner */}
+        <div className="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 space-y-2 shadow-sm">
+          <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold flex items-center justify-between">
+            <span>Active Engine</span>
+            <span className={`w-2 h-2 rounded-full ${isShopify ? "bg-emerald-400 animate-pulse" : "bg-white animate-pulse"}`} />
+          </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {isShopify ? (
+                <ShopifyIcon className="w-4 h-4 fill-emerald-400" />
+              ) : (
+                <Hexagon className="w-4 h-4 fill-white text-white" />
+              )}
+              <span className="text-xs font-bold text-white">
+                {isShopify ? "Shopify Theme Studio" : "Website Builder"}
+              </span>
+            </div>
+          </div>
+          <Link
+            href={isShopify ? "/" : "/builder"}
+            className="flex items-center justify-between text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 hover:underline pt-1 transition-colors"
+          >
+            <span>Switch to {isShopify ? "Website Builder" : "Shopify Studio"}</span>
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        {/* Nav Items */}
+        <nav className="space-y-1.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href || 
-              (item.href === "/projects" && pathname?.startsWith("/projects"));
+              (item.name.includes("Projects") && pathname?.startsWith("/projects"));
             const Icon = item.icon;
-            const isShopify = item.name === "Shopify Studio";
+            const isShopifyItem = item.name === "Shopify Studio";
 
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
                   isActive
-                    ? "bg-zinc-800 text-white border border-zinc-700/60"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
+                    ? isShopifyItem
+                      ? "bg-emerald-700 text-white shadow-md shadow-emerald-950/40"
+                      : "bg-zinc-800 text-white border border-zinc-700/60"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
                 }`}
               >
-                {isShopify ? (
-                  <ShopifyIcon className={`w-4 h-4 ${isActive ? "fill-emerald-400" : "fill-zinc-500"}`} />
-                ) : (
-                  <Icon className={`w-4 h-4 ${isActive ? "text-emerald-400" : "text-zinc-500"}`} />
-                )}
-                <span>{item.name}</span>
+                <div className="flex items-center gap-3">
+                  {isShopifyItem ? (
+                    <ShopifyIcon className={`w-4 h-4 ${isActive ? "fill-white" : "fill-zinc-500"}`} />
+                  ) : (
+                    <Icon className={`w-4 h-4 ${isActive ? "text-emerald-400" : "text-zinc-500"}`} />
+                  )}
+                  <span>{item.name}</span>
+                </div>
                 {isActive && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 )}
               </Link>
             );
@@ -92,14 +126,14 @@ export const Sidebar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Footer */}
-      <div className="space-y-3">
-        {/* Quota */}
-        <div className="p-3 rounded-xl border border-zinc-800 bg-zinc-900/50 space-y-2">
+      {/* Footer Section */}
+      <div className="space-y-3 pt-4 border-t border-zinc-800/80">
+        {/* Usage Quota Card */}
+        <div className="p-3 rounded-xl border border-zinc-800 bg-zinc-900/60 space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
               <Crown className="w-3.5 h-3.5 text-amber-500" />
-              {user?.plan === "pro" ? "Pro" : "Free"}
+              {user?.plan === "pro" ? "Pro Plan" : "Free Tier"}
             </span>
             <span className="font-mono text-zinc-500">{projectCount}/{maxProjects}</span>
           </div>
@@ -110,15 +144,15 @@ export const Sidebar: React.FC = () => {
             />
           </div>
           {user?.plan !== "pro" && (
-            <Link href="/billing" className="block text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold text-center">
-              Upgrade →
+            <Link href="/billing" className="block text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold text-center pt-0.5">
+              Upgrade to Pro →
             </Link>
           )}
         </div>
 
-        {/* User */}
+        {/* User Profile */}
         {user ? (
-          <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-900/50 border border-zinc-800">
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-7 h-7 rounded-lg bg-zinc-800 text-emerald-400 font-bold flex items-center justify-center text-xs border border-zinc-700">
                 {(user.name || user.email || "G").charAt(0).toUpperCase()}
@@ -137,7 +171,7 @@ export const Sidebar: React.FC = () => {
             </button>
           </div>
         ) : (
-          <Link href="/sign-in" className="block text-center text-xs text-zinc-400 hover:text-white py-2 rounded-xl border border-zinc-800 bg-zinc-900/50 transition-colors">
+          <Link href="/sign-in" className="block text-center text-xs text-zinc-400 hover:text-white py-2 rounded-xl border border-zinc-800 bg-zinc-900/60 transition-colors">
             Sign In
           </Link>
         )}

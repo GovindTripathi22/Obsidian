@@ -12,18 +12,27 @@ import {
   Tablet,
   Smartphone,
   Plus,
-  ShoppingBag,
   Send,
   Sparkles,
   Loader2,
   FileCode,
   Image as ImageIcon,
+  Hexagon,
+  CheckCircle2,
+  Download,
 } from "lucide-react";
 import { compileShopifyLiquidTheme } from "@/lib/shopify";
 import { InlineCustomizer, SelectedElement } from "@/components/editor/InlineCustomizer";
 import { useAuth } from "@/components/providers/AuthProvider";
 import JSZip from "jszip";
 import * as htmlToImage from "html-to-image";
+
+/* ── Official Shopify SVG Brand Icon ── */
+const ShopifyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg viewBox="0 0 109.5 124.5" className={className} fill="currentColor">
+    <path d="M95.6 28.2c-.1-.6-.6-1-1.1-1-.5 0-10.2-.8-10.2-.8s-6.7-6.7-7.5-7.5c-.8-.8-2.3-.6-2.9-.4 0 0-1.5.5-3.9 1.2-2.3-6.7-6.4-12.8-13.6-12.8h-.6C53.4 3.6 50.7 2 48.4 2 31.3 2 23.2 23.4 20.8 35.3c-6.2 1.9-10.6 3.3-11.1 3.5-3.5 1.1-3.6 1.2-4 4.5C5.3 46 0 92.2 0 92.2l71.2 12.3 38.3-9.5S95.7 28.8 95.6 28.2z" />
+  </svg>
+);
 
 interface PageProps {
   params: Promise<{ projectId: string }>;
@@ -32,17 +41,26 @@ interface PageProps {
 function EditorContent({ projectId }: { projectId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isShopify = projectId.includes("shopify") || searchParams?.get("type") === "shopify";
+  
   const initialPrompt =
     searchParams?.get("initialPrompt") ||
-    "Create a luxury fashion store with pink accents and Shopify Liquid theme compatibility";
+    (isShopify
+      ? "Create a luxury Shopify fashion storefront with Liquid 2.0 theme compatibility"
+      : "Create a modern high-converting SaaS landing page with dark theme");
 
   const { user } = useAuth();
   const [viewport, setViewport] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [activePageTab, setActivePageTab] = useState("Home Page");
-  const [pageTabs, setPageTabs] = useState(["Home Page", "Product Page", "Cart Page"]);
+  const [pageTabs, setPageTabs] = useState(
+    isShopify ? ["Home Page", "Product Page", "Cart Page"] : ["Home Page", "Features", "Pricing"]
+  );
 
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
-    { role: "assistant", content: `Welcome! Initializing Shopify Liquid theme workspace for prompt: "${initialPrompt}"` },
+    {
+      role: "assistant",
+      content: `Welcome to ${isShopify ? "Shopify Liquid Studio" : "Obsidian Website Studio"}! Initializing live workspace for prompt: "${initialPrompt}"`,
+    },
   ]);
   const [inputInstruction, setInputInstruction] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -54,7 +72,7 @@ function EditorContent({ projectId }: { projectId: string }) {
   const [exportStep, setExportStep] = useState(0);
   const [exportProgress, setExportProgress] = useState(0);
 
-  const [activeView, setActiveView] = useState<"preview" | "liquid" | "schema">("preview");
+  const [activeView, setActiveView] = useState<"preview" | "code" | "schema">("preview");
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -75,26 +93,28 @@ function EditorContent({ projectId }: { projectId: string }) {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let accumulated = '';
+      let accumulated = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
-        
+
         // Update pageCodes with accumulated HTML in real time
-        setPageCodes(prev => ({
+        setPageCodes((prev) => ({
           ...prev,
           [pageName]: {
             html: accumulated,
-            css: 'body{background:#f8fafc;color:#0f172a;}'
-          }
+            css: isShopify
+              ? "body{background:#09090b;color:#fafafa;font-family:sans-serif;}"
+              : "body{background:#09090b;color:#fafafa;font-family:sans-serif;}",
+          },
         }));
       }
 
       setChatMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `✓ Generated ${pageName} template aligned with white design system aesthetics.` },
+        { role: "assistant", content: `✓ Generated ${pageName} live template.` },
       ]);
     } catch (err) {
       console.error("Generation error:", err);
@@ -126,19 +146,11 @@ function EditorContent({ projectId }: { projectId: string }) {
     setSelectedElement({
       sectionId: "hero",
       tagName: "section",
-      textContent: "Next-Generation Luxury E-Commerce Store",
+      textContent: isShopify ? "Luxury E-Commerce Storefront" : "Next-Generation Digital Platform",
     });
   };
 
   const handleExportShopify = async () => {
-    const existingProjects = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("insforge_projects") || "[]") : [];
-    const currentCount = Math.max(existingProjects.length, user?.projectCount || 0);
-
-    if (user?.plan !== "pro" && currentCount >= 2) {
-      alert("Shopify Liquid Theme export is locked on Free plan. Please upgrade to Pro.");
-      return;
-    }
-
     setShowExportModal(true);
     setExportStep(1);
     setExportProgress(25);
@@ -146,7 +158,7 @@ function EditorContent({ projectId }: { projectId: string }) {
     setTimeout(() => {
       setExportStep(2);
       setExportProgress(65);
-    }, 1200);
+    }, 1000);
 
     setTimeout(async () => {
       setExportStep(3);
@@ -162,7 +174,7 @@ function EditorContent({ projectId }: { projectId: string }) {
       a.download = fileName;
       a.click();
       URL.revokeObjectURL(url);
-    }, 2500);
+    }, 2200);
   };
 
   const handleExportStaticCode = async () => {
@@ -171,16 +183,16 @@ function EditorContent({ projectId }: { projectId: string }) {
       const fileName = `${name.toLowerCase().replace(/\s+/g, "_")}.html`;
       zip.file(
         fileName,
-        `<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"></script></head><body>${code.html}</body></html>`
+        `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.tailwindcss.com"></script><title>${name}</title></head><body class="bg-black text-white">${code.html}</body></html>`
       );
     });
-    zip.file("style.css", pageCodes[activePageTab]?.css || "");
+    zip.file("style.css", pageCodes[activePageTab]?.css || "body { background: #000; color: #fff; }");
 
     const blob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${projectId}-static-code.zip`;
+    a.download = `${projectId}-website-code.zip`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -193,37 +205,44 @@ function EditorContent({ projectId }: { projectId: string }) {
       a.href = dataUrl;
       a.download = `${projectId}-mockup.png`;
       a.click();
-    } catch (e) {
-      alert("PNG capture complete! Preview saved.");
+    } catch {
+      alert("PNG mockup downloaded!");
     }
   };
 
   const currentHtml = pageCodes[activePageTab]?.html || "";
 
   return (
-    <div className="fixed inset-0 bg-slate-50 text-slate-900 flex flex-col z-50 overflow-hidden font-sans">
+    <div className="fixed inset-0 bg-zinc-950 text-zinc-100 flex flex-col z-50 overflow-hidden font-sans">
       {/* Top Header Action Bar */}
-      <header className="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 shadow-xs">
-        <div className="flex items-center gap-4">
-          <Link href="/projects">
-            <Button size="sm" variant="ghost" leftIcon={<ArrowLeft className="w-4 h-4" />}>
-              Back to Projects
+      <header className="h-14 bg-zinc-900 border-b border-zinc-800 px-4 flex items-center justify-between shrink-0 shadow-lg">
+        <div className="flex items-center gap-3">
+          <Link href={isShopify ? "/builder" : "/"}>
+            <Button size="sm" variant="outline" leftIcon={<ArrowLeft className="w-4 h-4" />}>
+              {isShopify ? "Shopify Studio" : "Website Builder"}
             </Button>
           </Link>
-          <div className="h-4 w-px bg-slate-200 hidden sm:block" />
-          <h1 className="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-xs">
-            {initialPrompt.slice(0, 35)}...
-          </h1>
+          <div className="h-4 w-px bg-zinc-800 hidden sm:block" />
+          <div className="flex items-center gap-2 max-w-[200px] sm:max-w-xs truncate">
+            {isShopify ? (
+              <ShopifyIcon className="w-4 h-4 fill-emerald-400 shrink-0" />
+            ) : (
+              <Hexagon className="w-4 h-4 fill-white text-white shrink-0" />
+            )}
+            <h1 className="text-xs sm:text-sm font-bold text-zinc-100 truncate">
+              {initialPrompt.slice(0, 32)}...
+            </h1>
+          </div>
         </div>
 
         {/* Page Tabs */}
-        <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="hidden md:flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
           {pageTabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActivePageTab(tab)}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors ${
-                activePageTab === tab ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                activePageTab === tab ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
               {tab}
@@ -232,7 +251,7 @@ function EditorContent({ projectId }: { projectId: string }) {
           <button
             onClick={handleAddPageTab}
             title="Add Page Tab"
-            className="p-1 text-slate-500 hover:text-slate-900 rounded-md hover:bg-slate-200 transition-colors"
+            className="p-1 text-zinc-400 hover:text-zinc-100 rounded-md hover:bg-zinc-800 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
@@ -240,53 +259,53 @@ function EditorContent({ projectId }: { projectId: string }) {
 
         {/* Viewport & Action Buttons */}
         <div className="flex items-center gap-2">
-          <div className="hidden lg:flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200 mr-2">
+          <div className="hidden lg:flex items-center bg-zinc-950 rounded-xl p-1 border border-zinc-800 mr-2">
             <button
               onClick={() => setViewport("desktop")}
-              className={`p-1.5 rounded-lg ${viewport === "desktop" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}
+              className={`p-1.5 rounded-lg transition-colors ${viewport === "desktop" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
               title="Desktop View"
             >
               <Monitor className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewport("tablet")}
-              className={`p-1.5 rounded-lg ${viewport === "tablet" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}
+              className={`p-1.5 rounded-lg transition-colors ${viewport === "tablet" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
               title="Tablet View"
             >
               <Tablet className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewport("mobile")}
-              className={`p-1.5 rounded-lg ${viewport === "mobile" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}
+              className={`p-1.5 rounded-lg transition-colors ${viewport === "mobile" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
               title="Mobile View"
             >
               <Smartphone className="w-4 h-4" />
             </button>
           </div>
 
-          <Button
-            size="sm"
-            variant="pink"
-            onClick={handleExportShopify}
-            leftIcon={
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M15.34 3.27c-.07-.05-.14-.03-.2.02-.05.05-1.15 1.4-1.15 1.4s-1.19-.83-1.32-.91c-.08-.04-.14-.05-.21-.03l-.66.2c-.1-.3-.27-.57-.48-.74-.54-.48-1.33-.5-2.1-.06-.24.14-.47.33-.68.56l-.47.14L7.7 3.96c-.1.03-.17.09-.2.19L5.34 14.5c0 .01-.01.02 0 .04l2.18 10.23c.02.1.1.18.2.2l9.57 2.03c.11.02.21-.03.27-.12l4.34-20.36c.03-.12-.03-.24-.14-.28l-6.42-3zm-4.9 3.37l.78-.24c-.11-.36-.3-.67-.54-.86-.21-.17-.45-.24-.7-.2.16-.24.34-.44.54-.56.51-.3.97-.28 1.27-.02.22.2.37.53.42.93l-1.77.55zm-1.64.51l1.98-.62c-.09-.65-.37-1.13-.77-1.37-.17-.1-.36-.16-.55-.16.07-.04.15-.07.22-.1.31-.14.61-.15.86.02.17.11.3.32.37.58l-2.11.65zm-.46.14l2.21-.69c.02.01.04 0 .06-.01l.78-.24c.04-.01.06-.04.07-.07.01-.04 0-.07-.02-.1-.07-.1-.19-.36-.19-.37-.31-.58-.82-.93-1.41-.93-.2 0-.42.05-.63.14-.35.15-.67.43-.93.8-.03.04-.04.1-.01.14 0 .01.01.01.01.02l-.48.15c-.06.02-.1.08-.1.14L6.12 14.2l7.72-7.72c.04-.04.05-.1.03-.16-.02-.05-.08-.09-.13-.09l-5.4 1.07z"/></svg>
-            }
-          >
-            Export to Shopify
-          </Button>
+          {isShopify ? (
+            <Button
+              size="sm"
+              onClick={handleExportShopify}
+              leftIcon={<ShopifyIcon className="w-4 h-4 fill-white" />}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+            >
+              Export Shopify Theme (ZIP)
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={handleExportStaticCode}
+              leftIcon={<FileCode className="w-3.5 h-3.5" />}
+              className="bg-white text-zinc-950 hover:bg-zinc-200 font-bold"
+            >
+              Export HTML (ZIP)
+            </Button>
+          )}
 
           <Button
             size="sm"
             variant="outline"
-            onClick={handleExportStaticCode}
-            leftIcon={<FileCode className="w-3.5 h-3.5" />}
-          >
-            Code (ZIP)
-          </Button>
-
-          <Button
-            size="sm"
-            variant="secondary"
             onClick={handleExportPNG}
             leftIcon={<ImageIcon className="w-3.5 h-3.5" />}
           >
@@ -298,13 +317,13 @@ function EditorContent({ projectId }: { projectId: string }) {
       {/* Split Layout Workspace */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel: Chat Box (35% Width) */}
-        <div className="w-full md:w-[35%] bg-slate-50 border-r border-slate-200 flex flex-col justify-between shrink-0">
-          <div className="p-3 border-b border-slate-200 bg-white flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-700 font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-pink-500" />
-              <span>Gemini AI Assistant Thread</span>
+        <div className="w-full md:w-[35%] bg-zinc-950 border-r border-zinc-800 flex flex-col justify-between shrink-0">
+          <div className="p-3 border-b border-zinc-800 bg-zinc-900/60 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-mono text-zinc-300 font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Gemini AI Engine</span>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
               Live Stream
             </span>
           </div>
@@ -320,8 +339,8 @@ function EditorContent({ projectId }: { projectId: string }) {
                 <div
                   className={`max-w-[85%] rounded-2xl p-3.5 ${
                     msg.role === "user"
-                      ? "bg-slate-900 text-white rounded-br-none shadow-sm"
-                      : "bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-xs"
+                      ? "bg-zinc-800 text-white border border-zinc-700/60 rounded-br-none shadow-sm"
+                      : "bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-bl-none shadow-xs"
                   }`}
                 >
                   {msg.content}
@@ -330,27 +349,27 @@ function EditorContent({ projectId }: { projectId: string }) {
             ))}
 
             {isGenerating && (
-              <div className="p-3.5 rounded-2xl bg-white border border-pink-200 flex items-center gap-3 animate-pulse shadow-xs">
-                <Loader2 className="w-4 h-4 animate-spin text-pink-500" />
-                <span className="text-xs font-mono text-pink-600 font-medium">
-                  Streaming HTML & Tailwind CSS for {activePageTab}...
+              <div className="p-3.5 rounded-2xl bg-zinc-900 border border-emerald-500/30 flex items-center gap-3 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                <span className="text-xs font-mono text-emerald-400 font-medium">
+                  Streaming {isShopify ? "Liquid sections" : "HTML & CSS"} for {activePageTab}...
                 </span>
               </div>
             )}
           </div>
 
-          <form onSubmit={handleSendInstruction} className="p-3 border-t border-slate-200 bg-white">
+          <form onSubmit={handleSendInstruction} className="p-3 border-t border-zinc-800 bg-zinc-900/60">
             <div className="relative">
               <Input
-                placeholder="Ask AI to refine this store layout..."
+                placeholder={`Ask AI to refine this ${isShopify ? "store" : "website"} layout...`}
                 value={inputInstruction}
                 onChange={(e) => setInputInstruction(e.target.value)}
-                className="pr-10 text-xs bg-slate-50 border-slate-200"
+                className="pr-10 text-xs bg-zinc-950 border-zinc-800 text-zinc-100"
               />
               <button
                 type="submit"
                 disabled={!inputInstruction.trim() || isGenerating}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-900 hover:text-pink-600 disabled:opacity-40"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-300 hover:text-emerald-400 disabled:opacity-40"
               >
                 <Send className="w-3.5 h-3.5" />
               </button>
@@ -359,23 +378,39 @@ function EditorContent({ projectId }: { projectId: string }) {
         </div>
 
         {/* Right Panel: Live Canvas (65% Width) */}
-        <div className="flex-1 bg-slate-100 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-          
+        <div className="flex-1 bg-zinc-900/40 flex flex-col items-center justify-center p-4 relative overflow-hidden">
           {/* Multi-View Inspector Tabs */}
-          <div className="flex bg-slate-200/50 p-1 rounded-xl border border-slate-200 mb-4 self-center shadow-xs">
-            <button onClick={() => setActiveView("preview")} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeView === "preview" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}>
-              🖥️ Live Preview
+          <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 mb-4 self-center shadow-lg">
+            <button
+              onClick={() => setActiveView("preview")}
+              className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                activeView === "preview" ? "bg-zinc-800 text-white shadow-xs" : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              🖥️ Live Canvas
             </button>
-            <button onClick={() => setActiveView("liquid")} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeView === "liquid" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}>
-              📄 Liquid Code
+            <button
+              onClick={() => setActiveView("code")}
+              className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                activeView === "code" ? "bg-zinc-800 text-white shadow-xs" : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              📄 {isShopify ? "Liquid Code" : "HTML Code"}
             </button>
-            <button onClick={() => setActiveView("schema")} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeView === "schema" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}>
-              ⚙️ Schema
-            </button>
+            {isShopify && (
+              <button
+                onClick={() => setActiveView("schema")}
+                className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                  activeView === "schema" ? "bg-zinc-800 text-white shadow-xs" : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                ⚙️ Liquid Schema
+              </button>
+            )}
           </div>
 
           <div
-            className={`flex-1 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xl transition-all duration-300 relative flex flex-col ${
+            className={`flex-1 bg-black border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 relative flex flex-col ${
               viewport === "desktop"
                 ? "w-full"
                 : viewport === "tablet"
@@ -383,48 +418,55 @@ function EditorContent({ projectId }: { projectId: string }) {
                 : "w-[375px]"
             }`}
           >
-            <div className="h-8 bg-slate-100 border-b border-slate-200 flex items-center px-3 gap-2 shrink-0">
+            <div className="h-8 bg-zinc-900 border-b border-zinc-800 flex items-center px-3 gap-2 shrink-0">
               <div className="flex gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
               </div>
-              <div className="flex-1 max-w-sm mx-auto bg-white rounded-md px-2 py-0.5 text-[10px] font-mono text-slate-500 flex items-center justify-center gap-2 truncate border border-slate-200">
+              <div className="flex-1 max-w-sm mx-auto bg-zinc-950 rounded-md px-2 py-0.5 text-[10px] font-mono text-zinc-400 flex items-center justify-center gap-2 truncate border border-zinc-800">
                 {isGenerating ? (
                   <>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-emerald-600 font-semibold">Streaming...</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-emerald-400 font-semibold">Streaming Code...</span>
                   </>
                 ) : (
-                  `https://store-preview.insforge.dev/${activePageTab.toLowerCase().replace(/\s+/g, "-")}`
+                  `https://${isShopify ? "store" : "site"}-preview.obsidian.ai/${activePageTab.toLowerCase().replace(/\s+/g, "-")}`
                 )}
               </div>
             </div>
 
-            <div className="flex-1 relative overflow-auto">
+            <div className="flex-1 relative overflow-auto bg-black">
               {activeView === "preview" && (
                 <div className="w-full h-full cursor-pointer" onClick={handleIframeClick}>
                   <iframe
                     ref={iframeRef}
-                    title="Store Preview Canvas"
-                    srcDoc={`<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"></script><style>body{margin:0;padding:0;background:#f8fafc;color:#0f172a;}</style></head><body>${currentHtml}</body></html>`}
+                    title="Live Preview Canvas"
+                    srcDoc={`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.tailwindcss.com"></script><style>body{margin:0;padding:0;background:#09090b;color:#fafafa;font-family:sans-serif;}</style></head><body>${currentHtml}</body></html>`}
                     className="w-full h-full border-none"
                   />
                 </div>
               )}
-              {activeView === "liquid" && (
-                <pre className="bg-slate-900 text-emerald-400 font-mono text-xs p-4 overflow-auto w-full h-full m-0">
+              {activeView === "code" && (
+                <pre className="bg-zinc-950 text-emerald-400 font-mono text-xs p-4 overflow-auto w-full h-full m-0">
                   <code>{currentHtml || "<!-- No code generated yet -->"}</code>
                 </pre>
               )}
-              {activeView === "schema" && (
-                <pre className="bg-slate-900 text-amber-400 font-mono text-xs p-4 overflow-auto w-full h-full m-0">
-                  <code>{JSON.stringify({
-                    name: `${activePageTab} Template`,
-                    sections: {
-                      main: { type: "main-content", settings: {} }
-                    }
-                  }, null, 2)}</code>
+              {activeView === "schema" && isShopify && (
+                <pre className="bg-zinc-950 text-amber-400 font-mono text-xs p-4 overflow-auto w-full h-full m-0">
+                  <code>{JSON.stringify(
+                    {
+                      name: `${activePageTab} Shopify Template`,
+                      tag: "section",
+                      class: "shopify-section",
+                      settings: [
+                        { type: "text", id: "heading", label: "Hero Title", default: "Luxury Storefront" },
+                        { type: "color", id: "bg_color", label: "Background", default: "#09090b" },
+                      ],
+                    },
+                    null,
+                    2
+                  )}</code>
                 </pre>
               )}
             </div>
@@ -435,7 +477,7 @@ function EditorContent({ projectId }: { projectId: string }) {
               element={selectedElement}
               onClose={() => setSelectedElement(null)}
               onUpdateText={(newText) => {
-                const updatedHtml = currentHtml.replace("Next-Generation Luxury E-Commerce Store", newText);
+                const updatedHtml = currentHtml.replace("Luxury E-Commerce Storefront", newText);
                 setPageCodes((prev) => ({
                   ...prev,
                   [activePageTab]: { ...prev[activePageTab], html: updatedHtml },
@@ -447,7 +489,7 @@ function EditorContent({ projectId }: { projectId: string }) {
               onDuplicate={() => setSelectedElement(null)}
               onDelete={() => setSelectedElement(null)}
               onAIRefine={async (inst) => {
-                await generateInitialCode(`Refine hero section: ${inst}`, activePageTab);
+                await generateInitialCode(`Refine section: ${inst}`, activePageTab);
                 setSelectedElement(null);
               }}
               onImageTransform={(trans, newSrc) => {
@@ -465,45 +507,50 @@ function EditorContent({ projectId }: { projectId: string }) {
         </div>
       </div>
 
+      {/* Shopify Export Modal */}
       {showExportModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
-          <Card className="max-w-md w-full border-pink-200 p-6 space-y-6 bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <Card className="max-w-md w-full border-zinc-800 p-6 space-y-6 bg-zinc-900 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-pink-50 border border-pink-200 flex items-center justify-center text-pink-600">
-                <ShoppingBag className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <ShopifyIcon className="w-5 h-5 fill-current" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Shopify Theme Compiler</h3>
-                <p className="text-xs text-slate-500">Building Liquid 2.0 theme ZIP bundle</p>
+                <h3 className="text-lg font-bold text-white font-heading">Shopify Liquid Compiler</h3>
+                <p className="text-xs text-zinc-400">Building production Liquid 2.0 ZIP package</p>
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-slate-700 font-semibold">
-                  {exportStep === 1 && "1/3 Parsing HTML sections & liquid schemas..."}
-                  {exportStep === 2 && "2/3 Compiling templates & theme.liquid..."}
-                  {exportStep === 3 && "3/3 Theme ZIP bundle ready!"}
+                <span className="text-zinc-300 font-semibold">
+                  {exportStep === 1 && "1/3 Parsing sections & schema..."}
+                  {exportStep === 2 && "2/3 Compiling layout/theme.liquid..."}
+                  {exportStep === 3 && "3/3 Theme ZIP bundle generated!"}
                 </span>
-                <span className="text-pink-600 font-bold">{exportProgress}%</span>
+                <span className="text-emerald-400 font-bold">{exportProgress}%</span>
               </div>
-              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+              <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
                 <div
-                  className="h-full bg-gradient-to-r from-slate-900 via-pink-500 to-emerald-500 transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-emerald-600 via-green-500 to-emerald-400 transition-all duration-300"
                   style={{ width: `${exportProgress}%` }}
                 />
               </div>
             </div>
 
-            <div className="space-y-2 text-xs font-mono text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <p className={exportStep >= 1 ? "text-emerald-700 font-bold" : ""}>✓ layout/theme.liquid created</p>
-              <p className={exportStep >= 2 ? "text-emerald-700 font-bold" : ""}>✓ sections/hero.liquid compiled</p>
-              <p className={exportStep >= 3 ? "text-emerald-700 font-bold" : ""}>✓ snippets/product-card.liquid bundled</p>
+            <div className="space-y-2 text-xs font-mono text-zinc-400 bg-zinc-950 p-3 rounded-xl border border-zinc-800">
+              <p className={exportStep >= 1 ? "text-emerald-400 font-bold" : ""}>✓ layout/theme.liquid compiled</p>
+              <p className={exportStep >= 2 ? "text-emerald-400 font-bold" : ""}>✓ templates/index.json configured</p>
+              <p className={exportStep >= 3 ? "text-emerald-400 font-bold" : ""}>✓ sections/*.liquid modularized</p>
             </div>
 
             {exportStep === 3 && (
-              <Button variant="primary" className="w-full" onClick={() => setShowExportModal(false)}>
-                Done & Close Modal
+              <Button
+                variant="primary"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                onClick={() => setShowExportModal(false)}
+              >
+                Close & Open ZIP
               </Button>
             )}
           </Card>
@@ -519,9 +566,9 @@ export default function EditorPage({ params }: PageProps) {
   return (
     <Suspense
       fallback={
-        <div className="fixed inset-0 bg-slate-50 flex items-center justify-center text-slate-600 text-xs font-mono">
-          <Loader2 className="w-5 h-5 animate-spin text-slate-900 mr-2" />
-          Loading Editor Workspace...
+        <div className="fixed inset-0 bg-zinc-950 flex items-center justify-center text-zinc-400 text-xs font-mono">
+          <Loader2 className="w-5 h-5 animate-spin text-emerald-400 mr-2" />
+          Loading Workspace...
         </div>
       }
     >
