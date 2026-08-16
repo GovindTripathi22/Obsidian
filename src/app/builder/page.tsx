@@ -241,9 +241,21 @@ export default function BuilderPage() {
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-emerald-900 selection:text-white relative overflow-hidden font-sans smooth-gpu page-transition-enter">
-      {/* Ambient Lighting Overlay */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-radial from-emerald-950/25 via-transparent to-transparent blur-3xl" />
+      {/* ── Multi-Color Poppy Background Video (Shopify Exclusive) ── */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="h-full w-full object-cover opacity-30 scale-105 filter saturate-150 transition-opacity duration-1000"
+        >
+          <source src="/shopify-bg.mp4" type="video/mp4" />
+        </video>
+        {/* Contrast & Vignette Overlays */}
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-[3px]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/80" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-radial from-emerald-950/30 via-transparent to-transparent blur-3xl" />
       </div>
 
       <div className="relative z-10">
