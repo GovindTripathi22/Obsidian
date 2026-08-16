@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -124,6 +124,12 @@ export default function BuilderPage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSelectPreset = (preset: typeof PRESET_STORES[0]) => {
     setActivePreset(preset);
@@ -276,13 +282,20 @@ export default function BuilderPage() {
               live cart simulations, clean schemas, and instant 1-click ZIP export.
             </p>
 
-            {/* Plan Quota Indicator */}
+            {/* Plan Quota Indicator with Hydration Guard */}
             <div className="inline-flex items-center gap-2 text-xs font-mono bg-zinc-900/80 border border-zinc-800 px-3.5 py-1.5 rounded-full shadow-md">
               <span className="text-zinc-400">Quota:</span>
-              <span className={stats.isLimitReached ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}>
-                {stats.isPro ? "Pro (Unlimited)" : `${stats.totalCount}/3 Free Projects`}
+              <span
+                suppressHydrationWarning
+                className={mounted && stats.isLimitReached ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}
+              >
+                {mounted
+                  ? stats.isPro
+                    ? "Pro (Unlimited)"
+                    : `${stats.totalCount}/3 Free Projects`
+                  : "0/3 Free Projects"}
               </span>
-              {!stats.isPro && (
+              {mounted && !stats.isPro && (
                 <Link href="/billing" className="text-emerald-400 hover:text-emerald-300 font-bold ml-1 border-l border-zinc-700 pl-2">
                   Upgrade to Pro →
                 </Link>
