@@ -33,6 +33,9 @@ import {
   SlidersHorizontal,
   Code2,
   Compass,
+  X,
+  FileText,
+  Trash2,
 } from "lucide-react";
 import { compileShopifyLiquidTheme } from "@/lib/shopify";
 import { InlineCustomizer, SelectedElement } from "@/components/editor/InlineCustomizer";
@@ -68,6 +71,13 @@ const COMPONENT_BLOCKS = [
   { name: "High-Impact Footer", desc: "Navigation links, newsletter subscription, copyright, and social icons", icon: "⚓", prompt: "Add a comprehensive dark theme footer with newsletter capture form, 4-column navigation, and social links." },
 ];
 
+const PAGE_TEMPLATES = [
+  { title: "About Us", desc: "Company story, team grid, mission statement & timeline", icon: "🏢" },
+  { title: "Product Catalog", desc: "Filtered collection grid with quick-add cards & sorting", icon: "🛍️" },
+  { title: "Contact & FAQ", desc: "Contact inquiry form, support channels & expandable FAQ", icon: "📞" },
+  { title: "Lookbook Gallery", desc: "High-res editorial masonry photo grid & video showcase", icon: "📸" },
+];
+
 export function EditorContent({ projectId }: { projectId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,6 +95,10 @@ export function EditorContent({ projectId }: { projectId: string }) {
   const [pageTabs, setPageTabs] = useState(
     isShopify ? ["Home Page", "Product Page", "Cart Page"] : ["Home Page", "Features", "Pricing"]
   );
+
+  // Add Page Modal
+  const [showAddPageModal, setShowAddPageModal] = useState(false);
+  const [customPageName, setCustomPageName] = useState("");
 
   // Left Panel Sub-tab: 'chat' | 'blocks' | 'theme' | 'actions'
   const [sidebarTab, setSidebarTab] = useState<"chat" | "blocks" | "theme" | "actions">("chat");
@@ -183,7 +197,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
     ]);
 
     setIsGenerating(true);
-    await generateInitialCode(`${initialPrompt}. Additional refinement instruction: ${textToSend}`, activePageTab);
+    await generateInitialCode(`${initialPrompt}. Additional refinement instruction for ${activePageTab}: ${textToSend}`, activePageTab);
   };
 
   const handleApplyTheme = async (theme: typeof COLOR_THEMES[0]) => {
@@ -237,6 +251,75 @@ export function EditorContent({ projectId }: { projectId: string }) {
     }
   };
 
+  // ── Zero-Token Fast Page Creation ──
+  const handleCreatePage = (title: string) => {
+    const finalTitle = title.trim();
+    if (!finalTitle || pageTabs.includes(finalTitle)) {
+      setShowAddPageModal(false);
+      return;
+    }
+
+    const defaultScaffold = `
+<header class="bg-zinc-950/90 border-b border-zinc-800 px-6 py-4 flex items-center justify-between sticky top-0 z-40 backdrop-blur-xl">
+  <div class="flex items-center gap-2 font-bold text-white font-heading">
+    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+    <span>${finalTitle}</span>
+  </div>
+  <a href="#home" class="text-xs font-semibold text-zinc-400 hover:text-white">← Return Home</a>
+</header>
+<section class="py-24 px-6 max-w-4xl mx-auto text-center space-y-6">
+  <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-mono font-semibold">
+    ✨ ${finalTitle} Overview
+  </span>
+  <h1 class="text-4xl sm:text-5xl font-black text-white font-heading">${finalTitle}</h1>
+  <p class="text-zinc-400 text-sm max-w-xl mx-auto leading-relaxed">
+    This page was created with 0 tokens. Use the AI Assistant on the left panel to synthesize custom content, grids, or interactive forms whenever you are ready.
+  </p>
+  <div class="p-8 rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 text-center space-y-3">
+    <p class="text-xs font-mono text-zinc-500">Ready for AI Customization</p>
+    <button onclick="window.parent.postMessage('openChat', '*')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all">
+      Prompt AI to Design This Page →
+    </button>
+  </div>
+</section>
+<footer class="py-12 px-6 border-t border-zinc-800 bg-zinc-950 text-center text-xs text-zinc-500">
+  <p>© 2026 Powered by Obsidian AI Studio.</p>
+</footer>
+`;
+
+    setPageCodes((prev) => ({
+      ...prev,
+      [finalTitle]: {
+        html: defaultScaffold,
+        css: `body{background:${activeTheme.bg};color:#fafafa;font-family:sans-serif;}`,
+      },
+    }));
+
+    setPageTabs((prev) => [...prev, finalTitle]);
+    setActivePageTab(finalTitle);
+    setShowAddPageModal(false);
+    setCustomPageName("");
+
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: `✓ Added new page "${finalTitle}" with 0 token consumption. You can now prompt me on the left to synthesize its layout!`,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+  };
+
+  const handleDeletePageTab = (e: React.MouseEvent, tabName: string) => {
+    e.stopPropagation();
+    if (pageTabs.length <= 1) return;
+    const remaining = pageTabs.filter((t) => t !== tabName);
+    setPageTabs(remaining);
+    if (activePageTab === tabName) {
+      setActivePageTab(remaining[0]);
+    }
+  };
+
   const handleClearChat = () => {
     setChatMessages([
       {
@@ -251,13 +334,6 @@ export function EditorContent({ projectId }: { projectId: string }) {
     navigator.clipboard.writeText(text);
     setCopiedMsg(index);
     setTimeout(() => setCopiedMsg(null), 2000);
-  };
-
-  const handleAddPageTab = () => {
-    const newTabName = `Page ${pageTabs.length + 1}`;
-    setPageTabs((prev) => [...prev, newTabName]);
-    setActivePageTab(newTabName);
-    generateInitialCode(`Design ${newTabName} layout for ${initialPrompt}`, newTabName);
   };
 
   const handleIframeClick = () => {
@@ -369,25 +445,35 @@ export function EditorContent({ projectId }: { projectId: string }) {
           </div>
         </div>
 
-        {/* Page Tabs */}
+        {/* Page Tabs with Zero-Token Adding */}
         <div className="hidden md:flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
           {pageTabs.map((tab) => (
-            <button
+            <div
               key={tab}
               onClick={() => setActivePageTab(tab)}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer group ${
                 activePageTab === tab ? "bg-zinc-800 text-white shadow-sm font-bold" : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              {tab}
-            </button>
+              <span>{tab}</span>
+              {pageTabs.length > 1 && tab !== "Home Page" && (
+                <button
+                  onClick={(e) => handleDeletePageTab(e, tab)}
+                  title={`Delete ${tab}`}
+                  className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 p-0.5 rounded transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           ))}
           <button
-            onClick={handleAddPageTab}
-            title="Add Page Tab"
-            className="p-1 text-zinc-400 hover:text-zinc-100 rounded-md hover:bg-zinc-800 transition-colors"
+            onClick={() => setShowAddPageModal(true)}
+            title="Add Page (0 Tokens)"
+            className="p-1 text-zinc-400 hover:text-emerald-400 rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1 px-2 text-xs font-semibold"
           >
             <Plus className="w-3.5 h-3.5" />
+            <span className="text-[10px]">Add Page</span>
           </button>
         </div>
 
@@ -450,7 +536,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
 
       {/* Split Layout Workspace */}
       <div className="flex-1 flex overflow-hidden">
-        {/* ── Left Panel: Enhanced AI Workspace Assistant (35% Width) ── */}
+        {/* ── Left Panel: Enhanced AI Workspace Assistant (32% Width) ── */}
         <div className="w-full md:w-[38%] lg:w-[32%] bg-zinc-950 border-r border-zinc-800 flex flex-col justify-between shrink-0 font-sans">
           {/* Top Panel Bar */}
           <div className="p-3 bg-zinc-900/80 border-b border-zinc-800 space-y-2.5">
@@ -724,7 +810,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
           </form>
         </div>
 
-        {/* ── Right Panel: Live Canvas & Code Inspector (65% Width) ── */}
+        {/* ── Right Panel: Live Canvas & Code Inspector (68% Width) ── */}
         <div className="flex-1 bg-zinc-900/40 flex flex-col items-center justify-center p-4 relative overflow-hidden">
           {/* Multi-View Inspector Tabs */}
           <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 mb-4 self-center shadow-lg">
@@ -853,6 +939,73 @@ export function EditorContent({ projectId }: { projectId: string }) {
           )}
         </div>
       </div>
+
+      {/* ── Add Page Modal (0 Tokens Consumed) ── */}
+      {showAddPageModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full rounded-3xl border border-zinc-800 bg-zinc-900 p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-heading font-bold text-base text-white">Add New Page</h3>
+              </div>
+              <button
+                onClick={() => setShowAddPageModal(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-400">
+              Create a new page tab with <strong>0 tokens consumed</strong>. Choose a template or enter a custom name.
+            </p>
+
+            {/* Ready Templates */}
+            <div className="grid grid-cols-2 gap-2.5">
+              {PAGE_TEMPLATES.map((tmpl) => (
+                <button
+                  key={tmpl.title}
+                  onClick={() => handleCreatePage(tmpl.title)}
+                  className="p-3 rounded-xl border border-zinc-800 bg-zinc-950/80 hover:border-emerald-500/50 hover:bg-zinc-800 text-left transition-all group cursor-pointer space-y-1"
+                >
+                  <span className="text-xl">{tmpl.icon}</span>
+                  <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
+                    {tmpl.title}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 line-clamp-1">{tmpl.desc}</p>
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Name */}
+            <div className="space-y-2 pt-2 border-t border-zinc-800">
+              <label className="text-[11px] font-mono font-bold text-zinc-400">Custom Page Name</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="e.g. FAQ, Lookbook, Case Studies..."
+                  value={customPageName}
+                  onChange={(e) => setCustomPageName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && customPageName.trim()) {
+                      handleCreatePage(customPageName);
+                    }
+                  }}
+                  className="bg-zinc-950 border-zinc-800 text-xs py-2 text-white"
+                />
+                <Button
+                  size="sm"
+                  disabled={!customPageName.trim()}
+                  onClick={() => handleCreatePage(customPageName)}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4"
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Shopify Export Modal */}
       {showExportModal && (
