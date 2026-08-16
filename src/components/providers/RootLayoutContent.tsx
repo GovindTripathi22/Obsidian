@@ -7,16 +7,14 @@ import { Header } from "@/components/Header";
 
 export function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isHome = pathname === "/";
-  const isEditor = pathname?.startsWith("/editor");
+  const isFullWidth = pathname === "/" || pathname === "/builder" || pathname?.startsWith("/editor");
 
-  // Home page: full-width, no sidebar (uses its own SiteHeader)
-  // Editor: full-width, no sidebar (has its own layout)
-  if (isHome || isEditor) {
+  // Full-width immersive studios: Website Builder (/), Shopify Studio (/builder), and Editor
+  if (isFullWidth) {
     return <>{children}</>;
   }
 
-  // All other pages: dark sidebar + dark header shell
+  // Management & account pages: Projects, Inspiration, Billing, Design System
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
       <Sidebar />

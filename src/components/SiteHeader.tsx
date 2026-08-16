@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Hexagon, LogIn, UserPlus, LogOut, Sparkles } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -9,9 +10,11 @@ import { BuilderSwitcher } from "@/components/ui/BuilderSwitcher";
 
 export const SiteHeader: React.FC = () => {
   const { user, signOut, loading } = useAuth();
+  const pathname = usePathname();
+  const isShopify = pathname === "/builder";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-zinc-800/80 bg-black/80 backdrop-blur-2xl">
+    <header className="sticky top-0 z-50 w-full border-b border-zinc-800/80 bg-black/80 backdrop-blur-2xl transition-colors duration-300">
       <div className="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 gap-4">
         {/* Brand Logo */}
         <div className="flex items-center gap-3">
@@ -29,12 +32,15 @@ export const SiteHeader: React.FC = () => {
 
         {/* Center: Interactive Mode Switcher Pill */}
         <div className="flex items-center">
-          <BuilderSwitcher active="website" size="md" />
+          <BuilderSwitcher active={isShopify ? "shopify" : "website"} size="md" />
         </div>
 
         {/* Right Navigation & Auth */}
         <nav className="flex items-center gap-3">
-          <Link href="/projects?tab=website" className="text-xs font-medium text-zinc-400 hover:text-white transition-colors px-2 py-1 hidden md:block">
+          <Link
+            href={isShopify ? "/projects?tab=shopify" : "/projects?tab=website"}
+            className="text-xs font-medium text-zinc-400 hover:text-white transition-colors px-2 py-1 hidden md:block"
+          >
             My Projects
           </Link>
           <Link href="/billing" className="text-xs font-medium text-zinc-400 hover:text-white transition-colors px-2 py-1 hidden md:block">
