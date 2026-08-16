@@ -260,7 +260,7 @@ export default function BuilderPage() {
   return (
     <div className="min-h-screen bg-black text-white selection:bg-emerald-900 selection:text-white relative overflow-hidden font-sans smooth-gpu page-transition-enter">
       {/* ── Multi-Color Poppy Background Video (Shopify Exclusive) ── */}
-      <VideoBackground src="/shopify-bg.mp4" opacity={0.35} />
+      <VideoBackground src="/shopify-bg.mp4" opacity={0.75} />
 
       <div className="relative z-10">
         <SiteHeader />
