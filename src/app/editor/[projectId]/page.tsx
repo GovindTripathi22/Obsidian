@@ -28,6 +28,11 @@ import {
   Copy,
   Check,
   ChevronRight,
+  Layers,
+  Wand2,
+  SlidersHorizontal,
+  Code2,
+  Compass,
 } from "lucide-react";
 import { compileShopifyLiquidTheme } from "@/lib/shopify";
 import { InlineCustomizer, SelectedElement } from "@/components/editor/InlineCustomizer";
@@ -45,6 +50,23 @@ const ShopifyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 interface PageProps {
   params: Promise<{ projectId: string }>;
 }
+
+const COLOR_THEMES = [
+  { name: "Obsidian Emerald", primary: "#10b981", bg: "#09090b", accent: "from-emerald-600 to-teal-500", label: "Emerald (Default)" },
+  { name: "Cyberpunk Neon", primary: "#06b6d4", bg: "#030712", accent: "from-cyan-500 to-blue-600", label: "Cyan & Blue" },
+  { name: "Violet Luxury", primary: "#8b5cf6", bg: "#090514", accent: "from-violet-600 to-purple-500", label: "Purple Velvet" },
+  { name: "Sunset Crimson", primary: "#f43f5e", bg: "#0c0507", accent: "from-rose-600 to-amber-500", label: "Rose & Amber" },
+  { name: "Monochrome Noir", primary: "#f4f4f5", bg: "#000000", accent: "from-zinc-100 to-zinc-400", label: "Pure Monochrome" },
+];
+
+const COMPONENT_BLOCKS = [
+  { name: "Hero Section with CTA", desc: "Large bold headline, glowing action buttons, and social proof logos", icon: "🚀", prompt: "Add a high-converting hero section with large tracked typography, dual CTA buttons with ambient glow, and trusted company badges." },
+  { name: "Bento Feature Grid", desc: "3x3 asymmetric feature layout with glassmorphic cards and micro-animations", icon: "⬡", prompt: "Add a modern bento box grid displaying 4 core product capabilities with frosted glass cards and subtle borders." },
+  { name: "Pricing Comparison Table", desc: "3-tier pricing matrix with monthly/annual toggle and highlighted Pro plan", icon: "💳", prompt: "Add a clean 3-tier pricing table (Starter, Pro, Enterprise) with feature checkmarks and a recommended badge." },
+  { name: "Customer Testimonials", desc: "Social proof cards with 5-star ratings, avatars, and verified badges", icon: "⭐", prompt: "Add a luxury testimonial slider or grid with client headshots, company names, and 5-star rating stars." },
+  { name: "Interactive FAQ Accordion", desc: "Clean expandable questions and answers with smooth chevron toggle", icon: "❓", prompt: "Add an expandable FAQ accordion section covering pricing, deployment, and onboarding." },
+  { name: "High-Impact Footer", desc: "Navigation links, newsletter subscription, copyright, and social icons", icon: "⚓", prompt: "Add a comprehensive dark theme footer with newsletter capture form, 4-column navigation, and social links." },
+];
 
 export function EditorContent({ projectId }: { projectId: string }) {
   const router = useRouter();
@@ -64,13 +86,14 @@ export function EditorContent({ projectId }: { projectId: string }) {
     isShopify ? ["Home Page", "Product Page", "Cart Page"] : ["Home Page", "Features", "Pricing"]
   );
 
-  // Left Panel Sub-tab: 'chat' | 'actions' | 'theme'
-  const [sidebarTab, setSidebarTab] = useState<"chat" | "actions" | "theme">("chat");
+  // Left Panel Sub-tab: 'chat' | 'blocks' | 'theme' | 'actions'
+  const [sidebarTab, setSidebarTab] = useState<"chat" | "blocks" | "theme" | "actions">("chat");
+  const [activeTheme, setActiveTheme] = useState(COLOR_THEMES[0]);
 
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string; time?: string }>>([
     {
       role: "assistant",
-      content: `Welcome to ${isShopify ? "Shopify Liquid Studio" : "Obsidian Website Studio"}! Initializing live workspace for: "${initialPrompt}"`,
+      content: `Welcome to ${isShopify ? "Shopify Liquid Studio" : "Obsidian Website Studio"}! Live workspace initialized for prompt: "${initialPrompt}"`,
       time: "Just now",
     },
   ]);
@@ -124,9 +147,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
           ...prev,
           [pageName]: {
             html: accumulated,
-            css: isShopify
-              ? "body{background:#09090b;color:#fafafa;font-family:sans-serif;}"
-              : "body{background:#09090b;color:#fafafa;font-family:sans-serif;}",
+            css: `body{background:${activeTheme.bg};color:#fafafa;font-family:sans-serif;}`,
           },
         }));
       }
@@ -163,6 +184,22 @@ export function EditorContent({ projectId }: { projectId: string }) {
 
     setIsGenerating(true);
     await generateInitialCode(`${initialPrompt}. Additional refinement instruction: ${textToSend}`, activePageTab);
+  };
+
+  const handleApplyTheme = async (theme: typeof COLOR_THEMES[0]) => {
+    setActiveTheme(theme);
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: `Apply ${theme.name} palette`,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+    await handleSendInstruction(
+      undefined,
+      `Update the color theme to ${theme.name} with primary accent ${theme.primary} and dark background ${theme.bg}.`
+    );
   };
 
   const handleEnhancePrompt = async () => {
@@ -414,7 +451,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
       {/* Split Layout Workspace */}
       <div className="flex-1 flex overflow-hidden">
         {/* ── Left Panel: Enhanced AI Workspace Assistant (35% Width) ── */}
-        <div className="w-full md:w-[38%] lg:w-[33%] bg-zinc-950 border-r border-zinc-800 flex flex-col justify-between shrink-0 font-sans">
+        <div className="w-full md:w-[38%] lg:w-[32%] bg-zinc-950 border-r border-zinc-800 flex flex-col justify-between shrink-0 font-sans">
           {/* Top Panel Bar */}
           <div className="p-3 bg-zinc-900/80 border-b border-zinc-800 space-y-2.5">
             <div className="flex items-center justify-between">
@@ -442,29 +479,51 @@ export function EditorContent({ projectId }: { projectId: string }) {
               </div>
             </div>
 
-            {/* Panel Sub-Tabs */}
-            <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-[11px] font-semibold">
+            {/* 4 Minimalist Sub-Tabs */}
+            <div className="grid grid-cols-4 bg-zinc-950 p-0.5 rounded-xl border border-zinc-800 text-[10px] font-semibold">
               <button
                 onClick={() => setSidebarTab("chat")}
-                className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   sidebarTab === "chat"
                     ? "bg-zinc-800 text-white shadow-xs font-bold"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
-                <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Conversation</span>
+                <MessageSquare className="w-3 h-3 text-emerald-400" />
+                <span>Chat</span>
               </button>
               <button
                 onClick={() => setSidebarTab("actions")}
-                className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   sidebarTab === "actions"
                     ? "bg-zinc-800 text-white shadow-xs font-bold"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>1-Click Actions</span>
+                <Zap className="w-3 h-3 text-amber-400" />
+                <span>Fixes</span>
+              </button>
+              <button
+                onClick={() => setSidebarTab("blocks")}
+                className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                  sidebarTab === "blocks"
+                    ? "bg-zinc-800 text-white shadow-xs font-bold"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <Layers className="w-3 h-3 text-cyan-400" />
+                <span>Blocks</span>
+              </button>
+              <button
+                onClick={() => setSidebarTab("theme")}
+                className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                  sidebarTab === "theme"
+                    ? "bg-zinc-800 text-white shadow-xs font-bold"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <Palette className="w-3 h-3 text-rose-400" />
+                <span>Theme</span>
               </button>
             </div>
           </div>
@@ -521,11 +580,11 @@ export function EditorContent({ projectId }: { projectId: string }) {
             </div>
           )}
 
-          {/* Sub-tab 2: 1-Click Quick Actions */}
+          {/* Sub-tab 2: 1-Click Quick Fixes & Tweaks */}
           {sidebarTab === "actions" && (
             <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-              <p className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-bold px-1">
-                Instant Layout Enhancements
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold px-1">
+                Instant Design Refinements
               </p>
               {quickPillActions.map((action, i) => (
                 <button
@@ -541,6 +600,69 @@ export function EditorContent({ projectId }: { projectId: string }) {
                     <p className="text-[10px] text-zinc-400 line-clamp-1">{action.prompt}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Sub-tab 3: Section Library Blocks */}
+          {sidebarTab === "blocks" && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold px-1">
+                Ready-Made UI Blocks
+              </p>
+              {COMPONENT_BLOCKS.map((block, i) => (
+                <button
+                  key={i}
+                  disabled={isGenerating}
+                  onClick={() => handleSendInstruction(undefined, block.prompt)}
+                  className="w-full p-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-cyan-500/40 text-left transition-all flex items-start gap-2.5 group cursor-pointer disabled:opacity-50"
+                >
+                  <span className="text-lg shrink-0 mt-0.5">{block.icon}</span>
+                  <div className="space-y-0.5 flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors">
+                        {block.name}
+                      </p>
+                      <Plus className="w-3.5 h-3.5 text-zinc-500 group-hover:text-cyan-400 transition-colors shrink-0" />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 line-clamp-2 leading-relaxed">{block.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Sub-tab 4: Theme Palette Tokens */}
+          {sidebarTab === "theme" && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold px-1">
+                Color Palette & Mood Swatches
+              </p>
+              {COLOR_THEMES.map((theme) => (
+                <button
+                  key={theme.name}
+                  disabled={isGenerating}
+                  onClick={() => handleApplyTheme(theme)}
+                  className={`w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between group cursor-pointer ${
+                    activeTheme.name === theme.name
+                      ? "bg-zinc-900 border-emerald-500/60 shadow-md"
+                      : "bg-zinc-950/60 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-6 h-6 rounded-lg border border-white/20 shadow-inner shrink-0"
+                      style={{ backgroundColor: theme.primary }}
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-white">{theme.name}</p>
+                      <p className="text-[10px] text-zinc-400">{theme.label}</p>
+                    </div>
+                  </div>
+                  {activeTheme.name === theme.name && (
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  )}
                 </button>
               ))}
             </div>
@@ -667,7 +789,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   <iframe
                     ref={iframeRef}
                     title="Live Preview Canvas"
-                    srcDoc={`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.tailwindcss.com"></script><style>body{margin:0;padding:0;background:#09090b;color:#fafafa;font-family:sans-serif;}</style></head><body>${currentHtml}</body></html>`}
+                    srcDoc={`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.tailwindcss.com"></script><style>body{margin:0;padding:0;background:${activeTheme.bg};color:#fafafa;font-family:sans-serif;}</style></head><body>${currentHtml}</body></html>`}
                     className="w-full h-full border-none"
                   />
                 </div>
@@ -686,7 +808,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                       class: "shopify-section",
                       settings: [
                         { type: "text", id: "heading", label: "Hero Title", default: "Luxury Storefront" },
-                        { type: "color", id: "bg_color", label: "Background", default: "#09090b" },
+                        { type: "color", id: "bg_color", label: "Background", default: activeTheme.bg },
                       ],
                     },
                     null,
