@@ -7,9 +7,9 @@ import { Header } from "@/components/Header";
 
 export function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isFullWidth = pathname === "/" || pathname === "/builder" || pathname?.startsWith("/editor");
+  const isFullWidth = pathname === "/" || pathname === "/builder" || pathname === "/shopify" || pathname?.startsWith("/editor");
 
-  // Full-width immersive studios: Website Builder (/), Shopify Studio (/builder), and Editor
+  // Full-width immersive studios: Website Builder (/), Shopify Studio (/builder, /shopify), and Editor
   if (isFullWidth) {
     return <>{children}</>;
   }

@@ -11,7 +11,7 @@ import { BuilderSwitcher } from "@/components/ui/BuilderSwitcher";
 export const SiteHeader: React.FC = () => {
   const { user, signOut, loading } = useAuth();
   const pathname = usePathname();
-  const isShopify = pathname === "/builder";
+  const isShopify = pathname === "/builder" || pathname === "/shopify";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-800/80 bg-black/80 backdrop-blur-2xl transition-colors duration-300">
