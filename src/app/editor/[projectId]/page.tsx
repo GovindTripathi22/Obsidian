@@ -20,6 +20,14 @@ import {
   Hexagon,
   CheckCircle2,
   Download,
+  RotateCcw,
+  Sliders,
+  Palette,
+  MessageSquare,
+  Zap,
+  Copy,
+  Check,
+  ChevronRight,
 } from "lucide-react";
 import { compileShopifyLiquidTheme } from "@/lib/shopify";
 import { InlineCustomizer, SelectedElement } from "@/components/editor/InlineCustomizer";
@@ -38,11 +46,11 @@ interface PageProps {
   params: Promise<{ projectId: string }>;
 }
 
-function EditorContent({ projectId }: { projectId: string }) {
+export function EditorContent({ projectId }: { projectId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isShopify = projectId.includes("shopify") || searchParams?.get("type") === "shopify";
-  
+
   const initialPrompt =
     searchParams?.get("initialPrompt") ||
     (isShopify
@@ -56,14 +64,20 @@ function EditorContent({ projectId }: { projectId: string }) {
     isShopify ? ["Home Page", "Product Page", "Cart Page"] : ["Home Page", "Features", "Pricing"]
   );
 
-  const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
+  // Left Panel Sub-tab: 'chat' | 'actions' | 'theme'
+  const [sidebarTab, setSidebarTab] = useState<"chat" | "actions" | "theme">("chat");
+
+  const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string; time?: string }>>([
     {
       role: "assistant",
-      content: `Welcome to ${isShopify ? "Shopify Liquid Studio" : "Obsidian Website Studio"}! Initializing live workspace for prompt: "${initialPrompt}"`,
+      content: `Welcome to ${isShopify ? "Shopify Liquid Studio" : "Obsidian Website Studio"}! Initializing live workspace for: "${initialPrompt}"`,
+      time: "Just now",
     },
   ]);
   const [inputInstruction, setInputInstruction] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [copiedMsg, setCopiedMsg] = useState<number | null>(null);
 
   const [pageCodes, setPageCodes] = useState<Record<string, { html: string; css: string }>>({});
   const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
@@ -75,10 +89,15 @@ function EditorContent({ projectId }: { projectId: string }) {
   const [activeView, setActiveView] = useState<"preview" | "code" | "schema">("preview");
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     generateInitialCode(initialPrompt, activePageTab);
   }, []);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, isGenerating]);
 
   const generateInitialCode = async (prompt: string, pageName: string) => {
     setIsGenerating(true);
@@ -114,7 +133,11 @@ function EditorContent({ projectId }: { projectId: string }) {
 
       setChatMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `✓ Generated ${pageName} live template.` },
+        {
+          role: "assistant",
+          content: `✓ ${pageName} live layout synthesized and compiled successfully.`,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
       ]);
     } catch (err) {
       console.error("Generation error:", err);
@@ -123,16 +146,74 @@ function EditorContent({ projectId }: { projectId: string }) {
     }
   };
 
-  const handleSendInstruction = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputInstruction.trim()) return;
+  const handleSendInstruction = async (e?: React.FormEvent, customText?: string) => {
+    if (e) e.preventDefault();
+    const textToSend = customText || inputInstruction;
+    if (!textToSend.trim() || isGenerating) return;
 
-    const instruction = inputInstruction;
     setInputInstruction("");
-    setChatMessages((prev) => [...prev, { role: "user", content: instruction }]);
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: textToSend,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
 
     setIsGenerating(true);
-    await generateInitialCode(`${initialPrompt}. Follow-up instruction: ${instruction}`, activePageTab);
+    await generateInitialCode(`${initialPrompt}. Additional refinement instruction: ${textToSend}`, activePageTab);
+  };
+
+  const handleEnhancePrompt = async () => {
+    if (!inputInstruction.trim() || isEnhancing) return;
+    const original = inputInstruction;
+    setIsEnhancing(true);
+    setInputInstruction("✨ Enhancing instruction with AI...");
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: `Expand this design refinement instruction into a precise, high-impact web design requirement: "${original}"`,
+          projectId: "enhance-instruction",
+          pageName: "refine",
+        }),
+      });
+      if (res.ok && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let enhanced = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          enhanced += decoder.decode(value, { stream: true });
+        }
+        setInputInstruction(enhanced.trim() || original);
+      } else {
+        setInputInstruction(original);
+      }
+    } catch {
+      setInputInstruction(original);
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleClearChat = () => {
+    setChatMessages([
+      {
+        role: "assistant",
+        content: `Chat session reset. Ready for new design instructions for ${activePageTab}.`,
+        time: "Just now",
+      },
+    ]);
+  };
+
+  const handleCopyMessage = (text: string, index: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMsg(index);
+    setTimeout(() => setCopiedMsg(null), 2000);
   };
 
   const handleAddPageTab = () => {
@@ -210,6 +291,22 @@ function EditorContent({ projectId }: { projectId: string }) {
     }
   };
 
+  const quickPillActions = isShopify
+    ? [
+        { label: "🛍️ Add Sticky Cart Drawer", prompt: "Add a modern sticky slide-out cart drawer with dynamic subtotal calculations and checkout button." },
+        { label: "⚡ Add Announcement Ticker", prompt: "Add a high-contrast top announcement banner ticker with free shipping threshold and discount promo code." },
+        { label: "⭐ Add Customer Reviews", prompt: "Add a luxury customer reviews grid with 5-star ratings, verified buyer badges, and avatar photos." },
+        { label: "🏷️ Add Discount Badges", prompt: "Add prominent '20% OFF' and 'Best Seller' glowing badges to the featured product cards." },
+        { label: "🔒 Add Trust & Security Bar", prompt: "Add a trust badges strip with 256-bit SSL encryption, 30-day money back guarantee, and free worldwide shipping." },
+      ]
+    : [
+        { label: "🚀 Add Glowing Hero CTA", prompt: "Add an energetic pulsing glow animation to the primary hero call-to-action button." },
+        { label: "💎 Add Frosted Glass Cards", prompt: "Convert feature containers to backdrop-blur frosted glass cards with subtle 1px borders." },
+        { label: "📊 Add 3-Tier Pricing Table", prompt: "Add a responsive 3-column pricing comparison matrix with highlighted popular tier." },
+        { label: "❓ Add FAQ Accordion", prompt: "Add a modern expandable FAQ accordion section covering pricing, security, and onboarding." },
+        { label: "💬 Add Testimonials Grid", prompt: "Add social proof testimonials with customer quotes, company logos, and 5-star ratings." },
+      ];
+
   const currentHtml = pageCodes[activePageTab]?.html || "";
 
   return (
@@ -242,7 +339,7 @@ function EditorContent({ projectId }: { projectId: string }) {
               key={tab}
               onClick={() => setActivePageTab(tab)}
               className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                activePageTab === tab ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200"
+                activePageTab === tab ? "bg-zinc-800 text-white shadow-sm font-bold" : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
               {tab}
@@ -316,75 +413,203 @@ function EditorContent({ projectId }: { projectId: string }) {
 
       {/* Split Layout Workspace */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel: Chat Box (35% Width) */}
-        <div className="w-full md:w-[35%] bg-zinc-950 border-r border-zinc-800 flex flex-col justify-between shrink-0">
-          <div className="p-3 border-b border-zinc-800 bg-zinc-900/60 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-mono text-zinc-300 font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Gemini AI Engine</span>
-            </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
-              Live Stream
-            </span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {chatMessages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex gap-3 text-xs leading-relaxed ${
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-2xl p-3.5 ${
-                    msg.role === "user"
-                      ? "bg-zinc-800 text-white border border-zinc-700/60 rounded-br-none shadow-sm"
-                      : "bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-bl-none shadow-xs"
-                  }`}
-                >
-                  {msg.content}
+        {/* ── Left Panel: Enhanced AI Workspace Assistant (35% Width) ── */}
+        <div className="w-full md:w-[38%] lg:w-[33%] bg-zinc-950 border-r border-zinc-800 flex flex-col justify-between shrink-0 font-sans">
+          {/* Top Panel Bar */}
+          <div className="p-3 bg-zinc-900/80 border-b border-zinc-800 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-white font-heading">AI Studio Assistant</h3>
                 </div>
               </div>
-            ))}
 
-            {isGenerating && (
-              <div className="p-3.5 rounded-2xl bg-zinc-900 border border-emerald-500/30 flex items-center gap-3 animate-pulse">
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                <span className="text-xs font-mono text-emerald-400 font-medium">
-                  Streaming {isShopify ? "Liquid sections" : "HTML & CSS"} for {activePageTab}...
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Gemini 2.5
                 </span>
+                <button
+                  onClick={handleClearChat}
+                  title="Reset conversation"
+                  className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
               </div>
-            )}
+            </div>
+
+            {/* Panel Sub-Tabs */}
+            <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-[11px] font-semibold">
+              <button
+                onClick={() => setSidebarTab("chat")}
+                className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  sidebarTab === "chat"
+                    ? "bg-zinc-800 text-white shadow-xs font-bold"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Conversation</span>
+              </button>
+              <button
+                onClick={() => setSidebarTab("actions")}
+                className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  sidebarTab === "actions"
+                    ? "bg-zinc-800 text-white shadow-xs font-bold"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span>1-Click Actions</span>
+              </button>
+            </div>
           </div>
 
-          <form onSubmit={handleSendInstruction} className="p-3 border-t border-zinc-800 bg-zinc-900/60">
+          {/* Sub-tab 1: Conversation Stream */}
+          {sidebarTab === "chat" && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
+              {chatMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex gap-2.5 text-xs leading-relaxed ${
+                    msg.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  {msg.role === "assistant" && (
+                    <div className="w-6 h-6 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                      <Sparkles className="w-3 h-3" />
+                    </div>
+                  )}
+
+                  <div
+                    className={`max-w-[88%] rounded-2xl p-3.5 space-y-1.5 shadow-sm ${
+                      msg.role === "user"
+                        ? "bg-zinc-800 text-white border border-zinc-700/80 rounded-br-none"
+                        : "bg-zinc-900/90 border border-zinc-800 text-zinc-200 rounded-bl-none"
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    <div className="flex items-center justify-between pt-1 border-t border-zinc-800/60 text-[10px] font-mono text-zinc-500">
+                      <span>{msg.time || "Active"}</span>
+                      {msg.role === "assistant" && (
+                        <button
+                          onClick={() => handleCopyMessage(msg.content, i)}
+                          className="hover:text-zinc-300 flex items-center gap-1"
+                        >
+                          {copiedMsg === i ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedMsg === i ? "Copied" : "Copy"}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {isGenerating && (
+                <div className="p-3.5 rounded-2xl bg-zinc-900 border border-emerald-500/30 flex items-center gap-3 animate-pulse">
+                  <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                  <span className="text-xs font-mono text-emerald-400 font-medium">
+                    Streaming live updates for {activePageTab}...
+                  </span>
+                </div>
+              )}
+              <div ref={chatBottomRef} />
+            </div>
+          )}
+
+          {/* Sub-tab 2: 1-Click Quick Actions */}
+          {sidebarTab === "actions" && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+              <p className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-bold px-1">
+                Instant Layout Enhancements
+              </p>
+              {quickPillActions.map((action, i) => (
+                <button
+                  key={i}
+                  disabled={isGenerating}
+                  onClick={() => handleSendInstruction(undefined, action.prompt)}
+                  className="w-full p-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-emerald-500/40 text-left transition-all flex items-center justify-between group cursor-pointer disabled:opacity-50"
+                >
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
+                      {action.label}
+                    </p>
+                    <p className="text-[10px] text-zinc-400 line-clamp-1">{action.prompt}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Quick Action Suggestion Chips Bar */}
+          <div className="px-3 pt-2 pb-1 border-t border-zinc-800/80 bg-zinc-900/40">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar">
+              {quickPillActions.slice(0, 3).map((pill, i) => (
+                <button
+                  key={i}
+                  disabled={isGenerating}
+                  onClick={() => handleSendInstruction(undefined, pill.prompt)}
+                  className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-emerald-500/40 text-[10px] font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer shrink-0"
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Prompt Input Form */}
+          <form onSubmit={(e) => handleSendInstruction(e)} className="p-3 border-t border-zinc-800 bg-zinc-900/90">
             <div className="relative">
-              <Input
-                placeholder={`Ask AI to refine this ${isShopify ? "store" : "website"} layout...`}
+              <textarea
+                rows={2}
+                placeholder={`Ask AI to refine this ${isShopify ? "store" : "page"} (e.g. 'Add a 3-tier pricing matrix')...`}
                 value={inputInstruction}
                 onChange={(e) => setInputInstruction(e.target.value)}
-                className="pr-10 text-xs bg-zinc-950 border-zinc-800 text-zinc-100"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendInstruction(e);
+                  }
+                }}
+                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 p-3 pr-20 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-500/50 focus:outline-none resize-none font-medium"
               />
-              <button
-                type="submit"
-                disabled={!inputInstruction.trim() || isGenerating}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-300 hover:text-emerald-400 disabled:opacity-40"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
+
+              <div className="absolute right-2 bottom-2.5 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  title="Enhance prompt with AI"
+                  disabled={!inputInstruction.trim() || isEnhancing}
+                  onClick={handleEnhancePrompt}
+                  className="p-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-40"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${isEnhancing ? "animate-spin" : ""}`} />
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!inputInstruction.trim() || isGenerating}
+                  className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition-colors cursor-pointer shadow-md"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </form>
         </div>
 
-        {/* Right Panel: Live Canvas (65% Width) */}
+        {/* ── Right Panel: Live Canvas & Code Inspector (65% Width) ── */}
         <div className="flex-1 bg-zinc-900/40 flex flex-col items-center justify-center p-4 relative overflow-hidden">
           {/* Multi-View Inspector Tabs */}
           <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 mb-4 self-center shadow-lg">
             <button
               onClick={() => setActiveView("preview")}
               className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                activeView === "preview" ? "bg-zinc-800 text-white shadow-xs" : "text-zinc-400 hover:text-zinc-200"
+                activeView === "preview" ? "bg-zinc-800 text-white shadow-xs font-bold" : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
               🖥️ Live Canvas
@@ -392,7 +617,7 @@ function EditorContent({ projectId }: { projectId: string }) {
             <button
               onClick={() => setActiveView("code")}
               className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                activeView === "code" ? "bg-zinc-800 text-white shadow-xs" : "text-zinc-400 hover:text-zinc-200"
+                activeView === "code" ? "bg-zinc-800 text-white shadow-xs font-bold" : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
               📄 {isShopify ? "Liquid Code" : "HTML Code"}
@@ -401,7 +626,7 @@ function EditorContent({ projectId }: { projectId: string }) {
               <button
                 onClick={() => setActiveView("schema")}
                 className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                  activeView === "schema" ? "bg-zinc-800 text-white shadow-xs" : "text-zinc-400 hover:text-zinc-200"
+                  activeView === "schema" ? "bg-zinc-800 text-white shadow-xs font-bold" : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 ⚙️ Liquid Schema
