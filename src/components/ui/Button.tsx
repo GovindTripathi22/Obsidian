@@ -37,9 +37,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ghost:
         "bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 focus:ring-zinc-600",
       pink:
-        "bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-500 hover:to-emerald-500 text-white shadow-md shadow-emerald-500/20 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] focus:ring-emerald-500",
+        "bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-600 shadow-md shadow-zinc-950/50 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] focus:ring-white/30",
       cyan:
-        "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-md shadow-indigo-500/20 hover:-translate-y-0.5 active:scale-[0.98] focus:ring-indigo-500",
+        "bg-zinc-900 hover:bg-zinc-800 text-zinc-100 border border-zinc-700 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] focus:ring-zinc-500",
       danger:
         "bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-500/20 hover:-translate-y-0.5 active:scale-[0.98] focus:ring-red-500",
     };

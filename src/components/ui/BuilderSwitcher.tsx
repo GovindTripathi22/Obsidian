@@ -60,7 +60,7 @@ export const BuilderSwitcher: React.FC<BuilderSwitcherProps> = ({
         className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-xl shadow-lg will-change-transform ${
           active === "website"
             ? "bg-gradient-to-r from-zinc-800 to-zinc-700/90 border border-zinc-600/40 text-white shadow-zinc-950/80"
-            : "bg-gradient-to-r from-emerald-600 to-green-600 border border-emerald-400/40 text-white shadow-emerald-950/80"
+            : "bg-zinc-800 border border-zinc-600 text-white shadow-black/80"
         }`}
       />
 
@@ -81,7 +81,7 @@ export const BuilderSwitcher: React.FC<BuilderSwitcherProps> = ({
         <Hexagon
           className={`shrink-0 transition-transform duration-200 ${
             isSmall ? "w-3.5 h-3.5" : "w-4 h-4"
-          } ${active === "website" ? "fill-emerald-400 text-emerald-400 scale-105" : "text-zinc-500"}`}
+          } ${active === "website" ? "fill-white text-white scale-105" : "text-zinc-500"}`}
         />
         <span className="truncate">Website Builder</span>
         {active === "website" && (
@@ -112,11 +112,11 @@ export const BuilderSwitcher: React.FC<BuilderSwitcherProps> = ({
         />
         <span className="truncate">Shopify Studio</span>
         {active === "shopify" ? (
-          <span className="hidden sm:inline-block text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-900/90 text-emerald-200 border border-emerald-400/40 ml-0.5 font-bold">
+          <span className="hidden sm:inline-block text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-200 border border-zinc-700 ml-0.5 font-bold">
             Liquid 2.0
           </span>
         ) : (
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse hidden sm:inline-block ml-0.5" />
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-glow-white hidden sm:inline-block ml-0.5" />
         )}
       </button>
     </div>

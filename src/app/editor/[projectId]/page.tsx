@@ -38,6 +38,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { compileShopifyLiquidTheme } from "@/lib/shopify";
+import { UserButton } from "@/components/auth/UserButton";
 import { InlineCustomizer, SelectedElement } from "@/components/editor/InlineCustomizer";
 import { useAuth } from "@/components/providers/AuthProvider";
 import JSZip from "jszip";
@@ -55,11 +56,11 @@ interface PageProps {
 }
 
 const COLOR_THEMES = [
-  { name: "Obsidian Emerald", primary: "#10b981", bg: "#09090b", accent: "from-emerald-600 to-teal-500", label: "Emerald (Default)" },
-  { name: "Cyberpunk Neon", primary: "#06b6d4", bg: "#030712", accent: "from-cyan-500 to-blue-600", label: "Cyan & Blue" },
-  { name: "Violet Luxury", primary: "#8b5cf6", bg: "#090514", accent: "from-violet-600 to-purple-500", label: "Purple Velvet" },
-  { name: "Sunset Crimson", primary: "#f43f5e", bg: "#0c0507", accent: "from-rose-600 to-amber-500", label: "Rose & Amber" },
-  { name: "Monochrome Noir", primary: "#f4f4f5", bg: "#000000", accent: "from-zinc-100 to-zinc-400", label: "Pure Monochrome" },
+  { name: "Monochrome Noir", primary: "#ffffff", bg: "#000000", accent: "from-white via-zinc-200 to-zinc-400", label: "Pure Monochrome (Default)" },
+  { name: "Silver Frost", primary: "#e4e4e7", bg: "#09090b", accent: "from-zinc-100 to-zinc-400", label: "Frosted Silver" },
+  { name: "Titanium Slate", primary: "#a1a1aa", bg: "#09090b", accent: "from-zinc-300 to-zinc-600", label: "Brushed Titanium" },
+  { name: "Obsidian Carbon", primary: "#71717a", bg: "#050505", accent: "from-zinc-400 to-zinc-800", label: "Deep Carbon" },
+  { name: "Liquid Platinum", primary: "#f4f4f5", bg: "#0c0c0e", accent: "from-white to-zinc-500", label: "Liquid Platinum" },
 ];
 
 const COMPONENT_BLOCKS = [
@@ -262,13 +263,13 @@ export function EditorContent({ projectId }: { projectId: string }) {
     const defaultScaffold = `
 <header class="bg-zinc-950/90 border-b border-zinc-800 px-6 py-4 flex items-center justify-between sticky top-0 z-40 backdrop-blur-xl">
   <div class="flex items-center gap-2 font-bold text-white font-heading">
-    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+    <span class="w-2.5 h-2.5 rounded-full bg-white animate-pulse shadow-glow-white"></span>
     <span>${finalTitle}</span>
   </div>
   <a href="#home" class="text-xs font-semibold text-zinc-400 hover:text-white">← Return Home</a>
 </header>
 <section class="py-24 px-6 max-w-4xl mx-auto text-center space-y-6">
-  <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-mono font-semibold">
+  <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 text-zinc-200 border border-zinc-700 text-xs font-mono font-semibold">
     ✨ ${finalTitle} Overview
   </span>
   <h1 class="text-4xl sm:text-5xl font-black text-white font-heading">${finalTitle}</h1>
@@ -277,7 +278,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
   </p>
   <div class="p-8 rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 text-center space-y-3">
     <p class="text-xs font-mono text-zinc-500">Ready for AI Customization</p>
-    <button onclick="window.parent.postMessage('openChat', '*')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all">
+    <button onclick="window.parent.postMessage('openChat', '*')" class="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs transition-all shadow-md shadow-white/5">
       Prompt AI to Design This Page →
     </button>
   </div>
@@ -435,7 +436,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
           <div className="h-4 w-px bg-zinc-800 hidden sm:block" />
           <div className="flex items-center gap-2 max-w-[200px] sm:max-w-xs truncate">
             {isShopify ? (
-              <ShopifyIcon className="w-4 h-4 fill-emerald-400 shrink-0" />
+              <ShopifyIcon className="w-4 h-4 fill-white text-white shrink-0" />
             ) : (
               <Hexagon className="w-4 h-4 fill-white text-white shrink-0" />
             )}
@@ -470,7 +471,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
           <button
             onClick={() => setShowAddPageModal(true)}
             title="Add Page (0 Tokens)"
-            className="p-1 text-zinc-400 hover:text-emerald-400 rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1 px-2 text-xs font-semibold"
+            className="p-1 text-zinc-400 hover:text-white rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1 px-2 text-xs font-semibold"
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="text-[10px]">Add Page</span>
@@ -508,7 +509,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
               size="sm"
               onClick={handleExportShopify}
               leftIcon={<ShopifyIcon className="w-4 h-4 fill-white" />}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+              className="bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-md shadow-white/5"
             >
               Export Shopify Theme (ZIP)
             </Button>
@@ -531,6 +532,10 @@ export function EditorContent({ projectId }: { projectId: string }) {
           >
             PNG Mockup
           </Button>
+
+          <div className="ml-1 pl-2 border-l border-zinc-800 hidden sm:block">
+            <UserButton />
+          </div>
         </div>
       </header>
 
@@ -542,7 +547,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
           <div className="p-3 bg-zinc-900/80 border-b border-zinc-800 space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <div className="w-6 h-6 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white">
                   <Sparkles className="w-3.5 h-3.5" />
                 </div>
                 <div>
@@ -551,8 +556,8 @@ export function EditorContent({ projectId }: { projectId: string }) {
               </div>
 
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-zinc-700 font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-glow-white" />
                   Gemini 2.5
                 </span>
                 <button
@@ -575,7 +580,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
-                <MessageSquare className="w-3 h-3 text-emerald-400" />
+                <MessageSquare className={`w-3 h-3 ${sidebarTab === "chat" ? "text-white" : "text-zinc-400"}`} />
                 <span>Chat</span>
               </button>
               <button
@@ -586,7 +591,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
-                <Zap className="w-3 h-3 text-amber-400" />
+                <Zap className={`w-3 h-3 ${sidebarTab === "actions" ? "text-white" : "text-zinc-400"}`} />
                 <span>Fixes</span>
               </button>
               <button
@@ -597,7 +602,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
-                <Layers className="w-3 h-3 text-cyan-400" />
+                <Layers className={`w-3 h-3 ${sidebarTab === "blocks" ? "text-white" : "text-zinc-400"}`} />
                 <span>Blocks</span>
               </button>
               <button
@@ -608,7 +613,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
-                <Palette className="w-3 h-3 text-rose-400" />
+                <Palette className={`w-3 h-3 ${sidebarTab === "theme" ? "text-white" : "text-zinc-400"}`} />
                 <span>Theme</span>
               </button>
             </div>
@@ -625,16 +630,16 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   }`}
                 >
                   {msg.role === "assistant" && (
-                    <div className="w-6 h-6 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
-                      <Sparkles className="w-3 h-3" />
+                    <div className="w-6 h-6 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white shrink-0 mt-0.5">
+                      <Sparkles className="w-3.5 h-3.5" />
                     </div>
                   )}
 
                   <div
                     className={`max-w-[88%] rounded-2xl p-3.5 space-y-1.5 shadow-sm ${
                       msg.role === "user"
-                        ? "bg-zinc-800 text-white border border-zinc-700/80 rounded-br-none"
-                        : "bg-zinc-900/90 border border-zinc-800 text-zinc-200 rounded-bl-none"
+                        ? "bg-white text-black rounded-br-none"
+                        : "bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-bl-none"
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -643,9 +648,9 @@ export function EditorContent({ projectId }: { projectId: string }) {
                       {msg.role === "assistant" && (
                         <button
                           onClick={() => handleCopyMessage(msg.content, i)}
-                          className="hover:text-zinc-300 flex items-center gap-1"
+                          className="hover:text-white flex items-center gap-1"
                         >
-                          {copiedMsg === i ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          {copiedMsg === i ? <Check className="w-3 h-3 text-white" /> : <Copy className="w-3 h-3" />}
                           <span>{copiedMsg === i ? "Copied" : "Copy"}</span>
                         </button>
                       )}
@@ -655,9 +660,9 @@ export function EditorContent({ projectId }: { projectId: string }) {
               ))}
 
               {isGenerating && (
-                <div className="p-3.5 rounded-2xl bg-zinc-900 border border-emerald-500/30 flex items-center gap-3 animate-pulse">
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                  <span className="text-xs font-mono text-emerald-400 font-medium">
+                <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-700 flex items-center gap-3 animate-pulse">
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span className="text-xs font-mono text-zinc-200 font-medium">
                     Streaming live updates for {activePageTab}...
                   </span>
                 </div>
@@ -677,15 +682,15 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   key={i}
                   disabled={isGenerating}
                   onClick={() => handleSendInstruction(undefined, action.prompt)}
-                  className="w-full p-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-emerald-500/40 text-left transition-all flex items-center justify-between group cursor-pointer disabled:opacity-50"
+                  className="w-full p-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-600 text-left transition-all flex items-center justify-between group cursor-pointer disabled:opacity-50"
                 >
                   <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
+                    <p className="text-xs font-bold text-white group-hover:text-zinc-200 transition-colors">
                       {action.label}
                     </p>
                     <p className="text-[10px] text-zinc-400 line-clamp-1">{action.prompt}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
                 </button>
               ))}
             </div>
@@ -702,15 +707,15 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   key={i}
                   disabled={isGenerating}
                   onClick={() => handleSendInstruction(undefined, block.prompt)}
-                  className="w-full p-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-cyan-500/40 text-left transition-all flex items-start gap-2.5 group cursor-pointer disabled:opacity-50"
+                  className="w-full p-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-600 text-left transition-all flex items-start gap-2.5 group cursor-pointer disabled:opacity-50"
                 >
                   <span className="text-lg shrink-0 mt-0.5">{block.icon}</span>
                   <div className="space-y-0.5 flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors">
+                      <p className="text-xs font-bold text-white group-hover:text-zinc-200 transition-colors">
                         {block.name}
                       </p>
-                      <Plus className="w-3.5 h-3.5 text-zinc-500 group-hover:text-cyan-400 transition-colors shrink-0" />
+                      <Plus className="w-3.5 h-3.5 text-zinc-500 group-hover:text-white transition-colors shrink-0" />
                     </div>
                     <p className="text-[10px] text-zinc-400 line-clamp-2 leading-relaxed">{block.desc}</p>
                   </div>
@@ -732,7 +737,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   onClick={() => handleApplyTheme(theme)}
                   className={`w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between group cursor-pointer ${
                     activeTheme.name === theme.name
-                      ? "bg-zinc-900 border-emerald-500/60 shadow-md"
+                      ? "bg-zinc-900 border-white ring-1 ring-white/20 shadow-md"
                       : "bg-zinc-950/60 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50"
                   }`}
                 >
@@ -747,7 +752,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                     </div>
                   </div>
                   {activeTheme.name === theme.name && (
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <Check className="w-4 h-4 text-white shrink-0" />
                   )}
                 </button>
               ))}
@@ -762,7 +767,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   key={i}
                   disabled={isGenerating}
                   onClick={() => handleSendInstruction(undefined, pill.prompt)}
-                  className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-emerald-500/40 text-[10px] font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer shrink-0"
+                  className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-[10px] font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer shrink-0"
                 >
                   {pill.label}
                 </button>
@@ -784,7 +789,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                     handleSendInstruction(e);
                   }
                 }}
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 p-3 pr-20 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-500/50 focus:outline-none resize-none font-medium"
+                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 p-3 pr-20 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-400 focus:ring-1 focus:ring-white/20 focus:outline-none resize-none font-medium"
               />
 
               <div className="absolute right-2 bottom-2.5 flex items-center gap-1.5">
@@ -793,7 +798,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   title="Enhance prompt with AI"
                   disabled={!inputInstruction.trim() || isEnhancing}
                   onClick={handleEnhancePrompt}
-                  className="p-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-40"
+                  className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-40"
                 >
                   <Sparkles className={`w-3.5 h-3.5 ${isEnhancing ? "animate-spin" : ""}`} />
                 </button>
@@ -801,7 +806,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                 <button
                   type="submit"
                   disabled={!inputInstruction.trim() || isGenerating}
-                  className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition-colors cursor-pointer shadow-md"
+                  className="p-1.5 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 disabled:opacity-40 transition-colors cursor-pointer shadow-md shadow-white/5"
                 >
                   <Send className="w-3.5 h-3.5" />
                 </button>
@@ -853,15 +858,15 @@ export function EditorContent({ projectId }: { projectId: string }) {
           >
             <div className="h-8 bg-zinc-900 border-b border-zinc-800 flex items-center px-3 gap-2 shrink-0">
               <div className="flex gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                <span className="w-2.5 h-2.5 rounded-full bg-zinc-600" />
+                <span className="w-2.5 h-2.5 rounded-full bg-zinc-500" />
               </div>
               <div className="flex-1 max-w-sm mx-auto bg-zinc-950 rounded-md px-2 py-0.5 text-[10px] font-mono text-zinc-400 flex items-center justify-center gap-2 truncate border border-zinc-800">
                 {isGenerating ? (
                   <>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-emerald-400 font-semibold">Streaming Code...</span>
+                    <span className="w-2 h-2 rounded-full bg-white animate-pulse shadow-glow-white" />
+                    <span className="text-white font-semibold">Streaming Code...</span>
                   </>
                 ) : (
                   `https://${isShopify ? "store" : "site"}-preview.obsidian.ai/${activePageTab.toLowerCase().replace(/\s+/g, "-")}`
@@ -881,12 +886,12 @@ export function EditorContent({ projectId }: { projectId: string }) {
                 </div>
               )}
               {activeView === "code" && (
-                <pre className="bg-zinc-950 text-emerald-400 font-mono text-xs p-4 overflow-auto w-full h-full m-0">
+                <pre className="bg-zinc-950 text-zinc-200 font-mono text-xs p-4 overflow-auto w-full h-full m-0 selection:bg-zinc-800">
                   <code>{currentHtml || "<!-- No code generated yet -->"}</code>
                 </pre>
               )}
               {activeView === "schema" && isShopify && (
-                <pre className="bg-zinc-950 text-amber-400 font-mono text-xs p-4 overflow-auto w-full h-full m-0">
+                <pre className="bg-zinc-950 text-zinc-300 font-mono text-xs p-4 overflow-auto w-full h-full m-0 selection:bg-zinc-800">
                   <code>{JSON.stringify(
                     {
                       name: `${activePageTab} Shopify Template`,
@@ -946,7 +951,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
           <div className="max-w-md w-full rounded-3xl border border-zinc-800 bg-zinc-900 p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-emerald-400" />
+                <FileText className="w-5 h-5 text-white" />
                 <h3 className="font-heading font-bold text-base text-white">Add New Page</h3>
               </div>
               <button
@@ -967,10 +972,10 @@ export function EditorContent({ projectId }: { projectId: string }) {
                 <button
                   key={tmpl.title}
                   onClick={() => handleCreatePage(tmpl.title)}
-                  className="p-3 rounded-xl border border-zinc-800 bg-zinc-950/80 hover:border-emerald-500/50 hover:bg-zinc-800 text-left transition-all group cursor-pointer space-y-1"
+                  className="p-3 rounded-xl border border-zinc-800 bg-zinc-950/80 hover:border-zinc-600 hover:bg-zinc-800 text-left transition-all group cursor-pointer space-y-1"
                 >
                   <span className="text-xl">{tmpl.icon}</span>
-                  <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
+                  <p className="text-xs font-bold text-white group-hover:text-zinc-200 transition-colors">
                     {tmpl.title}
                   </p>
                   <p className="text-[10px] text-zinc-500 line-clamp-1">{tmpl.desc}</p>
@@ -997,7 +1002,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   size="sm"
                   disabled={!customPageName.trim()}
                   onClick={() => handleCreatePage(customPageName)}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4"
+                  className="bg-white hover:bg-zinc-200 text-zinc-950 font-bold px-4 shadow-md shadow-white/5"
                 >
                   Add
                 </Button>
@@ -1012,7 +1017,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
           <Card className="max-w-md w-full border-zinc-800 p-6 space-y-6 bg-zinc-900 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <div className="w-10 h-10 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white">
                 <ShopifyIcon className="w-5 h-5 fill-current" />
               </div>
               <div>
@@ -1028,26 +1033,26 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   {exportStep === 2 && "2/3 Compiling layout/theme.liquid..."}
                   {exportStep === 3 && "3/3 Theme ZIP bundle generated!"}
                 </span>
-                <span className="text-emerald-400 font-bold">{exportProgress}%</span>
+                <span className="text-white font-bold">{exportProgress}%</span>
               </div>
               <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
                 <div
-                  className="h-full bg-gradient-to-r from-emerald-600 via-green-500 to-emerald-400 transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-zinc-600 via-zinc-300 to-white transition-all duration-300"
                   style={{ width: `${exportProgress}%` }}
                 />
               </div>
             </div>
 
             <div className="space-y-2 text-xs font-mono text-zinc-400 bg-zinc-950 p-3 rounded-xl border border-zinc-800">
-              <p className={exportStep >= 1 ? "text-emerald-400 font-bold" : ""}>✓ layout/theme.liquid compiled</p>
-              <p className={exportStep >= 2 ? "text-emerald-400 font-bold" : ""}>✓ templates/index.json configured</p>
-              <p className={exportStep >= 3 ? "text-emerald-400 font-bold" : ""}>✓ sections/*.liquid modularized</p>
+              <p className={exportStep >= 1 ? "text-white font-bold" : ""}>✓ layout/theme.liquid compiled</p>
+              <p className={exportStep >= 2 ? "text-white font-bold" : ""}>✓ templates/index.json configured</p>
+              <p className={exportStep >= 3 ? "text-white font-bold" : ""}>✓ sections/*.liquid modularized</p>
             </div>
 
             {exportStep === 3 && (
               <Button
                 variant="primary"
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                className="w-full bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-md shadow-white/5"
                 onClick={() => setShowExportModal(false)}
               >
                 Close & Open ZIP
@@ -1067,7 +1072,7 @@ export default function EditorPage({ params }: PageProps) {
     <Suspense
       fallback={
         <div className="fixed inset-0 bg-zinc-950 flex items-center justify-center text-zinc-400 text-xs font-mono">
-          <Loader2 className="w-5 h-5 animate-spin text-emerald-400 mr-2" />
+          <Loader2 className="w-5 h-5 animate-spin text-white mr-2" />
           Loading Workspace...
         </div>
       }

@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, Sparkles, Zap, Hexagon, AlertTriangle, CreditCard } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Hexagon } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRouter } from "next/navigation";
+import { createProject, canCreateProject } from "@/lib/projects";
+import { QuotaLimitModal } from "@/components/ui/QuotaLimitModal";
 
 const ShopifyIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg viewBox="0 0 109.5 124.5" className={className} fill="currentColor">
@@ -16,7 +18,7 @@ const ShopifyIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
 const SUGGESTIONS = [
   {
     label: "Landing Page for SaaS",
-    prompt: "Create a high-converting landing page for a B2B SaaS product. Include a sticky glassmorphic navbar, a hero section with a strong value proposition and two call-to-action buttons, a 'Trusted By' logo strip, a 3-column feature grid with icons, social proof testimonials, and a pricing comparison table. Use a modern dark theme with emerald accents and Inter typography.",
+    prompt: "Create a high-converting landing page for a B2B SaaS product. Include a sticky glassmorphic navbar, a hero section with a strong value proposition and two call-to-action buttons, a 'Trusted By' logo strip, a 3-column feature grid with icons, social proof testimonials, and a pricing comparison table. Use a modern luxury monochrome noir theme with high-contrast typography, pure white accents (#ffffff), and deep zinc surfaces.",
   },
   {
     label: "Portfolio for Designer",
@@ -24,7 +26,7 @@ const SUGGESTIONS = [
   },
   {
     label: "Coffee Shop Website",
-    prompt: "Build a cozy, inviting website for an artisanal coffee shop. Use a warm color palette (browns, creams, earthly greens). Include a hero section with a video background placeholder, a menu section with prices, an 'Our Story' section with image placeholders, and a footer with location and hours. Use a serif font for headings to give it a classic feel.",
+    prompt: "Build a cozy, inviting website for an artisanal coffee shop. Use a warm color palette (rich dark obsidian, warm espresso, creams, and silver highlights). Include a hero section with a video background placeholder, a menu section with prices, an 'Our Story' section with image placeholders, and a footer with location and hours. Use a serif font for headings to give it a classic feel.",
   },
   {
     label: "Viral Waitlist Page",
@@ -46,7 +48,7 @@ export function LandingPageClient() {
   const [mounted, setMounted] = useState(false);
 
   const router = useRouter();
-  const { user, refreshProjectCount, getProjectStats } = useAuth();
+  const { user, getProjectStats } = useAuth();
   const stats = getProjectStats();
 
   useEffect(() => {
@@ -58,23 +60,21 @@ export function LandingPageClient() {
     if (!inputValue.trim()) return;
 
     // Enforce 3-project limit on Free Plan
-    if (stats.isLimitReached) {
+    if (!canCreateProject(stats.isPro)) {
       setShowQuotaModal(true);
       return;
     }
 
     const projectId = `proj-obsidian-${Date.now()}`;
-    const newProject = {
+    createProject({
       id: projectId,
-      user_id: user?.id || "guest",
+      userId: user?.id || "guest",
       title: inputValue.slice(0, 40) + "...",
       prompt: inputValue,
-      thumbnail_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
-      created_at: new Date().toISOString(),
-    };
-    const existing = JSON.parse(localStorage.getItem("obsidian_website_projects") || "[]");
-    localStorage.setItem("obsidian_website_projects", JSON.stringify([newProject, ...existing]));
-    refreshProjectCount();
+      type: "website",
+      thumbnail: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
+    });
+
     router.push(`/editor/${projectId}?type=website&initialPrompt=${encodeURIComponent(inputValue)}`);
   };
 
@@ -118,7 +118,7 @@ export function LandingPageClient() {
       {/* Hero Section */}
       <div className="text-center max-w-3xl mx-auto space-y-6">
         <div className="inline-flex items-center rounded-full border border-zinc-800 bg-zinc-900/80 px-3.5 py-1 text-xs text-zinc-300 backdrop-blur-xl shadow-lg">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-400 mr-2 animate-pulse" />
+          <span className="flex h-2 w-2 rounded-full bg-white mr-2 animate-pulse shadow-glow-white" />
           <span className="font-mono">Obsidian AI Engine v2.5 Active</span>
         </div>
 
@@ -136,7 +136,7 @@ export function LandingPageClient() {
           <span className="text-zinc-400">Quota:</span>
           <span
             suppressHydrationWarning
-            className={mounted && stats.isLimitReached ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}
+            className={mounted && stats.isLimitReached ? "text-red-400 font-bold" : "text-white font-bold"}
           >
             {mounted
               ? stats.isPro
@@ -145,7 +145,7 @@ export function LandingPageClient() {
               : "0/3 Free Projects"}
           </span>
           {mounted && !stats.isPro && (
-            <Link href="/billing" className="text-emerald-400 hover:text-emerald-300 font-bold ml-1 border-l border-zinc-700 pl-2">
+            <Link href="/billing" className="text-zinc-200 hover:text-white font-bold ml-1 border-l border-zinc-700 pl-2 underline underline-offset-4 decoration-zinc-700">
               Upgrade to Pro →
             </Link>
           )}
@@ -154,7 +154,7 @@ export function LandingPageClient() {
 
       {/* Main Prompt Input */}
       <div className="w-full max-w-2xl mt-10 relative group">
-        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600/30 to-zinc-700/40 rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition duration-500" />
+        <div className="absolute -inset-1 bg-gradient-to-r from-white/10 via-zinc-600/20 to-white/10 rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition duration-500" />
         <div className="relative">
           <form onSubmit={handleSubmit}>
             <textarea
@@ -162,7 +162,7 @@ export function LandingPageClient() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Describe your dream website or SaaS product... (e.g. 'A high-converting B2B SaaS landing page with dark theme, pricing table, and feature cards')"
-              className="min-h-[140px] w-full resize-none rounded-2xl border border-zinc-800 bg-zinc-950/90 pt-6 px-6 pb-16 text-base text-white placeholder:text-zinc-600 focus:border-emerald-500/50 focus:outline-none shadow-2xl backdrop-blur-2xl transition-all"
+              className="min-h-[140px] w-full resize-none rounded-2xl border border-zinc-800 bg-zinc-950/90 pt-6 px-6 pb-16 text-base text-white placeholder:text-zinc-600 focus:border-white/60 focus:ring-1 focus:ring-white/20 focus:outline-none shadow-2xl backdrop-blur-2xl transition-all"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -198,7 +198,7 @@ export function LandingPageClient() {
                 title="Enhance Prompt with AI"
                 disabled={!inputValue.trim() || isEnhancing}
                 onClick={handleEnhance}
-                className="h-10 w-10 rounded-xl bg-zinc-900 text-emerald-400 hover:bg-zinc-800 hover:text-emerald-300 transition-all border border-emerald-500/30 flex items-center justify-center disabled:opacity-40 cursor-pointer"
+                className="h-10 w-10 rounded-xl bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-all border border-zinc-700 hover:border-zinc-500 flex items-center justify-center disabled:opacity-40 cursor-pointer"
               >
                 <Sparkles className={`h-4 w-4 ${isEnhancing ? "animate-spin" : ""}`} />
               </button>
@@ -234,17 +234,17 @@ export function LandingPageClient() {
       <div className="mt-14 w-full max-w-2xl">
         <Link
           href="/builder"
-          className="group block p-6 rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/70 via-zinc-950/90 to-emerald-950/70 hover:from-emerald-950/90 hover:border-emerald-500/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-950/60"
+          className="group block p-6 rounded-3xl border border-zinc-800 bg-gradient-to-r from-zinc-900/90 via-zinc-950 to-zinc-900/90 hover:border-zinc-600 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/80 ring-1 ring-white/5"
         >
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-600/40 group-hover:scale-105 transition-all shrink-0 shadow-lg shadow-emerald-950/50">
-                <ShopifyIcon className="w-6 h-6 fill-emerald-400" />
+              <div className="w-12 h-12 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white group-hover:bg-zinc-700 group-hover:scale-105 transition-all shrink-0 shadow-lg shadow-black/50">
+                <ShopifyIcon className="w-6 h-6 fill-white text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <p className="text-base font-bold text-white font-heading">Shopify AI Theme Studio</p>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-200 border border-zinc-700 font-bold">
                     DEDICATED STUDIO
                   </span>
                 </div>
@@ -253,7 +253,7 @@ export function LandingPageClient() {
                 </p>
               </div>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-emerald-400 group-hover:border-emerald-500/40 group-hover:translate-x-1 transition-all shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-white group-hover:border-zinc-500 group-hover:translate-x-1 transition-all shrink-0">
               <ArrowRight className="h-4 w-4" />
             </div>
           </div>
@@ -283,7 +283,7 @@ export function LandingPageClient() {
             key={i}
             className="p-6 rounded-3xl border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-zinc-700 transition-all duration-300 group"
           >
-            <p className="text-2xl font-black text-emerald-400 mb-3 group-hover:scale-110 transition-transform inline-block">{f.icon}</p>
+            <p className="text-2xl font-black text-white mb-3 group-hover:scale-110 transition-transform inline-block">{f.icon}</p>
             <h3 className="text-base font-bold text-white mb-2 font-heading">{f.title}</h3>
             <p className="text-zinc-400 text-xs leading-relaxed">{f.desc}</p>
           </div>
@@ -291,58 +291,13 @@ export function LandingPageClient() {
       </div>
 
       {/* ── Quota Limit Exceeded Modal (Limit of 3 Enforced) ── */}
-      {showQuotaModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="max-w-md w-full rounded-3xl border border-zinc-800 bg-zinc-900 p-6 sm:p-8 space-y-6 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white font-heading">Free Quota Limit Reached</h3>
-                <p className="text-xs text-zinc-400">3/3 Free projects currently used</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              You have reached the maximum limit of <strong>3 free projects</strong> on your current tier.
-              Upgrade to <strong>Obsidian Pro</strong> for unlimited Shopify & Website generations, or delete old projects in your workspace.
-            </p>
-
-            <div className="space-y-2 pt-2">
-              <Link href="/billing" className="block w-full">
-                <Button
-                  size="md"
-                  leftIcon={<CreditCard className="w-4 h-4" />}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
-                >
-                  Upgrade to Pro ($19/mo) →
-                </Button>
-              </Link>
-
-              <div className="flex gap-2">
-                <Link href="/projects?tab=website" className="flex-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full border-zinc-800 text-zinc-300 hover:bg-zinc-800 text-xs"
-                  >
-                    Manage Projects
-                  </Button>
-                </Link>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowQuotaModal(false)}
-                  className="text-zinc-400 hover:text-white text-xs"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <QuotaLimitModal
+        isOpen={showQuotaModal}
+        onClose={() => setShowQuotaModal(false)}
+        currentCount={stats.totalCount}
+        maxCount={3}
+        manageProjectsHref="/projects?tab=website"
+      />
     </main>
   );
 }

@@ -13,7 +13,7 @@ const INSPIRATION_GALLERY = [
     prompt: "Luxurious cosmetics store with pastel pink accents, product grids, and customer reviews.",
     image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80",
     rating: "4.9",
-    tags: ["Pink Accent", "Liquid 2.0", "ImageKit AI"],
+    tags: ["Luxury Noir", "Liquid 2.0", "ImageKit AI"],
   },
   {
     title: "AeroTech 3D Printers & Filaments",
@@ -38,13 +38,13 @@ export default function InspirationPage() {
     <div className="flex-1 p-8 max-w-6xl mx-auto w-full space-y-8 bg-zinc-950 min-h-screen text-zinc-100">
       {/* Header */}
       <div className="border-b border-zinc-800 pb-6 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 font-semibold">
-          <Sparkles className="w-4 h-4 text-emerald-400" />
+        <div className="flex items-center gap-2 text-xs font-mono text-zinc-300 font-semibold">
+          <Sparkles className="w-4 h-4 text-white" />
           <span>CURATED SHOPIFY STORE GALLERY</span>
         </div>
         <h1 className="text-3xl font-black font-heading text-zinc-100 tracking-tight">Store Inspiration & Templates</h1>
         <p className="text-zinc-400 text-sm">
-          Explore high-converting store concepts built with StitchStore AI, Gemini 2.5 Flash, and Shopify Liquid 2.0.
+          Explore high-converting store concepts built with Obsidian AI, Gemini 2.5 Flash, and Shopify Liquid 2.0.
         </p>
       </div>
 
@@ -72,7 +72,7 @@ export default function InspirationPage() {
                 ))}
               </div>
 
-              <h2 className="text-lg font-bold font-heading text-zinc-100 group-hover:text-emerald-400 transition-colors">
+              <h2 className="text-lg font-bold font-heading text-zinc-100 group-hover:text-white transition-colors">
                 {item.title}
               </h2>
               <p className="text-xs text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
@@ -83,7 +83,7 @@ export default function InspirationPage() {
             <CardFooter className="pt-4 border-zinc-800">
               <span className="text-xs font-mono text-zinc-500">{item.category}</span>
               <Link href={`/?prompt=${encodeURIComponent(item.prompt)}`}>
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-md shadow-emerald-900/20" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
+                <Button size="sm" className="bg-white hover:bg-zinc-200 text-zinc-950 font-bold border-0 shadow-md shadow-white/5" rightIcon={<ArrowRight className="w-3.5 h-3.5 text-zinc-950" />}>
                   Use Template
                 </Button>
               </Link>

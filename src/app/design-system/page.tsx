@@ -12,14 +12,14 @@ export default function DesignSystemPage() {
   const [showAlert, setShowAlert] = useState(true);
 
   const colors = [
+    { name: "Pure White (Primary CTA)", class: "bg-white border border-zinc-200 text-zinc-950", hex: "#FFFFFF" },
+    { name: "Silver Frost (Accent Muted)", class: "bg-zinc-200 border border-zinc-300 text-zinc-900", hex: "#E4E4E7" },
+    { name: "Titanium Slate (Borders)", class: "bg-zinc-700 border border-zinc-600", hex: "#3F3F46" },
+    { name: "Obsidian Surface (Elevated)", class: "bg-zinc-800 border border-zinc-700", hex: "#27272A" },
     { name: "Obsidian Black (Bg)", class: "bg-zinc-950 border border-zinc-800", hex: "#09090B" },
     { name: "Zinc Dark (Card)", class: "bg-zinc-900 border border-zinc-800", hex: "#18181B" },
-    { name: "Zinc Surface (Hover)", class: "bg-zinc-800 border border-zinc-700", hex: "#27272A" },
-    { name: "Emerald Accent (Primary)", class: "bg-emerald-500", hex: "#10B981" },
-    { name: "Emerald Light (Text)", class: "bg-emerald-400", hex: "#34D399" },
-    { name: "Indigo Accent", class: "bg-indigo-600", hex: "#4F46E5" },
     { name: "Warning (Amber)", class: "bg-amber-500", hex: "#F59E0B" },
-    { name: "Danger (Rose)", class: "bg-rose-600", hex: "#EF4444" },
+    { name: "Danger (Rose Muted)", class: "bg-red-600", hex: "#DC2626" },
   ];
 
   return (
@@ -27,9 +27,9 @@ export default function DesignSystemPage() {
       {/* Header */}
       <div className="border-b border-zinc-800 pb-6 space-y-2">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-emerald-400" />
-          <span className="text-xs font-mono text-emerald-400 uppercase tracking-widest font-semibold">
-            Dark Obsidian Design System
+          <Sparkles className="w-5 h-5 text-white" />
+          <span className="text-xs font-mono text-zinc-300 uppercase tracking-widest font-semibold">
+            Strict Luxury Monochrome Noir Design System
           </span>
         </div>
         <h1 className="text-3xl font-black font-heading tracking-tight text-zinc-100">
@@ -92,8 +92,8 @@ export default function DesignSystemPage() {
             <Button variant="secondary" className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700">Secondary Dark</Button>
             <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">Outline</Button>
             <Button variant="ghost" className="text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200">Ghost</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-500 text-white border-0" leftIcon={<Sparkles className="w-4 h-4" />}>
-              Emerald Accent
+            <Button variant="outline" className="border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700" leftIcon={<Sparkles className="w-4 h-4" />}>
+              Silver Metallic
             </Button>
             <Button variant="danger">Danger</Button>
           </div>
@@ -117,7 +117,7 @@ export default function DesignSystemPage() {
             label="Standard Input"
             placeholder="Enter store name..."
             leftIcon={<Search className="w-4 h-4 text-zinc-400" />}
-            className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+            className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-white focus:ring-white/20"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
           />
@@ -126,7 +126,7 @@ export default function DesignSystemPage() {
             type="email"
             placeholder="user@example.com"
             leftIcon={<Mail className="w-4 h-4 text-zinc-400" />}
-            className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+            className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-white focus:ring-white/20"
             helperText="We will never share your email."
           />
           <Input
@@ -134,7 +134,7 @@ export default function DesignSystemPage() {
             type="password"
             placeholder="••••••••"
             leftIcon={<Lock className="w-4 h-4 text-zinc-400" />}
-            className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+            className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-white focus:ring-white/20"
             error="Password must be at least 8 characters."
           />
         </div>
@@ -153,7 +153,7 @@ export default function DesignSystemPage() {
               Built using InsForge database, Gemini AI engine, and Image Kit transformations.
             </CardContent>
             <CardFooter className="border-zinc-800">
-              <span className="text-xs font-mono text-emerald-400 font-semibold">Status: Active</span>
+              <span className="text-xs font-mono text-zinc-300 font-semibold">Status: Active</span>
               <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">Explore</Button>
             </CardFooter>
           </Card>
@@ -167,22 +167,22 @@ export default function DesignSystemPage() {
               Used for floating toolbars, chat box messages, and settings dialogs.
             </CardContent>
             <CardFooter className="border-zinc-800">
-              <span className="text-xs font-mono text-emerald-400 font-semibold">Dark Glass</span>
+              <span className="text-xs font-mono text-zinc-300 font-semibold">Dark Glass</span>
               <Button size="sm" variant="secondary" className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700">Details</Button>
             </CardFooter>
           </Card>
 
-          <Card glass={false} className="border-emerald-800/60 bg-emerald-950/30">
+          <Card glass={false} className="border-zinc-700 bg-zinc-900/90 shadow-xl">
             <CardHeader>
-              <CardTitle className="font-heading text-emerald-200">Emerald Theme Accent</CardTitle>
-              <CardDescription className="text-emerald-400/80">Tailored for luxury fashion & cosmetics presets.</CardDescription>
+              <CardTitle className="font-heading text-white">Monochrome Noir Theme</CardTitle>
+              <CardDescription className="text-zinc-400">High-contrast pure white (#ffffff) & deep zinc-950 luxury aesthetic.</CardDescription>
             </CardHeader>
-            <CardContent className="text-emerald-300">
-              Custom CSS variables enable theme switching across store layouts seamlessly.
+            <CardContent className="text-zinc-300">
+              Engineered for ultra-premium digital architecture, high contrast readability, and zero saturation clutter.
             </CardContent>
-            <CardFooter className="border-emerald-800/60">
-              <span className="text-xs font-mono text-emerald-400 font-semibold">Emerald Theme</span>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white border-0">Select</Button>
+            <CardFooter className="border-zinc-800">
+              <span className="text-xs font-mono text-zinc-300 font-semibold">Noir Mode</span>
+              <Button size="sm" className="bg-white hover:bg-zinc-200 text-zinc-950 font-bold border-0">Select</Button>
             </CardFooter>
           </Card>
         </div>
@@ -208,7 +208,7 @@ export default function DesignSystemPage() {
           </Alert>
 
           <Alert variant="warning" title="Quota Limit Reached">
-            You are on the Free tier (2/2 projects used). Upgrade to Pro for unlimited exports.
+            You are on the Free tier (3/3 projects used). Upgrade to Pro for unlimited exports.
           </Alert>
 
           <Alert variant="danger" title="API Authentication Error">

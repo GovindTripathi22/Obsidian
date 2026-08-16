@@ -30,7 +30,8 @@ import {
   Star,
   Check,
 } from "lucide-react";
-import { ProjectRecord } from "@/lib/insforge";
+import { createProject, canCreateProject } from "@/lib/projects";
+import { QuotaLimitModal } from "@/components/ui/QuotaLimitModal";
 
 /* ── Official Shopify SVG Brand Icon ── */
 const ShopifyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -253,6 +254,8 @@ export function InteractiveShopifyStudio() {
   const [activeTab, setActiveTab] = useState<"live" | "sections" | "code" | "ai">("live");
   const [currency, setCurrency] = useState<"USD" | "EUR" | "GBP">("USD");
 
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
+
   // Cart state for live simulation
   const [cartItems, setCartItems] = useState<Array<{ id: string; title: string; price: number; image: string; quantity: number }>>([
     {
@@ -329,19 +332,21 @@ export function InteractiveShopifyStudio() {
   const progressToFreeShipping = Math.min(100, (discountedSubtotal / freeShippingThreshold) * 100);
 
   const handleLaunchProject = () => {
+    const isPro = user?.plan === "pro";
+    if (!canCreateProject(isPro)) {
+      setShowQuotaModal(true);
+      return;
+    }
     const newProjectId = `proj-shopify-${Date.now()}`;
-    const newProject: ProjectRecord = {
+    createProject({
       id: newProjectId,
-      user_id: user?.id || "guest",
-      title: selectedPreset.name,
-      prompt: selectedPreset.heroSubheading,
-      thumbnail_url: selectedPreset.products[0].image,
-      created_at: new Date().toISOString(),
-    };
-    const existing = JSON.parse(localStorage.getItem("insforge_projects") || "[]");
-    localStorage.setItem("insforge_projects", JSON.stringify([newProject, ...existing]));
-    refreshProjectCount();
-    router.push(`/editor/${newProjectId}?type=shopify&initialPrompt=${encodeURIComponent(selectedPreset.heroHeading)}`);
+      userId: user?.id || "guest",
+      title: storeTitleInput.trim() || selectedPreset.name,
+      prompt: promptInput.trim() || selectedPreset.heroSubheading,
+      type: "shopify",
+      thumbnail: selectedPreset.products[0].image,
+    });
+    router.push(`/editor/${newProjectId}?type=shopify&initialPrompt=${encodeURIComponent(promptInput.trim() || selectedPreset.heroHeading)}`);
   };
 
   const handleDirectExportZip = async () => {
@@ -1063,6 +1068,14 @@ export function InteractiveShopifyStudio() {
           )}
         </div>
       </div>
+
+      <QuotaLimitModal
+        isOpen={showQuotaModal}
+        onClose={() => setShowQuotaModal(false)}
+        currentCount={user?.projectCount || 1}
+        maxCount={3}
+        manageProjectsHref="/projects?tab=shopify"
+      />
     </div>
   );
 }

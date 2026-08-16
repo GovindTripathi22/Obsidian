@@ -66,7 +66,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
       {/* Subtle Top & Bottom Vignette for Crisp Contrast */}
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[0.5px]" />
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/50" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-gradient-radial from-emerald-950/20 via-transparent to-transparent blur-3xl" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-gradient-radial from-zinc-800/20 via-transparent to-transparent blur-3xl" />
     </div>
   );
 };

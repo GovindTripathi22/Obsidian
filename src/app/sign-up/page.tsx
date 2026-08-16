@@ -32,22 +32,22 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] bg-zinc-950 text-zinc-100">
-      <Card glass={false} className="max-w-md w-full bg-zinc-900 border-zinc-800 shadow-2xl space-y-6">
+    <div className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] bg-zinc-950 text-zinc-100 font-sans">
+      <Card glass={false} className="max-w-md w-full bg-zinc-900 border-zinc-800 shadow-2xl space-y-6 rounded-3xl">
         <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center text-emerald-400 mb-2">
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white mb-2 shadow-inner">
             <Sparkles className="w-6 h-6" />
           </div>
           <CardTitle className="text-2xl font-black font-heading text-zinc-100">Create Your Account</CardTitle>
           <CardDescription className="text-zinc-400 text-sm">
-            Join StitchStore AI to build, edit, and export Shopify Liquid themes.
+            Join Obsidian AI to build, edit, and export Shopify Liquid themes & websites.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <Button
             variant="secondary"
-            className="w-full justify-center bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700"
+            className="w-full justify-center bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700 font-semibold"
             onClick={handleGoogle}
             isLoading={isSubmitting || loading}
           >
@@ -82,7 +82,7 @@ export default function SignUpPage() {
               label="Full Name"
               placeholder="Alex Johnson"
               leftIcon={<User className="w-4 h-4 text-zinc-400" />}
-              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -91,7 +91,7 @@ export default function SignUpPage() {
               type="email"
               placeholder="user@example.com"
               leftIcon={<Mail className="w-4 h-4 text-zinc-400" />}
-              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -101,14 +101,14 @@ export default function SignUpPage() {
               type="password"
               placeholder="At least 8 characters"
               leftIcon={<Lock className="w-4 h-4 text-zinc-400" />}
-              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
             <Button
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-lg shadow-emerald-900/20 border-0"
+              className="w-full bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-lg border-0"
               isLoading={isSubmitting || loading}
               leftIcon={<UserPlus className="w-4 h-4" />}
             >
@@ -119,7 +119,7 @@ export default function SignUpPage() {
 
         <CardFooter className="text-center justify-center text-xs text-zinc-400 border-zinc-800">
           Already have an account?{" "}
-          <Link href="/sign-in" className="text-emerald-400 font-bold hover:underline ml-1">
+          <Link href="/sign-in" className="text-white font-bold hover:underline ml-1">
             Sign In
           </Link>
         </CardFooter>

@@ -1,13 +1,25 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useProjects, deleteProject, canCreateProject } from "@/lib/projects";
 import { Button } from "@/components/ui/Button";
 import { Card, CardTitle, CardDescription, CardFooter } from "@/components/ui/Card";
-import { FolderKanban, ExternalLink, Calendar, Image as ImageIcon, Hexagon, Trash2, Loader2 } from "lucide-react";
-import { ProjectRecord } from "@/lib/insforge";
+import { QuotaLimitModal } from "@/components/ui/QuotaLimitModal";
+import {
+  FolderKanban,
+  ExternalLink,
+  Calendar,
+  Image as ImageIcon,
+  Hexagon,
+  Trash2,
+  Loader2,
+  Sparkles,
+  Shield,
+  Plus,
+} from "lucide-react";
 
 const ShopifyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg viewBox="0 0 109.5 124.5" className={className} fill="currentColor">
@@ -16,134 +28,126 @@ const ShopifyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 );
 
 function ProjectsContent() {
+  const router = useRouter();
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const isPro = user?.plan === "pro";
+  const { projects, shopifyProjects, websiteProjects, stats, loading } = useProjects(isPro);
 
   const initialTab = searchParams?.get("tab") === "website" ? "website" : "shopify";
   const [activeTab, setActiveTab] = useState<"shopify" | "website">(initialTab);
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
 
-  const [shopifyProjects, setShopifyProjects] = useState<ProjectRecord[]>([]);
-  const [websiteProjects, setWebsiteProjects] = useState<ProjectRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const handleDelete = (id: string) => {
+    deleteProject(id);
+    // CustomEvent automatically updates useProjects and AuthProvider quota meters immediately
+  };
 
-  const DEFAULT_SHOPIFY_MOCKS: ProjectRecord[] = [
-    {
-      id: "proj-shopify-1",
-      user_id: user?.id || "user-1",
-      title: "LuxeAura Cosmetics Store",
-      prompt: "Create a luxurious cosmetics store with pastel pink accents and Shopify Liquid template.",
-      thumbnail_url: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80",
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: "proj-shopify-2",
-      user_id: user?.id || "user-1",
-      title: "Minimalist Apparel Boutique",
-      prompt: "Design a minimalist streetwear apparel store with clean theme.",
-      thumbnail_url: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800&auto=format&fit=crop&q=80",
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ];
-
-  const DEFAULT_WEBSITE_MOCKS: ProjectRecord[] = [
-    {
-      id: "proj-web-1",
-      user_id: user?.id || "user-1",
-      title: "SaaS Analytics Landing Page",
-      prompt: "High-converting B2B SaaS landing page with sticky navbar, pricing table, and testimonials.",
-      thumbnail_url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80",
-      created_at: new Date(Date.now() - 172800000).toISOString(),
-    },
-    {
-      id: "proj-web-2",
-      user_id: user?.id || "user-1",
-      title: "Product Designer Portfolio",
-      prompt: "Minimalist portfolio with dark theme, masonry grid gallery, and case study detail views.",
-      thumbnail_url: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=800&auto=format&fit=crop&q=80",
-      created_at: new Date(Date.now() - 259200000).toISOString(),
-    },
-  ];
-
-  useEffect(() => {
-    // Load Shopify Projects
-    const savedShopify = localStorage.getItem("insforge_projects");
-    if (savedShopify) {
-      try {
-        setShopifyProjects(JSON.parse(savedShopify));
-      } catch {
-        setShopifyProjects(DEFAULT_SHOPIFY_MOCKS);
-      }
-    } else {
-      setShopifyProjects(DEFAULT_SHOPIFY_MOCKS);
-      localStorage.setItem("insforge_projects", JSON.stringify(DEFAULT_SHOPIFY_MOCKS));
+  const handleCreateNew = (target: "shopify" | "website") => {
+    if (!canCreateProject(isPro)) {
+      setShowQuotaModal(true);
+      return;
     }
-
-    // Load Website Builder Projects
-    const savedWebsite = localStorage.getItem("obsidian_website_projects");
-    if (savedWebsite) {
-      try {
-        setWebsiteProjects(JSON.parse(savedWebsite));
-      } catch {
-        setWebsiteProjects(DEFAULT_WEBSITE_MOCKS);
-      }
+    if (target === "shopify") {
+      router.push("/builder");
     } else {
-      setWebsiteProjects(DEFAULT_WEBSITE_MOCKS);
-      localStorage.setItem("obsidian_website_projects", JSON.stringify(DEFAULT_WEBSITE_MOCKS));
-    }
-
-    setLoading(false);
-  }, []);
-
-  const handleDeleteProject = (id: string, type: "shopify" | "website") => {
-    if (type === "shopify") {
-      const updated = shopifyProjects.filter((p) => p.id !== id);
-      setShopifyProjects(updated);
-      localStorage.setItem("insforge_projects", JSON.stringify(updated));
-    } else {
-      const updated = websiteProjects.filter((p) => p.id !== id);
-      setWebsiteProjects(updated);
-      localStorage.setItem("obsidian_website_projects", JSON.stringify(updated));
+      router.push("/");
     }
   };
 
   const currentList = activeTab === "shopify" ? shopifyProjects : websiteProjects;
 
   return (
-    <div className="flex-1 p-6 sm:p-8 max-w-7xl mx-auto w-full space-y-8 min-h-screen bg-zinc-950 text-zinc-100 transition-colors duration-300">
-      {/* Header & Category Tabs */}
-      <div className="space-y-6 border-b border-zinc-800 pb-6">
+    <div className="flex-1 p-6 sm:p-8 max-w-7xl mx-auto w-full space-y-8 min-h-screen bg-zinc-950 text-zinc-100 transition-colors duration-300 font-sans">
+      {/* Header & Action Controls */}
+      <div className="space-y-6 border-b border-zinc-800/80 pb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 mb-1 font-semibold">
-              <FolderKanban className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 mb-1 font-semibold">
+              <FolderKanban className="w-4 h-4 text-white" />
               <span>UNIFIED WORKSPACE MANAGER</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-heading font-bold text-zinc-100 tracking-tight flex items-center gap-3">
+            <h1 className="text-3xl sm:text-4xl font-heading font-black text-zinc-100 tracking-tight flex items-center gap-3">
               Project Management Studio
             </h1>
             <p className="text-zinc-400 text-sm mt-1">
-              Separate work environments for Website Builder and Shopify Theme Builder projects.
+              Unified repository for Obsidian Websites and Shopify Liquid Themes.
             </p>
           </div>
 
+          {/* Action CTAs */}
           <div className="flex items-center gap-3">
             {activeTab === "shopify" ? (
-              <Link href="/builder">
-                <Button className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-md shadow-emerald-950/20" leftIcon={<ShopifyIcon className="w-4 h-4 fill-white" />}>
-                  Create Shopify Store
-                </Button>
-              </Link>
+              <Button
+                onClick={() => handleCreateNew("shopify")}
+                className="bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-md"
+                leftIcon={<ShopifyIcon className="w-4 h-4 fill-zinc-950" />}
+              >
+                Create Shopify Store
+              </Button>
             ) : (
-              <Link href="/">
-                <Button className="bg-white text-zinc-950 hover:bg-zinc-200 font-medium" leftIcon={<Hexagon className="w-4 h-4" />}>
-                  New Website Prompt
+              <Button
+                onClick={() => handleCreateNew("website")}
+                className="bg-white text-zinc-950 hover:bg-zinc-200 font-bold shadow-md"
+                leftIcon={<Hexagon className="w-4 h-4 text-zinc-950" />}
+              >
+                New Website Prompt
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Quota & Plan Status Banner */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white shrink-0 shadow-inner">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white">
+                {isPro ? "Obsidian Pro Subscription" : "Free Creator Plan"}
+              </p>
+              <p className="text-xs text-zinc-400">
+                {isPro
+                  ? `Unlimited projects active (${stats.totalCount} total stores & sites)`
+                  : `${stats.totalCount} of ${stats.maxFreeProjects} free project slots used`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {!isPro && (
+              <div className="flex items-center gap-2.5 flex-1 sm:flex-none">
+                <div className="w-24 sm:w-32 h-2 bg-zinc-800 rounded-full overflow-hidden border border-zinc-700">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      stats.isLimitReached ? "bg-zinc-400" : "bg-white"
+                    }`}
+                    style={{
+                      width: `${Math.min(100, (stats.totalCount / stats.maxFreeProjects) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-xs font-mono text-zinc-400 font-semibold">
+                  {stats.totalCount}/3
+                </span>
+              </div>
+            )}
+            {!isPro && (
+              <Link href="/billing">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-zinc-700 text-zinc-200 hover:bg-zinc-800 text-xs font-semibold"
+                >
+                  Upgrade ($9.99/mo)
                 </Button>
               </Link>
             )}
           </div>
         </div>
 
-        {/* Animated Sub-Navigation Tabs */}
+        {/* Sub-Navigation Tabs */}
         <div className="flex items-center gap-2 bg-zinc-900/90 p-1.5 rounded-2xl w-fit border border-zinc-800 shadow-inner">
           <button
             onClick={() => setActiveTab("shopify")}
@@ -153,12 +157,12 @@ function ProjectsContent() {
                 : "border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
             }`}
           >
-            <ShopifyIcon className="w-4 h-4 fill-current text-emerald-400" />
+            <ShopifyIcon className="w-4 h-4 fill-white" />
             <span>Shopify Store Projects</span>
             <span
               className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
                 activeTab === "shopify"
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  ? "bg-white text-zinc-950 font-bold"
                   : "bg-zinc-800 text-zinc-400"
               }`}
             >
@@ -174,12 +178,12 @@ function ProjectsContent() {
                 : "border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
             }`}
           >
-            <Hexagon className="w-4 h-4 text-zinc-300" />
+            <Hexagon className="w-4 h-4 text-zinc-200" />
             <span>Website Builder Projects</span>
             <span
               className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
                 activeTab === "website"
-                  ? "bg-zinc-700 text-zinc-200 border border-zinc-600"
+                  ? "bg-white text-zinc-950 font-bold"
                   : "bg-zinc-800 text-zinc-400"
               }`}
             >
@@ -193,36 +197,39 @@ function ProjectsContent() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="h-72 rounded-2xl bg-zinc-900 border border-zinc-800 animate-pulse shadow-sm" />
+            <div
+              key={n}
+              className="h-72 rounded-2xl bg-zinc-900 border border-zinc-800 animate-pulse shadow-sm"
+            />
           ))}
         </div>
       ) : currentList.length === 0 ? (
-        <Card glass={false} className="text-center py-16 px-6 space-y-4 bg-zinc-900 border-zinc-800 shadow-xl max-w-xl mx-auto rounded-2xl">
-          <div className="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700 flex items-center justify-center mx-auto text-zinc-400">
+        <Card
+          glass={false}
+          className="text-center py-16 px-6 space-y-4 bg-zinc-900 border-zinc-800 shadow-xl max-w-xl mx-auto rounded-2xl"
+        >
+          <div className="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700 flex items-center justify-center mx-auto text-zinc-300">
             {activeTab === "shopify" ? (
-              <ShopifyIcon className="w-6 h-6 text-emerald-400" />
+              <ShopifyIcon className="w-6 h-6 fill-white" />
             ) : (
               <Hexagon className="w-6 h-6 text-zinc-200" />
             )}
           </div>
-          <CardTitle className="text-zinc-100 font-heading text-xl">No {activeTab === "shopify" ? "Shopify" : "Website"} Projects Found</CardTitle>
+          <CardTitle className="text-zinc-100 font-heading text-xl">
+            No {activeTab === "shopify" ? "Shopify" : "Website"} Projects Found
+          </CardTitle>
           <CardDescription className="text-zinc-400 text-sm max-w-md mx-auto">
             {activeTab === "shopify"
               ? "Build your first AI-powered Shopify Liquid store."
               : "Generate your first website using the dark Obsidian prompt studio."}
           </CardDescription>
-          <Link href={activeTab === "shopify" ? "/builder" : "/"} className="inline-block pt-2">
-            <Button
-              className={
-                activeTab === "shopify"
-                  ? "bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
-                  : "bg-white text-zinc-950 hover:bg-zinc-200 font-medium"
-              }
-              size="sm"
-            >
-              {activeTab === "shopify" ? "Launch Shopify Builder" : "Open Website Builder"}
-            </Button>
-          </Link>
+          <Button
+            onClick={() => handleCreateNew(activeTab)}
+            className="bg-white text-zinc-950 hover:bg-zinc-200 font-bold mt-2"
+            size="sm"
+          >
+            {activeTab === "shopify" ? "Launch Shopify Builder" : "Open Website Builder"}
+          </Button>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-300">
@@ -231,37 +238,31 @@ function ProjectsContent() {
               key={proj.id}
               glass={false}
               hoverable
-              className="group flex flex-col justify-between overflow-hidden bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1"
+              className="group flex flex-col justify-between overflow-hidden bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 rounded-2xl"
             >
               <div>
                 <div className="aspect-video bg-zinc-950 rounded-xl overflow-hidden mb-4 relative border border-zinc-800 group">
-                  {proj.thumbnail_url ? (
+                  {proj.thumbnail || proj.thumbnail_url ? (
                     <img
-                      src={proj.thumbnail_url}
+                      src={proj.thumbnail || proj.thumbnail_url}
                       alt={proj.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-500 text-xs gap-2">
-                      <ImageIcon className="w-6 h-6 text-zinc-500 animate-pulse" />
+                      <ImageIcon className="w-6 h-6 text-zinc-500" />
                       <span>Preview Canvas</span>
                     </div>
                   )}
 
                   <div className="absolute top-2.5 left-2.5">
-                    <span
-                      className={`text-[10px] font-mono font-semibold px-2.5 py-1 rounded-full border shadow-sm ${
-                        activeTab === "shopify"
-                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                          : "bg-zinc-800 text-zinc-300 border-zinc-700"
-                      }`}
-                    >
-                      {activeTab === "shopify" ? "SHOPIFY LIQUID" : "WEBSITE HTML"}
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border shadow-sm bg-zinc-900/90 text-zinc-200 border-zinc-700">
+                      {proj.type === "shopify" ? "SHOPIFY LIQUID" : "WEBSITE HTML"}
                     </span>
                   </div>
                 </div>
 
-                <CardTitle className="group-hover:text-emerald-400 transition-colors line-clamp-1 text-zinc-100 font-heading text-lg">
+                <CardTitle className="group-hover:text-white transition-colors line-clamp-1 text-zinc-100 font-heading text-lg">
                   {proj.title}
                 </CardTitle>
                 <CardDescription className="line-clamp-2 mt-1 text-zinc-400 text-xs leading-relaxed">
@@ -272,25 +273,28 @@ function ProjectsContent() {
               <CardFooter className="pt-4 border-t border-zinc-800 flex items-center justify-between mt-6">
                 <span className="text-[11px] text-zinc-500 flex items-center gap-1.5 font-mono">
                   <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                  {new Date(proj.created_at).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {new Date(proj.createdAt || proj.created_at || Date.now()).toLocaleDateString(
+                    "en-US",
+                    {
+                      month: "short",
+                      day: "numeric",
+                    }
+                  )}
                 </span>
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleDeleteProject(proj.id, activeTab)}
+                    onClick={() => handleDelete(proj.id)}
                     title="Delete Project"
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800/80 transition-colors"
+                    className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800/80 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  <Link href={`/editor/${proj.id}?type=${activeTab}`}>
+                  <Link href={`/editor/${proj.id}?type=${proj.type}`}>
                     <Button
                       size="sm"
-                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 hover:border-zinc-600"
+                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 hover:border-zinc-600 text-xs font-semibold"
                       rightIcon={<ExternalLink className="w-3.5 h-3.5" />}
                     >
                       Open Studio
@@ -302,6 +306,14 @@ function ProjectsContent() {
           ))}
         </div>
       )}
+
+      {/* Quota Limit Modal Guard */}
+      <QuotaLimitModal
+        isOpen={showQuotaModal}
+        onClose={() => setShowQuotaModal(false)}
+        currentCount={stats.totalCount}
+        maxCount={3}
+      />
     </div>
   );
 }
@@ -311,7 +323,7 @@ export default function ProjectsPage() {
     <Suspense
       fallback={
         <div className="flex-1 flex items-center justify-center p-12 text-zinc-400 font-mono text-xs bg-zinc-950 min-h-screen">
-          <Loader2 className="w-5 h-5 animate-spin mr-2 text-emerald-400" /> Loading Workspaces...
+          <Loader2 className="w-5 h-5 animate-spin mr-2 text-white" /> Loading Workspaces...
         </div>
       }
     >

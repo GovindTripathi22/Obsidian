@@ -4,10 +4,10 @@ import React, { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { CreditCard, Check, Crown, ExternalLink } from "lucide-react";
+import { CreditCard, Check, Crown, ExternalLink, Zap } from "lucide-react";
 
 export default function BillingPage() {
-  const { user } = useAuth();
+  const { user, updateUserPlan } = useAuth();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
   const currentPlan = user?.plan || "free";
@@ -15,6 +15,9 @@ export default function BillingPage() {
   const handleCheckout = async (planTier: string) => {
     setLoadingTier(planTier);
     try {
+      if (planTier === "monthly" || planTier === "yearly") {
+        updateUserPlan("pro");
+      }
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,14 +40,14 @@ export default function BillingPage() {
       name: "Free Starter",
       price: "$0",
       period: "forever",
-      description: "Ideal for exploring AI store generation.",
+      description: "Ideal for exploring AI website & Shopify theme generation.",
       features: [
-        "Up to 2 AI store projects",
+        "Up to 3 free projects (Obsidian & Shopify)",
         "Static HTML & PNG exports",
         "Standard Gemini 2.5 Flash model",
-        "Community support",
+        "Community support & templates",
       ],
-      badge: "Basic",
+      badge: "Starter",
       buttonVariant: "outline" as const,
     },
     {
@@ -54,7 +57,7 @@ export default function BillingPage() {
       period: "/ month",
       description: "Full Shopify Liquid theme compiler & unlimited projects.",
       features: [
-        "Unlimited store projects",
+        "Unlimited store & website projects",
         "Full Shopify Liquid theme exports (.ZIP)",
         "ImageKit AI background removal & upscaling",
         "InsForge PostgreSQL database persistence",
@@ -82,11 +85,11 @@ export default function BillingPage() {
   ];
 
   return (
-    <div className="flex-1 p-8 max-w-6xl mx-auto w-full space-y-10 bg-zinc-950 min-h-screen text-zinc-100">
+    <div className="flex-1 p-8 max-w-6xl mx-auto w-full space-y-10 bg-zinc-950 min-h-screen text-zinc-100 font-sans">
       {/* Header */}
       <div className="border-b border-zinc-800 pb-6 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 font-semibold">
-          <CreditCard className="w-4 h-4 text-emerald-400" />
+        <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 font-semibold">
+          <CreditCard className="w-4 h-4 text-white" />
           <span>MONETIZATION & SUBSCRIPTION MANAGEMENT</span>
         </div>
         <h1 className="text-3xl font-black font-heading text-zinc-100 tracking-tight">
@@ -100,29 +103,50 @@ export default function BillingPage() {
       {/* Current Active Plan Status Bar */}
       <div className="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-emerald-400">
+          <div className="p-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-white shadow-inner">
             <Crown className="w-5 h-5" />
           </div>
           <div>
             <p className="text-xs font-mono text-zinc-400 uppercase font-semibold">Current Account Tier</p>
             <h3 className="text-lg font-extrabold font-heading text-zinc-100 flex items-center gap-2">
-              {currentPlan === "pro" ? "Pro Unlimited Subscription" : "Free Plan (2 Projects Max)"}
-              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-semibold">
+              {currentPlan === "pro" ? "Pro Unlimited Subscription" : "Free Plan (3 Projects Max)"}
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-200 border border-zinc-700 font-semibold">
                 Active
               </span>
             </h3>
           </div>
         </div>
 
-        <Button
-          variant="secondary"
-          size="sm"
-          className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700"
-          rightIcon={<ExternalLink className="w-3.5 h-3.5" />}
-          onClick={() => alert("Redirecting to Stripe Customer Portal...")}
-        >
-          Manage Subscription Portal
-        </Button>
+        <div className="flex items-center gap-3">
+          {currentPlan === "pro" ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 text-xs"
+              onClick={() => updateUserPlan("free")}
+            >
+              Switch to Free Tier (Simulate)
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="bg-white text-zinc-950 hover:bg-zinc-200 font-bold text-xs"
+              onClick={() => updateUserPlan("pro")}
+            >
+              Instant Pro Activate (Simulate)
+            </Button>
+          )}
+
+          <Button
+            variant="secondary"
+            size="sm"
+            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700"
+            rightIcon={<ExternalLink className="w-3.5 h-3.5" />}
+            onClick={() => alert("Redirecting to Stripe Customer Portal...")}
+          >
+            Manage Portal
+          </Button>
+        </div>
       </div>
 
       {/* Pricing Cards Grid */}
@@ -135,11 +159,9 @@ export default function BillingPage() {
             <Card
               key={plan.id}
               glass={false}
-              className={`relative flex flex-col justify-between p-6 border-zinc-800 bg-zinc-900 ${
+              className={`relative flex flex-col justify-between p-6 rounded-2xl bg-zinc-900 border ${
                 plan.id === "monthly"
-                  ? "border-emerald-500/50 ring-2 ring-emerald-500/20 shadow-xl shadow-emerald-950/30"
-                  : plan.id === "yearly"
-                  ? "border-zinc-700"
+                  ? "border-zinc-600 ring-1 ring-zinc-500/30 shadow-2xl"
                   : "border-zinc-800"
               }`}
             >
@@ -148,15 +170,15 @@ export default function BillingPage() {
                   <span
                     className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-semibold border ${
                       isPro
-                        ? "bg-emerald-950/80 text-emerald-400 border-emerald-800/60"
+                        ? "bg-zinc-800 text-white border-zinc-600"
                         : "bg-zinc-800 text-zinc-400 border-zinc-700"
                     }`}
                   >
                     {plan.badge}
                   </span>
                   {isCurrent && (
-                    <span className="text-xs font-mono text-emerald-400 flex items-center gap-1 font-bold">
-                      <Check className="w-3.5 h-3.5" /> Active Plan
+                    <span className="text-xs font-mono text-zinc-200 flex items-center gap-1 font-bold">
+                      <Check className="w-3.5 h-3.5 text-white" /> Active Plan
                     </span>
                   )}
                 </div>
@@ -172,7 +194,7 @@ export default function BillingPage() {
                 <ul className="space-y-2.5 text-xs text-zinc-300 border-t border-zinc-800 pt-4">
                   {plan.features.map((f, i) => (
                     <li key={i} className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <Check className="w-4 h-4 text-white shrink-0" />
                       <span>{f}</span>
                     </li>
                   ))}
@@ -186,7 +208,7 @@ export default function BillingPage() {
                     isCurrent
                       ? "bg-zinc-800/80 border-zinc-700 text-zinc-500 cursor-not-allowed hover:bg-zinc-800/80 hover:text-zinc-500"
                       : isPro
-                      ? "bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-lg shadow-emerald-900/30 border-0"
+                      ? "bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-lg border-0"
                       : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700"
                   }`}
                   disabled={isCurrent}

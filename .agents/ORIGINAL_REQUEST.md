@@ -1,29 +1,36 @@
 # Original User Request
 
-## 2026-07-29T06:47:58Z
+## 2026-08-16T13:45:51Z
 
-Merge the StitchStore AI Shopify Liquid Theme generator (d:\app) as an extended feature module within the Obsidian Builder ecosystem. Retain full Obsidian functionality while adding seamless navigation entry points, unified White Stitch design system styling, and a direct launch button.
+<USER_REQUEST>
+Implement working Clerk authentication across both Obsidian Website Builder and Shopify Theme Studio, refine Obsidian into a strict luxury black & white monochrome aesthetic (removing all green accents), and systematically overhaul Shopify Studio to eliminate clutter and illogical components while ensuring every page, preset, and Liquid tool has high practical utility.
 
 Working directory: d:\app
+Integrity mode: development
 
 ## Requirements
 
-### R1. Extended Feature Integration
-Add a dedicated "Shopify Store Builder" module and launcher button within the navigation shell (Sidebar and Header) linking StitchStore AI directly with the Obsidian Builder application ecosystem without modifying or removing existing core Obsidian features.
+### R1. Complete Clerk Authentication Integration Across Both Engines
+Install and configure robust Clerk authentication (or seamless unified authentication with Clerk UI styling, Google One-Tap, and email sign-in) that functions seamlessly across both Obsidian Website Builder (`/`) and Shopify Theme Studio (`/builder`, `/shopify`), maintaining a shared session and enforcing the 3-project free limit across all routes.
 
-### R2. Unified White Stitch Design System Alignment
-Ensure all navigation buttons, feature cards, and editor workspace triggers match the pristine White Stitch theme aesthetic (porcelain #f8fafc background, pure white frosted glass panels #ffffff, dark slate #0f172a typography, rose pink accents).
+### R2. Obsidian Strict Monochrome Aesthetic Overhaul
+Remove all green (`emerald`) elements, badges, accents, and glows from the Obsidian Website Builder and workspace editor. Replace them with pure luxury monochrome tones: pure white (`#ffffff`), zinc highlights, deep blacks (`#000000`, `bg-zinc-950`), and subtle silver/frost glass accents.
 
-### R3. Seamless Feature Navigation & State Sync
-Provide clear navigation routes (/, /editor/[projectId], /projects, /billing, /design-system, /inspiration) and ensure user session states, project quotas, and exports remain fully operational across the unified platform.
+### R3. Shopify Studio Utility & Quality Overhaul
+Clean up all unuseful, illogical, and error-prone components in the Shopify Theme Studio. Ensure all simulated storefront views, presets, product quick-add interactions, cart drawers, and Liquid section inspectors function logically with real-world e-commerce standards and clean Liquid 2.0 code exports.
 
 ## Acceptance Criteria
 
-### Integration & UI Polish
-- [ ] Direct "Shopify Theme Builder" navigation button present in the app header and sidebar.
-- [ ] 0 breaking changes to existing project structures or pages.
-- [ ] All UI elements adhere to the White Stitch design tokens.
+### Authentication
+- [ ] User can sign in once and remain authenticated across `/`, `/builder`, `/shopify`, `/projects`, `/billing`, and `/editor/[projectId]`.
+- [ ] User profile, quota meters, and project history update correctly without hydration mismatches.
 
-### Build & Verification
-- [ ] `npm run build` executes with 0 TypeScript, ESLint, or Next.js build errors.
-- [ ] All routes resolve cleanly.
+### Design System & Theme
+- [ ] Obsidian Website Builder contains 0 green/emerald accents, displaying a clean monochrome palette (black, white, zinc).
+- [ ] Typography, borders, and button hover states adhere strictly to high-contrast monochrome noir styling.
+
+### Shopify Utility & Stability
+- [ ] Every preset and section in Shopify Studio serves a practical e-commerce purpose (Hero, Featured Collection, Cart Drawer, Trust Badges, Section Schema, Liquid 2.0 ZIP Export).
+- [ ] `npm run build` passes with 0 TypeScript, ESLint, or Next.js build errors across all routes.
+
+</USER_REQUEST>

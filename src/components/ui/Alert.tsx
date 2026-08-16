@@ -23,19 +23,19 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
   ) => {
     const variantConfig = {
       info: {
-        container: "bg-blue-950/50 border-blue-800/60 text-blue-200",
-        icon: <Info className="w-5 h-5 text-blue-400 shrink-0" />,
+        container: "bg-zinc-900/90 border-zinc-700/80 text-zinc-200",
+        icon: <Info className="w-5 h-5 text-zinc-300 shrink-0" />,
       },
       success: {
-        container: "bg-emerald-950/50 border-emerald-800/60 text-emerald-200",
-        icon: <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />,
+        container: "bg-zinc-900/90 border-zinc-700 text-zinc-100",
+        icon: <CheckCircle2 className="w-5 h-5 text-white shrink-0" />,
       },
       warning: {
-        container: "bg-amber-950/50 border-amber-800/60 text-amber-200",
-        icon: <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />,
+        container: "bg-zinc-900/90 border-zinc-700/80 text-zinc-200",
+        icon: <AlertTriangle className="w-5 h-5 text-zinc-300 shrink-0" />,
       },
       danger: {
-        container: "bg-red-950/50 border-red-800/60 text-red-200",
+        container: "bg-red-950/40 border-red-800/50 text-red-200",
         icon: <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />,
       },
     };
