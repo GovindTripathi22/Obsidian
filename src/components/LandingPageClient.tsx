@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, Sparkles, Zap, Hexagon } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Hexagon, AlertTriangle, CreditCard } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 
@@ -42,12 +42,21 @@ export function LandingPageClient() {
   const [inputValue, setInputValue] = useState("");
   const [qualityTier, setQualityTier] = useState<"low" | "medium" | "high">("medium");
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
   const router = useRouter();
-  const { user, refreshProjectCount } = useAuth();
+  const { user, refreshProjectCount, getProjectStats } = useAuth();
+  const stats = getProjectStats();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
+
+    // Enforce 3-project limit on Free Plan
+    if (stats.isLimitReached) {
+      setShowQuotaModal(true);
+      return;
+    }
+
     const projectId = `proj-obsidian-${Date.now()}`;
     const newProject = {
       id: projectId,
@@ -115,6 +124,19 @@ export function LandingPageClient() {
           Generate production-ready websites and landing pages with a single prompt.
           Edit visually with real-time streaming. Export clean code.
         </p>
+
+        {/* Plan Quota Indicator */}
+        <div className="inline-flex items-center gap-2 text-xs font-mono bg-zinc-900/80 border border-zinc-800 px-3.5 py-1.5 rounded-full shadow-md">
+          <span className="text-zinc-400">Quota:</span>
+          <span className={stats.isLimitReached ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}>
+            {stats.isPro ? "Pro (Unlimited)" : `${stats.totalCount}/3 Free Projects`}
+          </span>
+          {!stats.isPro && (
+            <Link href="/billing" className="text-emerald-400 hover:text-emerald-300 font-bold ml-1 border-l border-zinc-700 pl-2">
+              Upgrade to Pro →
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Main Prompt Input */}
@@ -254,6 +276,60 @@ export function LandingPageClient() {
           </div>
         ))}
       </div>
+
+      {/* ── Quota Limit Exceeded Modal (Limit of 3 Enforced) ── */}
+      {showQuotaModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full rounded-3xl border border-zinc-800 bg-zinc-900 p-6 sm:p-8 space-y-6 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white font-heading">Free Quota Limit Reached</h3>
+                <p className="text-xs text-zinc-400">3/3 Free projects currently used</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              You have reached the maximum limit of <strong>3 free projects</strong> on your current tier.
+              Upgrade to <strong>Obsidian Pro</strong> for unlimited Shopify & Website generations, or delete old projects in your workspace.
+            </p>
+
+            <div className="space-y-2 pt-2">
+              <Link href="/billing" className="block w-full">
+                <Button
+                  size="md"
+                  leftIcon={<CreditCard className="w-4 h-4" />}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                >
+                  Upgrade to Pro ($19/mo) →
+                </Button>
+              </Link>
+
+              <div className="flex gap-2">
+                <Link href="/projects?tab=website" className="flex-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-zinc-800 text-zinc-300 hover:bg-zinc-800 text-xs"
+                  >
+                    Manage Projects
+                  </Button>
+                </Link>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowQuotaModal(false)}
+                  className="text-zinc-400 hover:text-white text-xs"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
