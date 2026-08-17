@@ -1,8 +1,18 @@
+"use client";
+
 /**
  * Unified Authentication Bridge & Re-exports
- * Supports both Clerk hooks and Offline Luxury Mock Provider
+ * Supports Clerk components/hooks, unified AuthProvider, and luxury auth modals
  * Location: src/lib/auth.tsx
  */
+
+export {
+  SignIn,
+  SignUp,
+  SignedIn,
+  SignedOut,
+  ClerkProvider,
+} from "@clerk/nextjs";
 
 export { AuthProvider, useAuth, useUser } from "@/components/providers/AuthProvider";
 export type { AuthUser, AuthContextType } from "@/components/providers/AuthProvider";

@@ -34,3 +34,43 @@ Clean up all unuseful, illogical, and error-prone components in the Shopify Them
 - [ ] `npm run build` passes with 0 TypeScript, ESLint, or Next.js build errors across all routes.
 
 </USER_REQUEST>
+
+## 2026-08-17T10:37:33Z
+
+<USER_REQUEST>
+Implement real, working Clerk authentication across both Obsidian Website Builder and Shopify Theme Studio, supporting genuine Google OAuth, email verification, real user profile synchronization, and session persistence without mock placeholders.
+
+Working directory: d:\app
+Integrity mode: development
+
+## Requirements
+
+### R1. Complete Clerk Authentication Integration
+- Integrate `@clerk/nextjs` with standard `<ClerkProvider>` and Clerk components (`<SignIn />`, `<SignUp />`, `<UserButton />`, `<SignedIn>`, `<SignedOut>`).
+- Support genuine Google OAuth and Email/Password registration/login.
+- Allow seamless fallback when running in local development mode without breaking builds or requiring hardcoded mock accounts.
+
+### R2. Real User Profile & Session Persistence
+- Ensure users start in an unauthenticated / signed-out state by default.
+- When signed in, accurately capture and display the user's real name, email address, and profile avatar across both Obsidian (`/`) and Shopify (`/builder`, `/shopify`) navigation headers and sidebars.
+- Remove all hardcoded placeholders ("Alex Johnson", "Alex Morgan", "Obsidian Creator", "developer@obsidian.ai").
+
+### R3. Cross-Route Quota & Project Integration
+- Maintain single-session synchronization across all routes (`/`, `/builder`, `/shopify`, `/projects`, `/editor/*`, `/billing`).
+- Synchronize active project count and enforce the 3-project limit on the Free Plan tied to the user's authenticated ID.
+
+## Acceptance Criteria
+
+### Authentication & Profiles
+- [ ] Direct Sign In and Sign Up using Clerk / real Google OAuth or Email credentials.
+- [ ] User starts signed out by default; no automatic pre-login as a mock account.
+- [ ] User's real name and email are displayed in the UserButton dropdown and profile modal.
+- [ ] Sign Out immediately clears the active session and resets all navigation bars to signed-out state.
+
+### Build & Test Verification
+- [ ] `npm run build` succeeds with 0 errors across all routes.
+- [ ] E2E test suites in `tests/run-all-tests.js` pass cleanly (100% assertions).
+- [ ] 0 breaking changes to Shopify Studio or Obsidian Website Builder features.
+
+</USER_REQUEST>
+

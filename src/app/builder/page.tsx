@@ -179,7 +179,7 @@ export default function BuilderPage() {
 
     createProject({
       id: newProjectId,
-      userId: user?.id || "user-architect",
+      userId: user?.id || "guest",
       title: projectTitle,
       prompt: promptText,
       type: "shopify",

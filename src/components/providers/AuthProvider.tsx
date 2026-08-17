@@ -181,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async (customName?: string, customEmail?: string) => {
     setLoading(true);
     const { totalCount } = getProjectCount();
-    const email = customEmail?.trim() || "creator@gmail.com";
+    const email = customEmail?.trim() || (customName ? `${customName.trim().toLowerCase().replace(/\s+/g, ".")}@gmail.com` : "google.creator@obsidian.ai");
     const name = customName?.trim() || email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     
     const googleUser: AuthUser = {
@@ -190,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name,
       avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
       created_at: new Date().toISOString(),
-      plan: "free",
+      plan: "pro",
       projectCount: totalCount,
     };
     setUser(googleUser);

@@ -65,7 +65,7 @@ export const GoogleOneTap: React.FC = () => {
           onClick={handleSignIn}
           className="flex-1 py-2 px-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs shadow-md transition-colors text-center"
         >
-          Sign In as Google Creator
+          Sign In with Google
         </button>
         <button
           onClick={handleDismiss}

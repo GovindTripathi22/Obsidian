@@ -1,12 +1,12 @@
-# BRIEFING — 2026-08-16T13:45:51Z
+# BRIEFING — 2026-08-17T10:37:33Z
 
 ## Mission
-Coordinate and monitor implementation of Clerk authentication across Obsidian & Shopify Studio, monochrome aesthetic overhaul for Obsidian, and Shopify Theme Studio utility/quality overhaul.
+Coordinate and monitor implementation of genuine Clerk authentication across Obsidian & Shopify Studio, real user profile synchronization, session persistence, removing mock placeholders, and passing tests/builds.
 
 ## 🔒 My Identity
 - Archetype: sentinel
 - Working directory: d:\app\.agents\sentinel
-- Orchestrator: 6e73f93c-f740-4d39-b525-5252e53283f4
+- Orchestrator: d9dcd949-6173-4564-9081-f4bb4a70ca66
 - Victory Auditor: to be spawned on victory claim
 
 ## 🔒 Key Constraints
@@ -16,17 +16,18 @@ Coordinate and monitor implementation of Clerk authentication across Obsidian & 
 - Keep context ultra-light
 
 ## User Context
-- **Last user request**: Implement Clerk auth, Obsidian luxury monochrome aesthetic, and Shopify Studio overhaul.
+- **Last user request**: Implement real Clerk authentication across Obsidian & Shopify Studio with real Google OAuth/email, real profile sync, no mock placeholders, single-session across routes, quota enforcement, 0 errors on npm run build & tests/run-all-tests.js.
 - **Pending clarifications**: none
 - **Delivered results**: none
 
 ## Project Status
 - **Phase**: in progress
-- **Orchestrator ID**: 6e73f93c-f740-4d39-b525-5252e53283f4
-- **Cron 1 (Progress Report)**: d5f15318-5cfc-48df-bcb8-0e811ea35ecf/task-11 (*/8 * * * *)
-- **Cron 2 (Liveness Check)**: d5f15318-5cfc-48df-bcb8-0e811ea35ecf/task-13 (*/10 * * * *)
+- **Orchestrator ID**: d9dcd949-6173-4564-9081-f4bb4a70ca66
+- **Route**: General (teamwork_preview_orchestrator)
+- **Cron 1 (Progress Report)**: 1b8af434-6bb8-481d-ba47-48a5b2df610f/task-31 (*/8 * * * *)
+- **Cron 2 (Liveness Check)**: 1b8af434-6bb8-481d-ba47-48a5b2df610f/task-33 (*/10 * * * *)
 
-## Victory Audit Status
+## Victory Auditor Status
 - **Triggered**: no
 - **Verdict**: pending
 - **Retry count**: 0
@@ -34,3 +35,4 @@ Coordinate and monitor implementation of Clerk authentication across Obsidian & 
 ## Artifact Index
 - d:\app\ORIGINAL_REQUEST.md — Verbatim original user request
 - d:\app\.agents\ORIGINAL_REQUEST.md — Agent record of user request
+

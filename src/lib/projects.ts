@@ -97,8 +97,8 @@ export const MAX_FREE_PROJECTS = 3;
 export const INITIAL_DEFAULT_MOCKS: Project[] = [
   {
     id: "proj-shopify-starter-1",
-    userId: "user-obsidian-prime",
-    user_id: "user-obsidian-prime",
+    userId: "guest",
+    user_id: "guest",
     title: "LuxeAura Cosmetics Store",
     prompt: "Luxurious cosmetics store with pastel pink accents, product grids, and Shopify Liquid 2.0 template.",
     type: "shopify",
@@ -162,8 +162,8 @@ export function migrateLegacyProjects(): Project[] {
               seenIds.add(item.id);
               migrated.push({
                 id: item.id,
-                userId: item.userId || item.user_id || "user-obsidian-prime",
-                user_id: item.user_id || item.userId || "user-obsidian-prime",
+                userId: item.userId || item.user_id || "guest",
+                user_id: item.user_id || item.userId || "guest",
                 title: item.title || "Untitled Shopify Store",
                 prompt: item.prompt || "",
                 type: "shopify",
@@ -192,8 +192,8 @@ export function migrateLegacyProjects(): Project[] {
               seenIds.add(item.id);
               migrated.push({
                 id: item.id,
-                userId: item.userId || item.user_id || "user-obsidian-prime",
-                user_id: item.user_id || item.userId || "user-obsidian-prime",
+                userId: item.userId || item.user_id || "guest",
+                user_id: item.user_id || item.userId || "guest",
                 title: item.title || "Untitled Website Project",
                 prompt: item.prompt || "",
                 type: "website",
@@ -361,7 +361,7 @@ export function duplicateProject(id: string): Project | undefined {
   const original = getProjectById(id);
   if (!original) return undefined;
 
-  const newId = `proj-${original.type}-${Date.now()}`;
+  const newId = `proj-${original.type}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   return createProject({
     id: newId,
     title: `${original.title} (Copy)`,
