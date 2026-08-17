@@ -69,45 +69,34 @@ export const AuthModals: React.FC = () => {
     setIsSubmitting(false);
   };
 
-  const handleQuickSignIn = async (email: string, isProPlan: boolean) => {
-    setIsSubmitting(true);
-    await signIn(email);
-    if (isProPlan) {
-      updateUserPlan("pro");
-    } else {
-      updateUserPlan("free");
-    }
-    setIsSubmitting(false);
-  };
-
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in font-sans">
       {/* ── Sign In Modal ── */}
       {activeModal === "sign-in" && (
-        <div className="max-w-md w-full rounded-3xl border border-zinc-800 bg-zinc-950 p-6 sm:p-8 space-y-6 shadow-2xl relative text-zinc-100">
+        <div className="max-w-md w-full rounded-2xl border border-neutral-800 bg-[#0a0a0a] p-6 sm:p-8 space-y-6 shadow-2xl relative text-neutral-100">
           <button
             onClick={closeModals}
-            className="absolute top-5 right-5 p-1.5 rounded-xl text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors"
+            className="absolute top-5 right-5 p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-neutral-900 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
 
-          <div className="text-center space-y-2">
-            <div className="mx-auto w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white mb-2 shadow-inner">
-              <Sparkles className="w-6 h-6 text-white" />
+          <div className="text-center space-y-1.5">
+            <div className="mx-auto w-10 h-10 rounded-xl bg-white flex items-center justify-center mb-3">
+              <span className="text-[#0a0a0a] text-sm font-bold">O</span>
             </div>
-            <h2 className="text-2xl font-black font-heading text-zinc-100 tracking-tight">
+            <h2 className="text-xl font-semibold text-white tracking-tight">
               Sign In to Obsidian
             </h2>
-            <p className="text-xs text-zinc-400">
-              Access your saved Shopify Liquid themes & Obsidian websites.
+            <p className="text-xs text-neutral-400">
+              Access your saved Shopify themes and website projects.
             </p>
           </div>
 
           <div className="space-y-4">
             <Button
               variant="secondary"
-              className="w-full justify-center bg-zinc-900 hover:bg-zinc-800 text-zinc-100 border border-zinc-800 font-semibold"
+              className="w-full justify-center bg-neutral-900 hover:bg-neutral-800 text-neutral-100 border border-neutral-800 font-medium"
               onClick={handleGoogleAuth}
               isLoading={isSubmitting}
             >
@@ -120,33 +109,10 @@ export const AuthModals: React.FC = () => {
               Continue with Google
             </Button>
 
-            {/* Quick-fill demo account pills */}
-            <div className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-2">
-              <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block">
-                Instant Demo Profiles:
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickSignIn("developer@obsidian.ai", false)}
-                  className="flex-1 py-1 px-2 rounded-xl text-[11px] font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors"
-                >
-                  Free Creator (1/3)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickSignIn("architect@obsidian.ai", true)}
-                  className="flex-1 py-1 px-2 rounded-xl text-[11px] font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors flex items-center justify-center gap-1"
-                >
-                  <Crown className="w-3 h-3 text-white" /> Pro Studio
-                </button>
-              </div>
-            </div>
-
             <div className="relative flex items-center justify-center my-2">
-              <div className="border-t border-zinc-800 w-full" />
-              <span className="bg-zinc-950 px-3 text-[10px] text-zinc-500 font-mono uppercase absolute">
-                Or Email Credentials
+              <div className="border-t border-neutral-800 w-full" />
+              <span className="bg-[#0a0a0a] px-3 text-[10px] text-neutral-500 uppercase tracking-wider absolute">
+                Or Email
               </span>
             </div>
 
@@ -154,9 +120,9 @@ export const AuthModals: React.FC = () => {
               <Input
                 label="Email"
                 type="email"
-                placeholder="name@company.com"
-                leftIcon={<Mail className="w-4 h-4 text-zinc-400" />}
-                className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
+                placeholder="you@example.com"
+                leftIcon={<Mail className="w-4 h-4 text-neutral-400" />}
+                className="bg-neutral-900 border-neutral-800 text-neutral-100 placeholder-neutral-500 focus:border-neutral-500"
                 value={signInEmail}
                 onChange={(e) => setSignInEmail(e.target.value)}
                 required
@@ -165,26 +131,26 @@ export const AuthModals: React.FC = () => {
                 label="Password"
                 type="password"
                 placeholder="••••••••"
-                leftIcon={<Lock className="w-4 h-4 text-zinc-400" />}
-                className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
+                leftIcon={<Lock className="w-4 h-4 text-neutral-400" />}
+                className="bg-neutral-900 border-neutral-800 text-neutral-100 placeholder-neutral-500 focus:border-neutral-500"
                 value={signInPassword}
                 onChange={(e) => setSignInPassword(e.target.value)}
               />
               <Button
                 type="submit"
-                className="w-full bg-white text-zinc-950 hover:bg-zinc-200 font-bold shadow-lg"
+                className="w-full bg-white text-neutral-950 hover:bg-neutral-200 font-medium"
                 isLoading={isSubmitting}
               >
                 Sign In
               </Button>
             </form>
 
-            <p className="text-center text-xs text-zinc-400 pt-2">
+            <p className="text-center text-xs text-neutral-400 pt-2">
               Don't have an account?{" "}
               <button
                 type="button"
                 onClick={openSignUp}
-                className="text-white font-bold hover:underline"
+                className="text-white font-medium hover:underline underline-offset-4 cursor-pointer"
               >
                 Sign Up
               </button>
@@ -195,30 +161,30 @@ export const AuthModals: React.FC = () => {
 
       {/* ── Sign Up Modal ── */}
       {activeModal === "sign-up" && (
-        <div className="max-w-md w-full rounded-3xl border border-zinc-800 bg-zinc-950 p-6 sm:p-8 space-y-6 shadow-2xl relative text-zinc-100">
+        <div className="max-w-md w-full rounded-2xl border border-neutral-800 bg-[#0a0a0a] p-6 sm:p-8 space-y-6 shadow-2xl relative text-neutral-100">
           <button
             onClick={closeModals}
-            className="absolute top-5 right-5 p-1.5 rounded-xl text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors"
+            className="absolute top-5 right-5 p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-neutral-900 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
 
-          <div className="text-center space-y-2">
-            <div className="mx-auto w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white mb-2 shadow-inner">
-              <Sparkles className="w-6 h-6 text-white" />
+          <div className="text-center space-y-1.5">
+            <div className="mx-auto w-10 h-10 rounded-xl bg-white flex items-center justify-center mb-3">
+              <span className="text-[#0a0a0a] text-sm font-bold">O</span>
             </div>
-            <h2 className="text-2xl font-black font-heading text-zinc-100 tracking-tight">
+            <h2 className="text-xl font-semibold text-white tracking-tight">
               Create Obsidian Account
             </h2>
-            <p className="text-xs text-zinc-400">
-              Start building AI-powered Shopify stores & modern websites.
+            <p className="text-xs text-neutral-400">
+              Start building AI-powered websites & Shopify themes.
             </p>
           </div>
 
           <div className="space-y-4">
             <Button
               variant="secondary"
-              className="w-full justify-center bg-zinc-900 hover:bg-zinc-800 text-zinc-100 border border-zinc-800 font-semibold"
+              className="w-full justify-center bg-neutral-900 hover:bg-neutral-800 text-neutral-100 border border-neutral-800 font-medium"
               onClick={handleGoogleAuth}
               isLoading={isSubmitting}
             >
@@ -232,8 +198,8 @@ export const AuthModals: React.FC = () => {
             </Button>
 
             <div className="relative flex items-center justify-center my-2">
-              <div className="border-t border-zinc-800 w-full" />
-              <span className="bg-zinc-950 px-3 text-[10px] text-zinc-500 font-mono uppercase absolute">
+              <div className="border-t border-neutral-800 w-full" />
+              <span className="bg-[#0a0a0a] px-3 text-[10px] text-neutral-500 uppercase tracking-wider absolute">
                 Or Register with Email
               </span>
             </div>
@@ -241,18 +207,19 @@ export const AuthModals: React.FC = () => {
             <form onSubmit={handleSignUpSubmit} className="space-y-3">
               <Input
                 label="Full Name"
-                placeholder="Alex Morgan"
-                leftIcon={<User className="w-4 h-4 text-zinc-400" />}
-                className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
+                placeholder="Your full name"
+                leftIcon={<User className="w-4 h-4 text-neutral-400" />}
+                className="bg-neutral-900 border-neutral-800 text-neutral-100 placeholder-neutral-500 focus:border-neutral-500"
                 value={signUpName}
                 onChange={(e) => setSignUpName(e.target.value)}
+                required
               />
               <Input
                 label="Email"
                 type="email"
-                placeholder="name@company.com"
-                leftIcon={<Mail className="w-4 h-4 text-zinc-400" />}
-                className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
+                placeholder="you@example.com"
+                leftIcon={<Mail className="w-4 h-4 text-neutral-400" />}
+                className="bg-neutral-900 border-neutral-800 text-neutral-100 placeholder-neutral-500 focus:border-neutral-500"
                 value={signUpEmail}
                 onChange={(e) => setSignUpEmail(e.target.value)}
                 required
@@ -261,27 +228,27 @@ export const AuthModals: React.FC = () => {
                 label="Password"
                 type="password"
                 placeholder="••••••••"
-                leftIcon={<Lock className="w-4 h-4 text-zinc-400" />}
-                className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
+                leftIcon={<Lock className="w-4 h-4 text-neutral-400" />}
+                className="bg-neutral-900 border-neutral-800 text-neutral-100 placeholder-neutral-500 focus:border-neutral-500"
                 value={signUpPassword}
                 onChange={(e) => setSignUpPassword(e.target.value)}
                 required
               />
               <Button
                 type="submit"
-                className="w-full bg-white text-zinc-950 hover:bg-zinc-200 font-bold shadow-lg"
+                className="w-full bg-white text-neutral-950 hover:bg-neutral-200 font-medium"
                 isLoading={isSubmitting}
               >
                 Create Account
               </Button>
             </form>
 
-            <p className="text-center text-xs text-zinc-400 pt-2">
+            <p className="text-center text-xs text-neutral-400 pt-2">
               Already have an account?{" "}
               <button
                 type="button"
                 onClick={openSignIn}
-                className="text-white font-bold hover:underline"
+                className="text-white font-medium hover:underline underline-offset-4 cursor-pointer"
               >
                 Sign In
               </button>
@@ -292,16 +259,16 @@ export const AuthModals: React.FC = () => {
 
       {/* ── User Profile & Plan Modal ── */}
       {activeModal === "user-profile" && (
-        <div className="max-w-md w-full rounded-3xl border border-zinc-800 bg-zinc-950 p-6 sm:p-8 space-y-6 shadow-2xl relative text-zinc-100">
+        <div className="max-w-md w-full rounded-2xl border border-neutral-800 bg-[#0a0a0a] p-6 sm:p-8 space-y-6 shadow-2xl relative text-neutral-100">
           <button
             onClick={closeModals}
-            className="absolute top-5 right-5 p-1.5 rounded-xl text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors"
+            className="absolute top-5 right-5 p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-neutral-900 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
 
-          <div className="flex items-center gap-4 border-b border-zinc-800 pb-5">
-            <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-white text-xl font-bold font-heading overflow-hidden shadow-inner">
+          <div className="flex items-center gap-4 border-b border-neutral-800 pb-5">
+            <div className="w-12 h-12 rounded-xl bg-neutral-900 border border-neutral-700 flex items-center justify-center text-white text-lg font-bold overflow-hidden shadow-inner">
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
@@ -310,37 +277,37 @@ export const AuthModals: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold font-heading text-white">
-                  {user?.name || "Obsidian Creator"}
+                <h3 className="text-base font-semibold text-white">
+                  {user?.name || "Account"}
                 </h3>
                 <span
-                  className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                  className={`text-[9px] font-medium px-2 py-0.5 rounded-full border ${
                     isPro
-                      ? "bg-zinc-800 text-white border-zinc-600"
-                      : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                      ? "bg-neutral-800 text-white border-neutral-600"
+                      : "bg-neutral-900 text-neutral-400 border-neutral-800"
                   }`}
                 >
-                  {isPro ? "PRO UNLIMITED" : "FREE STARTER"}
+                  {isPro ? "PRO" : "FREE"}
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 font-mono mt-0.5">{user?.email || "No email"}</p>
+              <p className="text-xs text-neutral-400 mt-0.5">{user?.email || "No email"}</p>
             </div>
           </div>
 
           {/* Quota Status Card */}
-          <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-3">
+          <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 space-y-3">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
+              <span className="font-medium text-neutral-300 flex items-center gap-1.5">
                 <Shield className="w-3.5 h-3.5 text-white" />
                 Workspace Quota
               </span>
-              <span className="font-mono text-zinc-400">
+              <span className="text-neutral-400">
                 {isPro ? "Unlimited Projects" : `${stats.totalCount} / 3 Free Projects Used`}
               </span>
             </div>
 
             {!isPro && (
-              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-white transition-all duration-300 rounded-full"
                   style={{ width: `${Math.min(100, (stats.totalCount / 3) * 100)}%` }}
@@ -348,16 +315,16 @@ export const AuthModals: React.FC = () => {
               </div>
             )}
 
-            {/* Instant Plan Switcher for Testing/Preview */}
-            <div className="pt-2 flex items-center justify-between border-t border-zinc-800/80">
-              <span className="text-[11px] text-zinc-400">Instant Plan Switcher:</span>
+            {/* Plan Switcher */}
+            <div className="pt-2 flex items-center justify-between border-t border-neutral-800">
+              <span className="text-[11px] text-neutral-400">Current Plan:</span>
               <button
                 type="button"
                 onClick={() => updateUserPlan(isPro ? "free" : "pro")}
-                className="text-xs font-semibold px-3 py-1 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors flex items-center gap-1.5"
+                className="text-xs font-medium px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Zap className="w-3 h-3 text-white" />
-                Switch to {isPro ? "Free (3 Projects)" : "Pro ($9.99/mo)"}
+                Switch to {isPro ? "Free" : "Pro"}
               </button>
             </div>
           </div>
@@ -367,29 +334,29 @@ export const AuthModals: React.FC = () => {
             <Link
               href="/projects"
               onClick={closeModals}
-              className="p-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white transition-colors flex items-center gap-2"
+              className="p-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-medium text-neutral-300 hover:text-white transition-colors flex items-center gap-2"
             >
               <FolderKanban className="w-4 h-4 text-white" />
-              <span>Workspace</span>
+              <span>Projects</span>
             </Link>
             <Link
               href="/billing"
               onClick={closeModals}
-              className="p-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white transition-colors flex items-center gap-2"
+              className="p-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-xs font-medium text-neutral-300 hover:text-white transition-colors flex items-center gap-2"
             >
               <CreditCard className="w-4 h-4 text-white" />
-              <span>Billing & Plans</span>
+              <span>Billing</span>
             </Link>
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-2 border-t border-zinc-800 flex items-center justify-between">
+          <div className="pt-2 border-t border-neutral-800 flex items-center justify-between">
             <button
               onClick={async () => {
                 await signOut();
                 closeModals();
               }}
-              className="text-xs text-zinc-400 hover:text-red-400 flex items-center gap-1.5 transition-colors"
+              className="text-xs text-neutral-400 hover:text-red-400 flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Sign Out</span>
@@ -399,7 +366,7 @@ export const AuthModals: React.FC = () => {
               size="sm"
               variant="outline"
               onClick={closeModals}
-              className="border-zinc-800 text-zinc-300 hover:bg-zinc-900 text-xs"
+              className="border-neutral-800 text-neutral-300 hover:bg-neutral-900 text-xs"
             >
               Close
             </Button>

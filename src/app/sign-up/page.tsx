@@ -80,7 +80,7 @@ export default function SignUpPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Full Name"
-              placeholder="Alex Johnson"
+              placeholder="Your full name"
               leftIcon={<User className="w-4 h-4 text-neutral-400" />}
               className="bg-neutral-900 border-neutral-800 text-neutral-100 placeholder-neutral-500 focus:border-neutral-500 focus:ring-neutral-500/20"
               value={name}

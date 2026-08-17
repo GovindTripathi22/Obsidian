@@ -115,11 +115,11 @@ const FLAG_REGEXES = [
 ];
 
 const MONOCHROME_PATTERNS = [
-  { id: 'pure-white', pattern: /#ffffff|text-white|bg-white|text-slate-50|bg-slate-50/gi, name: 'Pure White / Light Surface' },
-  { id: 'zinc-950', pattern: /#09090b|zinc-950|bg-zinc-950|bg-black|text-black|text-slate-900/gi, name: 'Deep Noir (#09090b / zinc-950 / black)' },
-  { id: 'zinc-palette', pattern: /zinc-[1-9]00|slate-[1-9]00/gi, name: 'Grayscale Palette (zinc/slate 100..900)' },
+  { id: 'pure-white', pattern: /#ffffff|text-white|bg-white|text-slate-50|bg-slate-50|text-neutral-50/gi, name: 'Pure White / Light Surface' },
+  { id: 'zinc-950', pattern: /#09090b|#0a0a0a|zinc-950|bg-zinc-950|neutral-950|bg-neutral-950|bg-black|text-black|text-slate-900/gi, name: 'Deep Noir (#09090b / #0a0a0a / zinc-950 / neutral-950 / black)' },
+  { id: 'zinc-palette', pattern: /zinc-[1-9]00|slate-[1-9]00|neutral-[1-9]00/gi, name: 'Grayscale Palette (zinc/slate/neutral 100..900)' },
   { id: 'deep-black', pattern: /#000000|bg-black|text-black/gi, name: 'Deep Black (#000000)' },
-  { id: 'glass-frost', pattern: /glass-panel|backdrop-blur|border-zinc-800|border-slate-|border-white\/10|shadow-2xl/gi, name: 'Frost Glass & Silver' },
+  { id: 'glass-frost', pattern: /glass-panel|backdrop-blur|border-zinc-|border-neutral-|border-slate-|border-white\/10|shadow-2xl/gi, name: 'Frost Glass & Silver' },
 ];
 
 function scanFileTokens(filePath) {

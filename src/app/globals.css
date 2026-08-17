@@ -5,12 +5,12 @@
 @layer base {
   :root {
     /* ── Obsidian Theme Tokens ── */
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #09090b;
+    --foreground: #fafafa;
 
-    --card: #141414;
-    --card-foreground: #ededed;
-    --card-border: #1e1e1e;
+    --card: #18181b;
+    --card-foreground: #fafafa;
+    --card-border: #27272a;
 
     --primary: #ededed;
     --primary-hover: #d4d4d4;

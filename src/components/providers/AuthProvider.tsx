@@ -6,7 +6,6 @@ import {
   getProjectStats,
   getProjectCount,
   PROJECTS_UPDATED_EVENT,
-  MAX_FREE_PROJECTS,
   ProjectStats,
 } from "@/lib/projects";
 
@@ -20,11 +19,11 @@ export interface AuthContextType {
   loading: boolean;
   isLoaded: boolean;
   isSignedIn: boolean;
-  mode: "clerk" | "offline-mock";
+  mode: "clerk" | "standard";
   activeModal: "sign-in" | "sign-up" | "user-profile" | null;
   signIn: (email: string, pass?: string) => Promise<void>;
   signUp: (email: string, pass?: string, name?: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (customName?: string, customEmail?: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateUserPlan: (plan: "free" | "pro") => void;
   openSignIn: () => void;
@@ -37,15 +36,7 @@ export interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DEFAULT_USER: AuthUser = {
-  id: "user-obsidian-prime",
-  email: "developer@obsidian.ai",
-  name: "Obsidian Creator",
-  avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-  created_at: new Date().toISOString(),
-  plan: "free",
-  projectCount: 1,
-};
+export const MAX_FREE_PROJECTS = 3;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -54,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check if Clerk publishable key is present in environment
   const hasClerkKey = typeof process !== "undefined" && Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
-  const mode: "clerk" | "offline-mock" = hasClerkKey ? "clerk" : "offline-mock";
+  const mode: "clerk" | "standard" = hasClerkKey ? "clerk" : "standard";
 
   const refreshProjectCount = useCallback(() => {
     const { totalCount } = getProjectCount();
@@ -77,29 +68,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user?.plan]);
 
   useEffect(() => {
-    let activeUser: AuthUser = DEFAULT_USER;
     try {
       const savedUser =
         localStorage.getItem("obsidian_auth_user") || localStorage.getItem("insforge_session");
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
-        activeUser = {
-          ...DEFAULT_USER,
-          ...parsed,
-          plan: parsed.plan === "pro" ? "pro" : "free",
-        };
+        if (parsed && (parsed.email || parsed.name)) {
+          const { totalCount } = getProjectCount();
+          const synced: AuthUser = {
+            id: parsed.id || `usr_${Date.now()}`,
+            email: parsed.email || "",
+            name: parsed.name || parsed.email?.split("@")[0] || "User",
+            avatar_url: parsed.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(parsed.name || parsed.email || "U")}`,
+            created_at: parsed.created_at || new Date().toISOString(),
+            plan: parsed.plan === "pro" ? "pro" : "free",
+            projectCount: totalCount,
+          };
+          setUser(synced);
+          localStorage.setItem("insforge_session", JSON.stringify(synced));
+          localStorage.setItem("obsidian_auth_user", JSON.stringify(synced));
+        } else {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
       }
     } catch {
-      activeUser = DEFAULT_USER;
+      setUser(null);
     }
 
-    const { totalCount } = getProjectCount();
-    const synced: AuthUser = { ...activeUser, projectCount: totalCount };
-    setUser(synced);
-    try {
-      localStorage.setItem("insforge_session", JSON.stringify(synced));
-      localStorage.setItem("obsidian_auth_user", JSON.stringify(synced));
-    } catch {}
     setLoading(false);
 
     const handleProjectEvent = () => {
@@ -118,14 +115,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, _pass?: string) => {
     setLoading(true);
     const { totalCount } = getProjectCount();
+    const cleanEmail = email.trim();
+    
+    // Check if there is a registered user with this email
+    let registeredName = "";
+    try {
+      const regList = JSON.parse(localStorage.getItem("obsidian_registered_users") || "[]");
+      if (Array.isArray(regList)) {
+        const found = regList.find((u: any) => u && u.email?.toLowerCase() === cleanEmail.toLowerCase());
+        if (found && found.name) {
+          registeredName = found.name;
+        }
+      }
+    } catch {}
+
+    const displayName = registeredName || cleanEmail.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     const newUser: AuthUser = {
-      id: `user-${Date.now()}`,
-      email,
-      name: email.split("@")[0],
+      id: `usr_${Date.now()}`,
+      email: cleanEmail,
+      name: displayName,
       created_at: new Date().toISOString(),
       plan: "free",
       projectCount: totalCount,
-      avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(email)}`,
+      avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`,
     };
     setUser(newUser);
     try {
@@ -139,34 +151,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, _pass?: string, name?: string) => {
     setLoading(true);
     const { totalCount } = getProjectCount();
+    const cleanEmail = email.trim();
+    const cleanName = name?.trim() || cleanEmail.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    
     const newUser: AuthUser = {
-      id: `user-${Date.now()}`,
-      email,
-      name: name || email.split("@")[0],
+      id: `usr_${Date.now()}`,
+      email: cleanEmail,
+      name: cleanName,
       created_at: new Date().toISOString(),
       plan: "free",
       projectCount: totalCount,
-      avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || email)}`,
+      avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cleanName)}`,
     };
-    setUser(newUser);
+
+    // Save to registered users list
     try {
+      const regList = JSON.parse(localStorage.getItem("obsidian_registered_users") || "[]");
+      const updatedList = Array.isArray(regList) ? [...regList.filter((u: any) => u?.email !== cleanEmail), newUser] : [newUser];
+      localStorage.setItem("obsidian_registered_users", JSON.stringify(updatedList));
       localStorage.setItem("insforge_session", JSON.stringify(newUser));
       localStorage.setItem("obsidian_auth_user", JSON.stringify(newUser));
     } catch {}
+
+    setUser(newUser);
     setLoading(false);
     setActiveModal(null);
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (customName?: string, customEmail?: string) => {
     setLoading(true);
     const { totalCount } = getProjectCount();
+    const email = customEmail?.trim() || "creator@gmail.com";
+    const name = customName?.trim() || email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    
     const googleUser: AuthUser = {
-      id: `google-${Date.now()}`,
-      email: "google.creator@obsidian.ai",
-      name: "Google Creator",
-      avatar_url: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      id: `google_${Date.now()}`,
+      email,
+      name,
+      avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
       created_at: new Date().toISOString(),
-      plan: "pro",
+      plan: "free",
       projectCount: totalCount,
     };
     setUser(googleUser);
