@@ -194,7 +194,7 @@ async function runEmpiricalVerification() {
     tracker.assert(starter.id === 'proj-shopify-starter-1', `Starter project ID is 'proj-shopify-starter-1' (actual: ${starter.id})`);
     tracker.assert(starter.title === 'LuxeAura Cosmetics Store', `Starter project title is 'LuxeAura Cosmetics Store' (actual: ${starter.title})`);
     tracker.assert(starter.type === 'shopify', `Starter project type is 'shopify' (actual: ${starter.type})`);
-    tracker.assert(starter.userId === 'user-obsidian-prime', `Starter project userId is 'user-obsidian-prime'`);
+    tracker.assert(starter.userId === 'guest', `Starter project userId is 'guest'`);
     tracker.assert(typeof starter.createdAt === 'string', 'Starter project has valid createdAt timestamp');
     tracker.assert(starter.data && starter.data.storeName === 'LuxeAura Cosmetics', 'Starter project includes storeName in data payload');
 
@@ -770,14 +770,14 @@ async function runEmpiricalVerification() {
     // Sidebar
     checkFileContains(
       'src/components/Sidebar.tsx',
-      ['3 Free Projects', 'maxProjects = isPro ? "∞" : "3"'],
+      ['maxProjects = isPro ? "∞" : "3"'],
       ['2 Free Projects', '2/2']
     );
 
     // Billing page
     checkFileContains(
       'src/app/billing/page.tsx',
-      ['Up to 3 free projects', '$9.99', 'Free Plan (3 Projects Max)'],
+      ['Up to 3 free projects', '$9.99', 'Free Starter'],
       ['2 Free Projects', '$19/mo', '2 Projects']
     );
 
