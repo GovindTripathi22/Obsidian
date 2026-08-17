@@ -56,11 +56,11 @@ interface PageProps {
 }
 
 const COLOR_THEMES = [
-  { name: "Monochrome Noir", primary: "#ffffff", bg: "#000000", accent: "from-white via-zinc-200 to-zinc-400", label: "Pure Monochrome (Default)" },
-  { name: "Silver Frost", primary: "#e4e4e7", bg: "#09090b", accent: "from-zinc-100 to-zinc-400", label: "Frosted Silver" },
-  { name: "Titanium Slate", primary: "#a1a1aa", bg: "#09090b", accent: "from-zinc-300 to-zinc-600", label: "Brushed Titanium" },
-  { name: "Obsidian Carbon", primary: "#71717a", bg: "#050505", accent: "from-zinc-400 to-zinc-800", label: "Deep Carbon" },
-  { name: "Liquid Platinum", primary: "#f4f4f5", bg: "#0c0c0e", accent: "from-white to-zinc-500", label: "Liquid Platinum" },
+  { name: "Monochrome Noir", primary: "#ffffff", bg: "#000000", accent: "from-white via-neutral-200 to-neutral-400", label: "Pure Monochrome (Default)" },
+  { name: "Silver Frost", primary: "#e4e4e7", bg: "#09090b", accent: "from-neutral-100 to-neutral-400", label: "Frosted Silver" },
+  { name: "Titanium Slate", primary: "#a1a1aa", bg: "#09090b", accent: "from-neutral-300 to-neutral-600", label: "Brushed Titanium" },
+  { name: "Obsidian Carbon", primary: "#71717a", bg: "#050505", accent: "from-neutral-400 to-neutral-800", label: "Deep Carbon" },
+  { name: "Liquid Platinum", primary: "#f4f4f5", bg: "#0c0c0e", accent: "from-white to-neutral-500", label: "Liquid Platinum" },
 ];
 
 const COMPONENT_BLOCKS = [
@@ -261,29 +261,29 @@ export function EditorContent({ projectId }: { projectId: string }) {
     }
 
     const defaultScaffold = `
-<header class="bg-zinc-950/90 border-b border-zinc-800 px-6 py-4 flex items-center justify-between sticky top-0 z-40 backdrop-blur-xl">
-  <div class="flex items-center gap-2 font-bold text-white font-heading">
+<header class="bg-[#0a0a0a]/90 border-b border-neutral-800 px-6 py-4 flex items-center justify-between sticky top-0 z-40 backdrop-blur-xl">
+  <div class="flex items-center gap-2 font-semibold text-white">
     <span class="w-2.5 h-2.5 rounded-full bg-white animate-pulse shadow-glow-white"></span>
     <span>${finalTitle}</span>
   </div>
-  <a href="#home" class="text-xs font-semibold text-zinc-400 hover:text-white">← Return Home</a>
+  <a href="#home" class="text-xs font-medium text-neutral-400 hover:text-white">← Return Home</a>
 </header>
 <section class="py-24 px-6 max-w-4xl mx-auto text-center space-y-6">
-  <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 text-zinc-200 border border-zinc-700 text-xs font-mono font-semibold">
+  <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 text-neutral-200 border border-neutral-700 text-xs font-medium">
     ✨ ${finalTitle} Overview
   </span>
-  <h1 class="text-4xl sm:text-5xl font-black text-white font-heading">${finalTitle}</h1>
-  <p class="text-zinc-400 text-sm max-w-xl mx-auto leading-relaxed">
+  <h1 class="text-4xl sm:text-5xl font-semibold text-white">${finalTitle}</h1>
+  <p class="text-neutral-400 text-sm max-w-xl mx-auto leading-relaxed">
     This page was created with 0 tokens. Use the AI Assistant on the left panel to synthesize custom content, grids, or interactive forms whenever you are ready.
   </p>
-  <div class="p-8 rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30 text-center space-y-3">
-    <p class="text-xs font-mono text-zinc-500">Ready for AI Customization</p>
-    <button onclick="window.parent.postMessage('openChat', '*')" class="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs transition-all shadow-md shadow-white/5">
+  <div class="p-8 rounded-2xl border border-dashed border-neutral-800 bg-neutral-900/30 text-center space-y-3">
+    <p class="text-xs text-neutral-500">Ready for AI Customization</p>
+    <button onclick="window.parent.postMessage('openChat', '*')" class="px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-neutral-950 font-medium text-xs transition-all shadow-md shadow-white/5">
       Prompt AI to Design This Page →
     </button>
   </div>
 </section>
-<footer class="py-12 px-6 border-t border-zinc-800 bg-zinc-950 text-center text-xs text-zinc-500">
+<footer class="py-12 px-6 border-t border-neutral-800 bg-[#0a0a0a] text-center text-xs text-neutral-500">
   <p>© 2026 Powered by Obsidian AI Studio.</p>
 </footer>
 `;
@@ -424,36 +424,36 @@ export function EditorContent({ projectId }: { projectId: string }) {
   const currentHtml = pageCodes[activePageTab]?.html || "";
 
   return (
-    <div className="fixed inset-0 bg-zinc-950 text-zinc-100 flex flex-col z-50 overflow-hidden font-sans">
+    <div className="fixed inset-0 bg-[#0a0a0a] text-neutral-100 flex flex-col z-50 overflow-hidden font-sans">
       {/* Top Header Action Bar */}
-      <header className="h-14 bg-zinc-900 border-b border-zinc-800 px-4 flex items-center justify-between shrink-0 shadow-lg">
+      <header className="h-14 bg-neutral-900 border-b border-neutral-800 px-4 flex items-center justify-between shrink-0 shadow-lg">
         <div className="flex items-center gap-3">
           <Link href={isShopify ? "/builder" : "/"}>
             <Button size="sm" variant="outline" leftIcon={<ArrowLeft className="w-4 h-4" />}>
               {isShopify ? "Shopify Studio" : "Website Builder"}
             </Button>
           </Link>
-          <div className="h-4 w-px bg-zinc-800 hidden sm:block" />
+          <div className="h-4 w-px bg-neutral-800 hidden sm:block" />
           <div className="flex items-center gap-2 max-w-[200px] sm:max-w-xs truncate">
             {isShopify ? (
               <ShopifyIcon className="w-4 h-4 fill-white text-white shrink-0" />
             ) : (
               <Hexagon className="w-4 h-4 fill-white text-white shrink-0" />
             )}
-            <h1 className="text-xs sm:text-sm font-bold text-zinc-100 truncate">
+            <h1 className="text-xs sm:text-sm font-medium text-neutral-100 truncate">
               {initialPrompt.slice(0, 32)}...
             </h1>
           </div>
         </div>
 
         {/* Page Tabs with Zero-Token Adding */}
-        <div className="hidden md:flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+        <div className="hidden md:flex items-center gap-1 bg-[#0a0a0a] p-1 rounded-xl border border-neutral-800">
           {pageTabs.map((tab) => (
             <div
               key={tab}
               onClick={() => setActivePageTab(tab)}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer group ${
-                activePageTab === tab ? "bg-zinc-800 text-white shadow-sm font-bold" : "text-zinc-400 hover:text-zinc-200"
+              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer group ${
+                activePageTab === tab ? "bg-neutral-800 text-white shadow-sm font-medium" : "text-neutral-400 hover:text-neutral-200"
               }`}
             >
               <span>{tab}</span>
@@ -461,7 +461,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                 <button
                   onClick={(e) => handleDeletePageTab(e, tab)}
                   title={`Delete ${tab}`}
-                  className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 p-0.5 rounded transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400 p-0.5 rounded transition-opacity"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -471,7 +471,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
           <button
             onClick={() => setShowAddPageModal(true)}
             title="Add Page (0 Tokens)"
-            className="p-1 text-zinc-400 hover:text-white rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1 px-2 text-xs font-semibold"
+            className="p-1 text-neutral-400 hover:text-white rounded-md hover:bg-neutral-800 transition-colors flex items-center gap-1 px-2 text-xs font-medium"
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="text-[10px]">Add Page</span>
@@ -480,24 +480,24 @@ export function EditorContent({ projectId }: { projectId: string }) {
 
         {/* Viewport & Action Buttons */}
         <div className="flex items-center gap-2">
-          <div className="hidden lg:flex items-center bg-zinc-950 rounded-xl p-1 border border-zinc-800 mr-2">
+          <div className="hidden lg:flex items-center bg-[#0a0a0a] rounded-xl p-1 border border-neutral-800 mr-2">
             <button
               onClick={() => setViewport("desktop")}
-              className={`p-1.5 rounded-lg transition-colors ${viewport === "desktop" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+              className={`p-1.5 rounded-lg transition-colors ${viewport === "desktop" ? "bg-neutral-800 text-white" : "text-neutral-500 hover:text-neutral-300"}`}
               title="Desktop View"
             >
               <Monitor className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewport("tablet")}
-              className={`p-1.5 rounded-lg transition-colors ${viewport === "tablet" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+              className={`p-1.5 rounded-lg transition-colors ${viewport === "tablet" ? "bg-neutral-800 text-white" : "text-neutral-500 hover:text-neutral-300"}`}
               title="Tablet View"
             >
               <Tablet className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewport("mobile")}
-              className={`p-1.5 rounded-lg transition-colors ${viewport === "mobile" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+              className={`p-1.5 rounded-lg transition-colors ${viewport === "mobile" ? "bg-neutral-800 text-white" : "text-neutral-500 hover:text-neutral-300"}`}
               title="Mobile View"
             >
               <Smartphone className="w-4 h-4" />
@@ -509,18 +509,18 @@ export function EditorContent({ projectId }: { projectId: string }) {
               size="sm"
               onClick={handleExportShopify}
               leftIcon={<ShopifyIcon className="w-4 h-4 fill-white" />}
-              className="bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-md shadow-white/5"
+              className="bg-white hover:bg-neutral-200 text-neutral-950 font-medium shadow-md shadow-white/5"
             >
-              Export Shopify Theme (ZIP)
+              Export Shopify (ZIP)
             </Button>
           ) : (
             <Button
               size="sm"
               onClick={handleExportStaticCode}
               leftIcon={<FileCode className="w-3.5 h-3.5" />}
-              className="bg-white text-zinc-950 hover:bg-zinc-200 font-bold"
+              className="bg-white text-neutral-950 hover:bg-neutral-200 font-medium"
             >
-              Export HTML (ZIP)
+              Export Code (ZIP)
             </Button>
           )}
 
@@ -533,7 +533,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
             PNG Mockup
           </Button>
 
-          <div className="ml-1 pl-2 border-l border-zinc-800 hidden sm:block">
+          <div className="ml-1 pl-2 border-l border-neutral-800 hidden sm:block">
             <UserButton />
           </div>
         </div>
@@ -542,28 +542,28 @@ export function EditorContent({ projectId }: { projectId: string }) {
       {/* Split Layout Workspace */}
       <div className="flex-1 flex overflow-hidden">
         {/* ── Left Panel: Enhanced AI Workspace Assistant (32% Width) ── */}
-        <div className="w-full md:w-[38%] lg:w-[32%] bg-zinc-950 border-r border-zinc-800 flex flex-col justify-between shrink-0 font-sans">
+        <div className="w-full md:w-[38%] lg:w-[32%] bg-[#0a0a0a] border-r border-neutral-800 flex flex-col justify-between shrink-0 font-sans">
           {/* Top Panel Bar */}
-          <div className="p-3 bg-zinc-900/80 border-b border-zinc-800 space-y-2.5">
+          <div className="p-3 bg-neutral-900/80 border-b border-neutral-800 space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white">
+                <div className="w-6 h-6 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-white">
                   <Sparkles className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-white font-heading">AI Studio Assistant</h3>
+                  <h3 className="text-xs font-semibold text-white">AI Assistant</h3>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 border border-zinc-700 font-semibold flex items-center gap-1">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-900 text-neutral-300 border border-neutral-700 font-medium flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-glow-white" />
                   Gemini 2.5
                 </span>
                 <button
                   onClick={handleClearChat}
                   title="Reset conversation"
-                  className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                  className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
@@ -571,49 +571,49 @@ export function EditorContent({ projectId }: { projectId: string }) {
             </div>
 
             {/* 4 Minimalist Sub-Tabs */}
-            <div className="grid grid-cols-4 bg-zinc-950 p-0.5 rounded-xl border border-zinc-800 text-[10px] font-semibold">
+            <div className="grid grid-cols-4 bg-[#0a0a0a] p-0.5 rounded-xl border border-neutral-800 text-[10px] font-medium">
               <button
                 onClick={() => setSidebarTab("chat")}
                 className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   sidebarTab === "chat"
-                    ? "bg-zinc-800 text-white shadow-xs font-bold"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-neutral-800 text-white shadow-xs font-medium"
+                    : "text-neutral-400 hover:text-neutral-200"
                 }`}
               >
-                <MessageSquare className={`w-3 h-3 ${sidebarTab === "chat" ? "text-white" : "text-zinc-400"}`} />
+                <MessageSquare className={`w-3 h-3 ${sidebarTab === "chat" ? "text-white" : "text-neutral-400"}`} />
                 <span>Chat</span>
               </button>
               <button
                 onClick={() => setSidebarTab("actions")}
                 className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   sidebarTab === "actions"
-                    ? "bg-zinc-800 text-white shadow-xs font-bold"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-neutral-800 text-white shadow-xs font-medium"
+                    : "text-neutral-400 hover:text-neutral-200"
                 }`}
               >
-                <Zap className={`w-3 h-3 ${sidebarTab === "actions" ? "text-white" : "text-zinc-400"}`} />
+                <Zap className={`w-3 h-3 ${sidebarTab === "actions" ? "text-white" : "text-neutral-400"}`} />
                 <span>Fixes</span>
               </button>
               <button
                 onClick={() => setSidebarTab("blocks")}
                 className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   sidebarTab === "blocks"
-                    ? "bg-zinc-800 text-white shadow-xs font-bold"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-neutral-800 text-white shadow-xs font-medium"
+                    : "text-neutral-400 hover:text-neutral-200"
                 }`}
               >
-                <Layers className={`w-3 h-3 ${sidebarTab === "blocks" ? "text-white" : "text-zinc-400"}`} />
+                <Layers className={`w-3 h-3 ${sidebarTab === "blocks" ? "text-white" : "text-neutral-400"}`} />
                 <span>Blocks</span>
               </button>
               <button
                 onClick={() => setSidebarTab("theme")}
                 className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   sidebarTab === "theme"
-                    ? "bg-zinc-800 text-white shadow-xs font-bold"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-neutral-800 text-white shadow-xs font-medium"
+                    : "text-neutral-400 hover:text-neutral-200"
                 }`}
               >
-                <Palette className={`w-3 h-3 ${sidebarTab === "theme" ? "text-white" : "text-zinc-400"}`} />
+                <Palette className={`w-3 h-3 ${sidebarTab === "theme" ? "text-white" : "text-neutral-400"}`} />
                 <span>Theme</span>
               </button>
             </div>
@@ -630,7 +630,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   }`}
                 >
                   {msg.role === "assistant" && (
-                    <div className="w-6 h-6 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white shrink-0 mt-0.5">
+                    <div className="w-6 h-6 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-white shrink-0 mt-0.5">
                       <Sparkles className="w-3.5 h-3.5" />
                     </div>
                   )}
@@ -639,11 +639,11 @@ export function EditorContent({ projectId }: { projectId: string }) {
                     className={`max-w-[88%] rounded-2xl p-3.5 space-y-1.5 shadow-sm ${
                       msg.role === "user"
                         ? "bg-white text-black rounded-br-none"
-                        : "bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-bl-none"
+                        : "bg-neutral-900 border border-neutral-800 text-neutral-200 rounded-bl-none"
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.content}</p>
-                    <div className="flex items-center justify-between pt-1 border-t border-zinc-800/60 text-[10px] font-mono text-zinc-500">
+                    <div className="flex items-center justify-between pt-1 border-t border-neutral-800/60 text-[10px] text-neutral-500">
                       <span>{msg.time || "Active"}</span>
                       {msg.role === "assistant" && (
                         <button
@@ -660,9 +660,9 @@ export function EditorContent({ projectId }: { projectId: string }) {
               ))}
 
               {isGenerating && (
-                <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-700 flex items-center gap-3 animate-pulse">
+                <div className="p-3.5 rounded-2xl bg-neutral-900/90 border border-neutral-700 flex items-center gap-3 animate-pulse">
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span className="text-xs font-mono text-zinc-200 font-medium">
+                  <span className="text-xs text-neutral-200 font-medium">
                     Streaming live updates for {activePageTab}...
                   </span>
                 </div>
@@ -674,23 +674,23 @@ export function EditorContent({ projectId }: { projectId: string }) {
           {/* Sub-tab 2: 1-Click Quick Fixes & Tweaks */}
           {sidebarTab === "actions" && (
             <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold px-1">
-                Instant Design Refinements
+              <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium px-1">
+                Quick Actions
               </p>
               {quickPillActions.map((action, i) => (
                 <button
                   key={i}
                   disabled={isGenerating}
                   onClick={() => handleSendInstruction(undefined, action.prompt)}
-                  className="w-full p-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-600 text-left transition-all flex items-center justify-between group cursor-pointer disabled:opacity-50"
+                  className="w-full p-3 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-600 text-left transition-all flex items-center justify-between group cursor-pointer disabled:opacity-50"
                 >
                   <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-white group-hover:text-zinc-200 transition-colors">
+                    <p className="text-xs font-medium text-white group-hover:text-neutral-200 transition-colors">
                       {action.label}
                     </p>
-                    <p className="text-[10px] text-zinc-400 line-clamp-1">{action.prompt}</p>
+                    <p className="text-[10px] text-neutral-400 line-clamp-1">{action.prompt}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-neutral-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
                 </button>
               ))}
             </div>
@@ -699,25 +699,25 @@ export function EditorContent({ projectId }: { projectId: string }) {
           {/* Sub-tab 3: Section Library Blocks */}
           {sidebarTab === "blocks" && (
             <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold px-1">
-                Ready-Made UI Blocks
+              <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium px-1">
+                Component Blocks
               </p>
               {COMPONENT_BLOCKS.map((block, i) => (
                 <button
                   key={i}
                   disabled={isGenerating}
                   onClick={() => handleSendInstruction(undefined, block.prompt)}
-                  className="w-full p-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-600 text-left transition-all flex items-start gap-2.5 group cursor-pointer disabled:opacity-50"
+                  className="w-full p-3 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-600 text-left transition-all flex items-start gap-2.5 group cursor-pointer disabled:opacity-50"
                 >
                   <span className="text-lg shrink-0 mt-0.5">{block.icon}</span>
                   <div className="space-y-0.5 flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-white group-hover:text-zinc-200 transition-colors">
+                      <p className="text-xs font-medium text-white group-hover:text-neutral-200 transition-colors">
                         {block.name}
                       </p>
-                      <Plus className="w-3.5 h-3.5 text-zinc-500 group-hover:text-white transition-colors shrink-0" />
+                      <Plus className="w-3.5 h-3.5 text-neutral-500 group-hover:text-white transition-colors shrink-0" />
                     </div>
-                    <p className="text-[10px] text-zinc-400 line-clamp-2 leading-relaxed">{block.desc}</p>
+                    <p className="text-[10px] text-neutral-400 line-clamp-2 leading-relaxed">{block.desc}</p>
                   </div>
                 </button>
               ))}
@@ -727,8 +727,8 @@ export function EditorContent({ projectId }: { projectId: string }) {
           {/* Sub-tab 4: Theme Palette Tokens */}
           {sidebarTab === "theme" && (
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold px-1">
-                Color Palette & Mood Swatches
+              <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium px-1">
+                Color Themes
               </p>
               {COLOR_THEMES.map((theme) => (
                 <button
@@ -737,8 +737,8 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   onClick={() => handleApplyTheme(theme)}
                   className={`w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between group cursor-pointer ${
                     activeTheme.name === theme.name
-                      ? "bg-zinc-900 border-white ring-1 ring-white/20 shadow-md"
-                      : "bg-zinc-950/60 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50"
+                      ? "bg-neutral-900 border-white ring-1 ring-white/20 shadow-md"
+                      : "bg-[#0a0a0a]/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/50"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -747,8 +747,8 @@ export function EditorContent({ projectId }: { projectId: string }) {
                       style={{ backgroundColor: theme.primary }}
                     />
                     <div>
-                      <p className="text-xs font-bold text-white">{theme.name}</p>
-                      <p className="text-[10px] text-zinc-400">{theme.label}</p>
+                      <p className="text-xs font-medium text-white">{theme.name}</p>
+                      <p className="text-[10px] text-neutral-400">{theme.label}</p>
                     </div>
                   </div>
                   {activeTheme.name === theme.name && (
@@ -760,14 +760,14 @@ export function EditorContent({ projectId }: { projectId: string }) {
           )}
 
           {/* Quick Action Suggestion Chips Bar */}
-          <div className="px-3 pt-2 pb-1 border-t border-zinc-800/80 bg-zinc-900/40">
+          <div className="px-3 pt-2 pb-1 border-t border-neutral-800/80 bg-neutral-900/40">
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar">
               {quickPillActions.slice(0, 3).map((pill, i) => (
                 <button
                   key={i}
                   disabled={isGenerating}
                   onClick={() => handleSendInstruction(undefined, pill.prompt)}
-                  className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-[10px] font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer shrink-0"
+                  className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-600 text-[10px] font-medium text-neutral-300 hover:text-white transition-colors cursor-pointer shrink-0"
                 >
                   {pill.label}
                 </button>
@@ -776,7 +776,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
           </div>
 
           {/* Bottom Prompt Input Form */}
-          <form onSubmit={(e) => handleSendInstruction(e)} className="p-3 border-t border-zinc-800 bg-zinc-900/90">
+          <form onSubmit={(e) => handleSendInstruction(e)} className="p-3 border-t border-neutral-800 bg-neutral-900/90">
             <div className="relative">
               <textarea
                 rows={2}
@@ -789,7 +789,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                     handleSendInstruction(e);
                   }
                 }}
-                className="w-full rounded-xl bg-zinc-950 border border-zinc-800 p-3 pr-20 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-400 focus:ring-1 focus:ring-white/20 focus:outline-none resize-none font-medium"
+                className="w-full rounded-xl bg-[#0a0a0a] border border-neutral-800 p-3 pr-20 text-xs text-neutral-100 placeholder:text-neutral-500 focus:border-neutral-400 focus:ring-1 focus:ring-white/20 focus:outline-none resize-none font-medium"
               />
 
               <div className="absolute right-2 bottom-2.5 flex items-center gap-1.5">
@@ -798,7 +798,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   title="Enhance prompt with AI"
                   disabled={!inputInstruction.trim() || isEnhancing}
                   onClick={handleEnhancePrompt}
-                  className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-40"
+                  className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors disabled:opacity-40"
                 >
                   <Sparkles className={`w-3.5 h-3.5 ${isEnhancing ? "animate-spin" : ""}`} />
                 </button>
@@ -806,7 +806,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                 <button
                   type="submit"
                   disabled={!inputInstruction.trim() || isGenerating}
-                  className="p-1.5 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 disabled:opacity-40 transition-colors cursor-pointer shadow-md shadow-white/5"
+                  className="p-1.5 rounded-lg bg-white hover:bg-neutral-200 text-neutral-950 disabled:opacity-40 transition-colors cursor-pointer shadow-md shadow-white/5"
                 >
                   <Send className="w-3.5 h-3.5" />
                 </button>
@@ -816,21 +816,21 @@ export function EditorContent({ projectId }: { projectId: string }) {
         </div>
 
         {/* ── Right Panel: Live Canvas & Code Inspector (68% Width) ── */}
-        <div className="flex-1 bg-zinc-900/40 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        <div className="flex-1 bg-neutral-900/40 flex flex-col items-center justify-center p-4 relative overflow-hidden">
           {/* Multi-View Inspector Tabs */}
-          <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 mb-4 self-center shadow-lg">
+          <div className="flex bg-neutral-900 p-1 rounded-xl border border-neutral-800 mb-4 self-center shadow-lg">
             <button
               onClick={() => setActiveView("preview")}
-              className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                activeView === "preview" ? "bg-zinc-800 text-white shadow-xs font-bold" : "text-zinc-400 hover:text-zinc-200"
+              className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                activeView === "preview" ? "bg-neutral-800 text-white shadow-xs font-medium" : "text-neutral-400 hover:text-neutral-200"
               }`}
             >
               🖥️ Live Canvas
             </button>
             <button
               onClick={() => setActiveView("code")}
-              className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                activeView === "code" ? "bg-zinc-800 text-white shadow-xs font-bold" : "text-zinc-400 hover:text-zinc-200"
+              className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                activeView === "code" ? "bg-neutral-800 text-white shadow-xs font-medium" : "text-neutral-400 hover:text-neutral-200"
               }`}
             >
               📄 {isShopify ? "Liquid Code" : "HTML Code"}
@@ -838,8 +838,8 @@ export function EditorContent({ projectId }: { projectId: string }) {
             {isShopify && (
               <button
                 onClick={() => setActiveView("schema")}
-                className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                  activeView === "schema" ? "bg-zinc-800 text-white shadow-xs font-bold" : "text-zinc-400 hover:text-zinc-200"
+                className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                  activeView === "schema" ? "bg-neutral-800 text-white shadow-xs font-medium" : "text-neutral-400 hover:text-neutral-200"
                 }`}
               >
                 ⚙️ Liquid Schema
@@ -848,7 +848,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
           </div>
 
           <div
-            className={`flex-1 bg-black border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 relative flex flex-col ${
+            className={`flex-1 bg-black border border-neutral-800 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 relative flex flex-col ${
               viewport === "desktop"
                 ? "w-full"
                 : viewport === "tablet"
@@ -856,13 +856,13 @@ export function EditorContent({ projectId }: { projectId: string }) {
                 : "w-[375px]"
             }`}
           >
-            <div className="h-8 bg-zinc-900 border-b border-zinc-800 flex items-center px-3 gap-2 shrink-0">
+            <div className="h-8 bg-neutral-900 border-b border-neutral-800 flex items-center px-3 gap-2 shrink-0">
               <div className="flex gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
-                <span className="w-2.5 h-2.5 rounded-full bg-zinc-600" />
-                <span className="w-2.5 h-2.5 rounded-full bg-zinc-500" />
+                <span className="w-2.5 h-2.5 rounded-full bg-neutral-700" />
+                <span className="w-2.5 h-2.5 rounded-full bg-neutral-600" />
+                <span className="w-2.5 h-2.5 rounded-full bg-neutral-500" />
               </div>
-              <div className="flex-1 max-w-sm mx-auto bg-zinc-950 rounded-md px-2 py-0.5 text-[10px] font-mono text-zinc-400 flex items-center justify-center gap-2 truncate border border-zinc-800">
+              <div className="flex-1 max-w-sm mx-auto bg-[#0a0a0a] rounded-md px-2 py-0.5 text-[10px] text-neutral-400 flex items-center justify-center gap-2 truncate border border-neutral-800">
                 {isGenerating ? (
                   <>
                     <span className="w-2 h-2 rounded-full bg-white animate-pulse shadow-glow-white" />
@@ -886,12 +886,12 @@ export function EditorContent({ projectId }: { projectId: string }) {
                 </div>
               )}
               {activeView === "code" && (
-                <pre className="bg-zinc-950 text-zinc-200 font-mono text-xs p-4 overflow-auto w-full h-full m-0 selection:bg-zinc-800">
+                <pre className="bg-[#0a0a0a] text-neutral-200 font-mono text-xs p-4 overflow-auto w-full h-full m-0 selection:bg-neutral-800">
                   <code>{currentHtml || "<!-- No code generated yet -->"}</code>
                 </pre>
               )}
               {activeView === "schema" && isShopify && (
-                <pre className="bg-zinc-950 text-zinc-300 font-mono text-xs p-4 overflow-auto w-full h-full m-0 selection:bg-zinc-800">
+                <pre className="bg-[#0a0a0a] text-neutral-300 font-mono text-xs p-4 overflow-auto w-full h-full m-0 selection:bg-neutral-800">
                   <code>{JSON.stringify(
                     {
                       name: `${activePageTab} Shopify Template`,
@@ -948,21 +948,21 @@ export function EditorContent({ projectId }: { projectId: string }) {
       {/* ── Add Page Modal (0 Tokens Consumed) ── */}
       {showAddPageModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="max-w-md w-full rounded-3xl border border-zinc-800 bg-zinc-900 p-6 space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <div className="max-w-md w-full rounded-3xl border border-neutral-800 bg-neutral-900 p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-white" />
-                <h3 className="font-heading font-bold text-base text-white">Add New Page</h3>
+                <h3 className="font-semibold text-base text-white">Add New Page</h3>
               </div>
               <button
                 onClick={() => setShowAddPageModal(false)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-white"
+                className="p-1 rounded-lg text-neutral-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-neutral-400">
               Create a new page tab with <strong>0 tokens consumed</strong>. Choose a template or enter a custom name.
             </p>
 
@@ -972,20 +972,20 @@ export function EditorContent({ projectId }: { projectId: string }) {
                 <button
                   key={tmpl.title}
                   onClick={() => handleCreatePage(tmpl.title)}
-                  className="p-3 rounded-xl border border-zinc-800 bg-zinc-950/80 hover:border-zinc-600 hover:bg-zinc-800 text-left transition-all group cursor-pointer space-y-1"
+                  className="p-3 rounded-xl border border-neutral-800 bg-[#0a0a0a]/80 hover:border-neutral-600 hover:bg-neutral-800 text-left transition-all group cursor-pointer space-y-1"
                 >
                   <span className="text-xl">{tmpl.icon}</span>
-                  <p className="text-xs font-bold text-white group-hover:text-zinc-200 transition-colors">
+                  <p className="text-xs font-medium text-white group-hover:text-neutral-200 transition-colors">
                     {tmpl.title}
                   </p>
-                  <p className="text-[10px] text-zinc-500 line-clamp-1">{tmpl.desc}</p>
+                  <p className="text-[10px] text-neutral-500 line-clamp-1">{tmpl.desc}</p>
                 </button>
               ))}
             </div>
 
             {/* Custom Name */}
-            <div className="space-y-2 pt-2 border-t border-zinc-800">
-              <label className="text-[11px] font-mono font-bold text-zinc-400">Custom Page Name</label>
+            <div className="space-y-2 pt-2 border-t border-neutral-800">
+              <label className="text-[11px] font-medium text-neutral-400">Custom Page Name</label>
               <div className="flex gap-2">
                 <Input
                   placeholder="e.g. FAQ, Lookbook, Case Studies..."
@@ -996,13 +996,13 @@ export function EditorContent({ projectId }: { projectId: string }) {
                       handleCreatePage(customPageName);
                     }
                   }}
-                  className="bg-zinc-950 border-zinc-800 text-xs py-2 text-white"
+                  className="bg-[#0a0a0a] border-neutral-800 text-xs py-2 text-white"
                 />
                 <Button
                   size="sm"
                   disabled={!customPageName.trim()}
                   onClick={() => handleCreatePage(customPageName)}
-                  className="bg-white hover:bg-zinc-200 text-zinc-950 font-bold px-4 shadow-md shadow-white/5"
+                  className="bg-white hover:bg-neutral-200 text-neutral-950 font-medium px-4 shadow-md shadow-white/5"
                 >
                   Add
                 </Button>
@@ -1015,44 +1015,44 @@ export function EditorContent({ projectId }: { projectId: string }) {
       {/* Shopify Export Modal */}
       {showExportModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-          <Card className="max-w-md w-full border-zinc-800 p-6 space-y-6 bg-zinc-900 shadow-2xl">
+          <Card className="max-w-md w-full border-neutral-800 p-6 space-y-6 bg-neutral-900 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white">
+              <div className="w-10 h-10 rounded-2xl bg-neutral-800 border border-neutral-700 flex items-center justify-center text-white">
                 <ShopifyIcon className="w-5 h-5 fill-current" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white font-heading">Shopify Liquid Compiler</h3>
-                <p className="text-xs text-zinc-400">Building production Liquid 2.0 ZIP package</p>
+                <h3 className="text-lg font-semibold text-white">Shopify Liquid Compiler</h3>
+                <p className="text-xs text-neutral-400">Building production Liquid 2.0 ZIP package</p>
               </div>
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300 font-semibold">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-neutral-300 font-medium">
                   {exportStep === 1 && "1/3 Parsing sections & schema..."}
                   {exportStep === 2 && "2/3 Compiling layout/theme.liquid..."}
                   {exportStep === 3 && "3/3 Theme ZIP bundle generated!"}
                 </span>
-                <span className="text-white font-bold">{exportProgress}%</span>
+                <span className="text-white font-medium">{exportProgress}%</span>
               </div>
-              <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+              <div className="w-full h-2 bg-[#0a0a0a] rounded-full overflow-hidden border border-neutral-800">
                 <div
-                  className="h-full bg-gradient-to-r from-zinc-600 via-zinc-300 to-white transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-neutral-600 via-neutral-300 to-white transition-all duration-300"
                   style={{ width: `${exportProgress}%` }}
                 />
               </div>
             </div>
 
-            <div className="space-y-2 text-xs font-mono text-zinc-400 bg-zinc-950 p-3 rounded-xl border border-zinc-800">
-              <p className={exportStep >= 1 ? "text-white font-bold" : ""}>✓ layout/theme.liquid compiled</p>
-              <p className={exportStep >= 2 ? "text-white font-bold" : ""}>✓ templates/index.json configured</p>
-              <p className={exportStep >= 3 ? "text-white font-bold" : ""}>✓ sections/*.liquid modularized</p>
+            <div className="space-y-2 text-xs text-neutral-400 bg-[#0a0a0a] p-3 rounded-xl border border-neutral-800">
+              <p className={exportStep >= 1 ? "text-white font-medium" : ""}>✓ layout/theme.liquid compiled</p>
+              <p className={exportStep >= 2 ? "text-white font-medium" : ""}>✓ templates/index.json configured</p>
+              <p className={exportStep >= 3 ? "text-white font-medium" : ""}>✓ sections/*.liquid modularized</p>
             </div>
 
             {exportStep === 3 && (
               <Button
                 variant="primary"
-                className="w-full bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-md shadow-white/5"
+                className="w-full bg-white hover:bg-neutral-200 text-neutral-950 font-medium shadow-md shadow-white/5"
                 onClick={() => setShowExportModal(false)}
               >
                 Close & Open ZIP
@@ -1071,7 +1071,7 @@ export default function EditorPage({ params }: PageProps) {
   return (
     <Suspense
       fallback={
-        <div className="fixed inset-0 bg-zinc-950 flex items-center justify-center text-zinc-400 text-xs font-mono">
+        <div className="fixed inset-0 bg-[#0a0a0a] flex items-center justify-center text-neutral-400 text-xs">
           <Loader2 className="w-5 h-5 animate-spin text-white mr-2" />
           Loading Workspace...
         </div>

@@ -18,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-zinc-950 text-zinc-100 font-sans selection:bg-white/20 selection:text-white">
+      <body className="min-h-full bg-[#0a0a0a] text-neutral-100 selection:bg-white/15 selection:text-white">
         <AuthProvider>
           <RootLayoutContent>{children}</RootLayoutContent>
           <AuthModals />

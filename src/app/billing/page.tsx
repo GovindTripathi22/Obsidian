@@ -85,32 +85,32 @@ export default function BillingPage() {
   ];
 
   return (
-    <div className="flex-1 p-8 max-w-6xl mx-auto w-full space-y-10 bg-zinc-950 min-h-screen text-zinc-100 font-sans">
+    <div className="flex-1 p-8 max-w-6xl mx-auto w-full space-y-8 bg-[#0a0a0a] min-h-screen text-neutral-100 font-sans">
       {/* Header */}
-      <div className="border-b border-zinc-800 pb-6 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 font-semibold">
-          <CreditCard className="w-4 h-4 text-white" />
-          <span>MONETIZATION & SUBSCRIPTION MANAGEMENT</span>
+      <div className="border-b border-neutral-800 pb-6 space-y-2">
+        <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium">
+          <CreditCard className="w-4 h-4 text-neutral-300" />
+          <span>Billing & Subscriptions</span>
         </div>
-        <h1 className="text-3xl font-black font-heading text-zinc-100 tracking-tight">
-          Subscription Plans & Quotas
+        <h1 className="text-3xl font-semibold text-neutral-100 tracking-tight">
+          Plans & Billing
         </h1>
-        <p className="text-zinc-400 text-sm">
+        <p className="text-neutral-400 text-sm">
           Select a subscription tier to unlock unlimited Shopify Liquid theme exports, ImageKit AI transformations, and high-speed generation pipelines.
         </p>
       </div>
 
       {/* Current Active Plan Status Bar */}
-      <div className="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="p-4 rounded-xl border border-neutral-800 bg-neutral-900/60 backdrop-blur-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-white shadow-inner">
-            <Crown className="w-5 h-5" />
+          <div className="p-2.5 rounded-lg bg-neutral-800 border border-neutral-700/60 text-white shadow-inner">
+            <Crown className="w-5 h-5 text-neutral-200" />
           </div>
           <div>
-            <p className="text-xs font-mono text-zinc-400 uppercase font-semibold">Current Account Tier</p>
-            <h3 className="text-lg font-extrabold font-heading text-zinc-100 flex items-center gap-2">
-              {currentPlan === "pro" ? "Pro Unlimited Subscription" : "Free Plan (3 Projects Max)"}
-              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-200 border border-zinc-700 font-semibold">
+            <p className="text-xs text-neutral-400 uppercase tracking-wider font-medium">Current Plan</p>
+            <h3 className="text-lg font-semibold text-neutral-100 flex items-center gap-2">
+              {currentPlan === "pro" ? "Pro Unlimited" : "Free Starter"}
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-neutral-800 text-neutral-300 border border-neutral-700 font-medium">
                 Active
               </span>
             </h3>
@@ -122,29 +122,29 @@ export default function BillingPage() {
             <Button
               variant="outline"
               size="sm"
-              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 text-xs"
+              className="border-neutral-700 text-neutral-300 hover:bg-neutral-800 text-xs"
               onClick={() => updateUserPlan("free")}
             >
-              Switch to Free Tier (Simulate)
+              Switch to Free
             </Button>
           ) : (
             <Button
               size="sm"
-              className="bg-white text-zinc-950 hover:bg-zinc-200 font-bold text-xs"
+              className="bg-white text-neutral-950 hover:bg-neutral-200 font-semibold text-xs"
               onClick={() => updateUserPlan("pro")}
             >
-              Instant Pro Activate (Simulate)
+              Upgrade to Pro
             </Button>
           )}
 
           <Button
             variant="secondary"
             size="sm"
-            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700"
+            className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700"
             rightIcon={<ExternalLink className="w-3.5 h-3.5" />}
             onClick={() => alert("Redirecting to Stripe Customer Portal...")}
           >
-            Manage Portal
+            Manage Billing
           </Button>
         </div>
       </div>
@@ -159,42 +159,42 @@ export default function BillingPage() {
             <Card
               key={plan.id}
               glass={false}
-              className={`relative flex flex-col justify-between p-6 rounded-2xl bg-zinc-900 border ${
+              className={`relative flex flex-col justify-between p-6 rounded-xl bg-neutral-900 border ${
                 plan.id === "monthly"
-                  ? "border-zinc-600 ring-1 ring-zinc-500/30 shadow-2xl"
-                  : "border-zinc-800"
+                  ? "border-neutral-600 ring-1 ring-neutral-500/20 shadow-xl"
+                  : "border-neutral-800"
               }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <span
-                    className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-semibold border ${
+                    className={`text-xs px-2.5 py-0.5 rounded-full font-medium border ${
                       isPro
-                        ? "bg-zinc-800 text-white border-zinc-600"
-                        : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                        ? "bg-neutral-800 text-neutral-100 border-neutral-600"
+                        : "bg-neutral-800 text-neutral-400 border-neutral-700"
                     }`}
                   >
                     {plan.badge}
                   </span>
                   {isCurrent && (
-                    <span className="text-xs font-mono text-zinc-200 flex items-center gap-1 font-bold">
-                      <Check className="w-3.5 h-3.5 text-white" /> Active Plan
+                    <span className="text-xs text-neutral-200 flex items-center gap-1 font-medium">
+                      <Check className="w-3.5 h-3.5 text-neutral-100" /> Active Plan
                     </span>
                   )}
                 </div>
 
-                <h2 className="text-xl font-bold font-heading text-zinc-100">{plan.name}</h2>
-                <p className="text-xs text-zinc-400 mt-1">{plan.description}</p>
+                <h2 className="text-xl font-semibold text-neutral-100">{plan.name}</h2>
+                <p className="text-xs text-neutral-400 mt-1">{plan.description}</p>
 
                 <div className="my-6">
-                  <span className="text-4xl font-black font-heading text-zinc-100 tracking-tight">{plan.price}</span>
-                  <span className="text-xs text-zinc-400 font-mono ml-1">{plan.period}</span>
+                  <span className="text-4xl font-semibold text-neutral-100 tracking-tight">{plan.price}</span>
+                  <span className="text-xs text-neutral-400 ml-1">{plan.period}</span>
                 </div>
 
-                <ul className="space-y-2.5 text-xs text-zinc-300 border-t border-zinc-800 pt-4">
+                <ul className="space-y-2.5 text-xs text-neutral-300 border-t border-neutral-800 pt-4">
                   {plan.features.map((f, i) => (
                     <li key={i} className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-white shrink-0" />
+                      <Check className="w-4 h-4 text-neutral-200 shrink-0" />
                       <span>{f}</span>
                     </li>
                   ))}
@@ -206,10 +206,10 @@ export default function BillingPage() {
                   variant={isCurrent ? "outline" : isPro ? "primary" : "secondary"}
                   className={`w-full ${
                     isCurrent
-                      ? "bg-zinc-800/80 border-zinc-700 text-zinc-500 cursor-not-allowed hover:bg-zinc-800/80 hover:text-zinc-500"
+                      ? "bg-neutral-800/80 border-neutral-700 text-neutral-500 cursor-not-allowed hover:bg-neutral-800/80 hover:text-neutral-500"
                       : isPro
-                      ? "bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-lg border-0"
-                      : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700"
+                      ? "bg-white hover:bg-neutral-200 text-neutral-950 font-semibold shadow-md border-0"
+                      : "bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700"
                   }`}
                   disabled={isCurrent}
                   isLoading={loadingTier === plan.id}

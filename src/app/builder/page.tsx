@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   Check,
 } from "lucide-react";
+import { VideoBackground } from "@/components/ui/VideoBackground";
 
 /* ── Official Shopify SVG Brand Icon ── */
 const ShopifyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -95,8 +96,6 @@ const PRESET_STORES = [
     ],
   },
 ];
-
-import { VideoBackground } from "@/components/ui/VideoBackground";
 
 export default function BuilderPage() {
   const router = useRouter();
@@ -254,7 +253,7 @@ export default function BuilderPage() {
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-emerald-900 selection:text-white relative overflow-hidden font-sans smooth-gpu page-transition-enter">
-      {/* ── Multi-Color Poppy Background Video (Shopify Exclusive) ── */}
+      {/* ── Background Video ── */}
       <VideoBackground src="/shopify-bg.mp4" opacity={0.75} />
 
       <div className="relative z-10">
@@ -265,24 +264,24 @@ export default function BuilderPage() {
           <div className="text-center max-w-3xl mx-auto space-y-5">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-950/60 text-xs font-semibold text-emerald-400 backdrop-blur-xl shadow-lg shadow-emerald-950/40">
               <ShopifyIcon className="w-3.5 h-3.5 fill-emerald-400" />
-              <span>Shopify Liquid 2.0 AI Theme Studio</span>
+              <span>Shopify Liquid 2.0 Studio</span>
             </div>
 
-            <h1 className="font-heading text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-white leading-tight">
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight text-white leading-tight">
               Architect Luxury Shopify Stores.
             </h1>
 
-            <p className="text-sm sm:text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base text-neutral-400 max-w-2xl mx-auto leading-relaxed">
               Generate production-ready Shopify Liquid 2.0 themes with customizable sections,
               live cart simulations, clean schemas, and instant 1-click ZIP export.
             </p>
 
-            {/* Plan Quota Indicator with Hydration Guard */}
-            <div className="inline-flex items-center gap-2 text-xs font-mono bg-zinc-900/80 border border-zinc-800 px-3.5 py-1.5 rounded-full shadow-md">
-              <span className="text-zinc-400">Quota:</span>
+            {/* Plan Quota Indicator */}
+            <div className="inline-flex items-center gap-2 text-xs bg-neutral-900/80 border border-neutral-800 px-3.5 py-1.5 rounded-full shadow-md">
+              <span className="text-neutral-400">Quota:</span>
               <span
                 suppressHydrationWarning
-                className={mounted && stats.isLimitReached ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}
+                className={mounted && stats.isLimitReached ? "text-red-400 font-semibold" : "text-emerald-400 font-semibold"}
               >
                 {mounted
                   ? stats.isPro
@@ -291,7 +290,7 @@ export default function BuilderPage() {
                   : "0/3 Free Projects"}
               </span>
               {mounted && !stats.isPro && (
-                <Link href="/billing" className="text-emerald-400 hover:text-emerald-300 font-bold ml-1 border-l border-zinc-700 pl-2">
+                <Link href="/billing" className="text-emerald-400 hover:text-emerald-300 font-semibold ml-1 border-l border-neutral-700 pl-2">
                   Upgrade to Pro →
                 </Link>
               )}
@@ -301,7 +300,7 @@ export default function BuilderPage() {
           {/* Main Prompt Card */}
           <div className="w-full max-w-3xl mt-10 relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600/30 to-green-700/30 rounded-3xl blur-xl opacity-30 group-hover:opacity-60 transition duration-500" />
-            <div className="relative rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl space-y-4">
+            <div className="relative rounded-3xl border border-neutral-800 bg-[#0a0a0a]/90 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl space-y-4">
               <form onSubmit={handleLaunchBuilder} className="space-y-4">
                 <div>
                   <textarea
@@ -309,7 +308,7 @@ export default function BuilderPage() {
                     value={promptText}
                     onChange={(e) => setPromptText(e.target.value)}
                     placeholder="Describe your Shopify store concept: brand style, color palette, hero headline, featured collection, reviews slider, and checkout experience..."
-                    className="w-full bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 sm:p-5 text-sm text-white placeholder:text-zinc-600 focus:border-emerald-500/50 focus:outline-none resize-none font-medium leading-relaxed"
+                    className="w-full bg-neutral-900/60 border border-neutral-800 rounded-2xl p-4 sm:p-5 text-sm text-white placeholder:text-neutral-600 focus:border-emerald-500/50 focus:outline-none resize-none font-normal leading-relaxed"
                   />
                 </div>
 
@@ -319,7 +318,7 @@ export default function BuilderPage() {
                       placeholder="Brand Name (Optional)"
                       value={storeName}
                       onChange={(e) => setStoreName(e.target.value)}
-                      className="bg-zinc-900 border-zinc-800 text-xs py-2 text-white placeholder-zinc-600"
+                      className="bg-neutral-900 border-neutral-800 text-xs py-2 text-white placeholder-neutral-600"
                     />
                   </div>
 
@@ -329,7 +328,7 @@ export default function BuilderPage() {
                       title="Enhance with AI"
                       disabled={!promptText.trim() || isEnhancing}
                       onClick={handleEnhancePrompt}
-                      className="h-10 px-3.5 rounded-xl bg-zinc-900 border border-emerald-500/30 text-emerald-400 hover:bg-zinc-800 hover:text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
+                      className="h-10 px-3.5 rounded-xl bg-neutral-900 border border-emerald-500/30 text-emerald-400 hover:bg-neutral-800 hover:text-emerald-300 text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
                     >
                       <Sparkles className={`w-3.5 h-3.5 ${isEnhancing ? "animate-spin" : ""}`} />
                       <span className="hidden sm:inline">Enhance</span>
@@ -341,9 +340,9 @@ export default function BuilderPage() {
                       isLoading={isSubmitting}
                       leftIcon={<ShopifyIcon className="w-4 h-4 fill-white" />}
                       rightIcon={<ArrowRight className="w-4 h-4" />}
-                      className="h-10 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-950/60 transition-all cursor-pointer"
+                      className="h-10 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-950/60 transition-all cursor-pointer"
                     >
-                      Generate Shopify Store
+                      Generate Store
                     </Button>
                   </div>
                 </div>
@@ -351,10 +350,10 @@ export default function BuilderPage() {
             </div>
           </div>
 
-          {/* 4 Curated Preset Chips */}
+          {/* Curated Preset Chips */}
           <div className="mt-8 w-full max-w-4xl space-y-3">
-            <p className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-500 text-center">
-              Curated Liquid Store Presets
+            <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 text-center">
+              Store Presets
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {PRESET_STORES.map((preset) => (
@@ -364,18 +363,18 @@ export default function BuilderPage() {
                   onClick={() => handleSelectPreset(preset)}
                   className={`p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer space-y-1.5 ${
                     activePreset.id === preset.id
-                      ? "bg-zinc-900 border-emerald-500/60 shadow-lg shadow-emerald-950/40"
-                      : "bg-zinc-950/60 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/60"
+                      ? "bg-neutral-900 border-emerald-500/60 shadow-lg shadow-emerald-950/40"
+                      : "bg-[#0a0a0a]/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/60"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xl">{preset.icon}</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 border border-zinc-800">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-900 text-neutral-400 border border-neutral-800">
                       {preset.tag}
                     </span>
                   </div>
-                  <h3 className="text-xs font-bold text-white line-clamp-1">{preset.name}</h3>
-                  <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">{preset.prompt}</p>
+                  <h3 className="text-xs font-semibold text-white line-clamp-1">{preset.name}</h3>
+                  <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed">{preset.prompt}</p>
                 </button>
               ))}
             </div>
@@ -386,8 +385,8 @@ export default function BuilderPage() {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-mono font-bold text-zinc-300">
-                  LIVE STORE SIMULATION: {activePreset.name}
+                <span className="text-xs font-medium text-neutral-300">
+                  Live Preview: {activePreset.name}
                 </span>
               </div>
 
@@ -398,14 +397,14 @@ export default function BuilderPage() {
                   onClick={handleDownloadThemeZip}
                   isLoading={isExporting}
                   leftIcon={exportDone ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Download className="w-3.5 h-3.5" />}
-                  className="text-xs border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-200"
+                  className="text-xs border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-200"
                 >
-                  {exportDone ? "Theme Downloaded!" : "Download Theme (ZIP)"}
+                  {exportDone ? "Downloaded!" : "Export ZIP"}
                 </Button>
 
                 <button
                   onClick={() => setIsCartOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-emerald-500/40 text-xs font-semibold text-zinc-200 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-emerald-500/40 text-xs font-medium text-neutral-200 transition-colors cursor-pointer"
                 >
                   <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Cart ({cart.reduce((acc, i) => acc + i.quantity, 0)})</span>
@@ -414,43 +413,43 @@ export default function BuilderPage() {
             </div>
 
             {/* Showcase Card */}
-            <div className="rounded-3xl border border-zinc-800 bg-zinc-950 overflow-hidden shadow-2xl space-y-0">
+            <div className="rounded-3xl border border-neutral-800 bg-[#0a0a0a] overflow-hidden shadow-2xl space-y-0">
               {/* Store Header */}
-              <div className="p-4 sm:p-5 bg-zinc-900/80 border-b border-zinc-800 flex items-center justify-between">
+              <div className="p-4 sm:p-5 bg-neutral-900/80 border-b border-neutral-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-xs text-white font-bold">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-xs text-white font-semibold">
                     🛍️
                   </div>
-                  <span className="font-heading font-black text-sm text-white">{activePreset.name}</span>
+                  <span className="text-sm font-semibold text-white">{activePreset.name}</span>
                 </div>
-                <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Liquid 2.0 Compatible
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                  Liquid 2.0
                 </span>
               </div>
 
               {/* Store Hero */}
-              <div className="py-10 px-6 text-center bg-gradient-to-b from-zinc-900/40 to-zinc-950 border-b border-zinc-800/80 space-y-3">
-                <h2 className="text-2xl sm:text-3xl font-heading font-black text-white">{activePreset.heroTitle}</h2>
-                <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto">{activePreset.heroSubtitle}</p>
+              <div className="py-10 px-6 text-center bg-gradient-to-b from-neutral-900/40 to-[#0a0a0a] border-b border-neutral-800/80 space-y-3">
+                <h2 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">{activePreset.heroTitle}</h2>
+                <p className="text-xs sm:text-sm text-neutral-400 max-w-xl mx-auto">{activePreset.heroSubtitle}</p>
               </div>
 
               {/* Product Grid */}
               <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {activePreset.products.map((p) => (
-                  <div key={p.id} className="p-3.5 rounded-2xl bg-zinc-900/70 border border-zinc-800 flex flex-col justify-between space-y-3 group hover:border-emerald-500/40 transition-all">
+                  <div key={p.id} className="p-3.5 rounded-2xl bg-neutral-900/70 border border-neutral-800 flex flex-col justify-between space-y-3 group hover:border-emerald-500/40 transition-all">
                     <div>
-                      <div className="aspect-square rounded-xl overflow-hidden mb-2 relative border border-zinc-800 bg-black">
+                      <div className="aspect-square rounded-xl overflow-hidden mb-2 relative border border-neutral-800 bg-black">
                         <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-emerald-600 text-white font-mono text-[8px] font-bold">
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-semibold">
                           {p.tag}
                         </span>
                       </div>
-                      <h4 className="text-xs font-bold text-white line-clamp-1">{p.title}</h4>
-                      <p className="text-xs font-mono text-emerald-400 font-bold mt-1">${p.price}.00</p>
+                      <h4 className="text-xs font-semibold text-white line-clamp-1">{p.title}</h4>
+                      <p className="text-xs text-emerald-400 font-semibold mt-1">${p.price}.00</p>
                     </div>
                     <button
                       onClick={() => handleAddToCart(p)}
-                      className="w-full py-1.5 rounded-xl bg-zinc-800 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                      className="w-full py-1.5 rounded-xl bg-neutral-800 hover:bg-emerald-600 text-white text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
                     >
                       <Plus className="w-3 h-3" />
                       <span>Add to Cart</span>
@@ -464,32 +463,32 @@ export default function BuilderPage() {
           {/* ── Slide-Out Cart Drawer ── */}
           {isCartOpen && (
             <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex justify-end">
-              <div className="w-full max-w-md bg-zinc-900 border-l border-zinc-800 h-full p-6 flex flex-col justify-between shadow-2xl animate-fade-in-up">
+              <div className="w-full max-w-md bg-neutral-900 border-l border-neutral-800 h-full p-6 flex flex-col justify-between shadow-2xl animate-fade-in-up">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+                  <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
                     <div className="flex items-center gap-2">
                       <ShoppingBag className="w-5 h-5 text-emerald-400" />
-                      <h3 className="font-heading font-bold text-base text-white">Live Store Cart</h3>
+                      <h3 className="font-semibold text-base text-white">Live Store Cart</h3>
                     </div>
-                    <button onClick={() => setIsCartOpen(false)} className="p-1 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                    <button onClick={() => setIsCartOpen(false)} className="p-1 rounded-lg text-neutral-400 hover:text-white transition-colors">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
 
                   <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
                     {cart.map((item) => (
-                      <div key={item.id} className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-3">
-                        <img src={item.image} alt={item.title} className="w-12 h-12 rounded-lg object-cover border border-zinc-800" />
+                      <div key={item.id} className="p-3 rounded-xl bg-[#0a0a0a] border border-neutral-800 flex items-center justify-between gap-3">
+                        <img src={item.image} alt={item.title} className="w-12 h-12 rounded-lg object-cover border border-neutral-800" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-white truncate">{item.title}</p>
-                          <p className="text-xs font-mono text-emerald-400 font-semibold mt-0.5">${item.price}.00</p>
+                          <p className="text-xs font-semibold text-white truncate">{item.title}</p>
+                          <p className="text-xs text-emerald-400 font-semibold mt-0.5">${item.price}.00</p>
                         </div>
-                        <div className="flex items-center gap-1.5 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
-                          <button onClick={() => handleUpdateQuantity(item.id, -1)} className="text-zinc-400 hover:text-white p-0.5">
+                        <div className="flex items-center gap-1.5 bg-neutral-900 px-2 py-1 rounded-lg border border-neutral-800">
+                          <button onClick={() => handleUpdateQuantity(item.id, -1)} className="text-neutral-400 hover:text-white p-0.5">
                             <Minus className="w-3 h-3" />
                           </button>
-                          <span className="text-xs font-mono font-bold text-white px-1">{item.quantity}</span>
-                          <button onClick={() => handleUpdateQuantity(item.id, 1)} className="text-zinc-400 hover:text-white p-0.5">
+                          <span className="text-xs font-semibold text-white px-1">{item.quantity}</span>
+                          <button onClick={() => handleUpdateQuantity(item.id, 1)} className="text-neutral-400 hover:text-white p-0.5">
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
@@ -498,17 +497,17 @@ export default function BuilderPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-4 border-t border-zinc-800">
-                  <div className="flex justify-between text-sm font-bold text-white">
+                <div className="space-y-3 pt-4 border-t border-neutral-800">
+                  <div className="flex justify-between text-sm font-semibold text-white">
                     <span>Estimated Total:</span>
-                    <span className="font-mono text-emerald-400">${cartTotal}.00</span>
+                    <span className="text-emerald-400 font-semibold">${cartTotal}.00</span>
                   </div>
                   <Button
                     size="md"
                     onClick={() => alert(`Shopify Checkout Initialized for $${cartTotal}.00!`)}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
                   >
-                    Proceed to Shopify Checkout →
+                    Proceed to Checkout →
                   </Button>
                 </div>
               </div>

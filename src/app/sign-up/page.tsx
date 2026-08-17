@@ -32,22 +32,22 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] bg-zinc-950 text-zinc-100 font-sans">
-      <Card glass={false} className="max-w-md w-full bg-zinc-900 border-zinc-800 shadow-2xl space-y-6 rounded-3xl">
+    <div className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] bg-neutral-950 text-neutral-100 font-sans">
+      <Card glass={false} className="max-w-md w-full bg-neutral-900 border-neutral-800 shadow-2xl space-y-6 rounded-2xl">
         <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white mb-2 shadow-inner">
-            <Sparkles className="w-6 h-6" />
+          <div className="mx-auto w-10 h-10 rounded-xl bg-white flex items-center justify-center text-neutral-950 font-bold text-base mb-2 shadow-sm">
+            O
           </div>
-          <CardTitle className="text-2xl font-black font-heading text-zinc-100">Create Your Account</CardTitle>
-          <CardDescription className="text-zinc-400 text-sm">
-            Join Obsidian AI to build, edit, and export Shopify Liquid themes & websites.
+          <CardTitle className="text-xl font-semibold text-neutral-100">Create an account</CardTitle>
+          <CardDescription className="text-neutral-400 text-sm">
+            Join Obsidian to build, edit, and export your web and Shopify projects.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <Button
             variant="secondary"
-            className="w-full justify-center bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700 font-semibold"
+            className="w-full justify-center bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700 font-medium"
             onClick={handleGoogle}
             isLoading={isSubmitting || loading}
           >
@@ -69,20 +69,20 @@ export default function SignUpPage() {
                 d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 22.3 12 23z"
               />
             </svg>
-            Sign Up with Google
+            Sign up with Google
           </Button>
 
           <div className="relative flex items-center justify-center my-4">
-            <div className="border-t border-zinc-800 w-full" />
-            <span className="bg-zinc-900 px-3 text-xs text-zinc-500 font-mono absolute">OR EMAIL</span>
+            <div className="border-t border-neutral-800 w-full" />
+            <span className="bg-neutral-900 px-3 text-xs text-neutral-500 font-medium absolute">or continue with email</span>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Full Name"
               placeholder="Alex Johnson"
-              leftIcon={<User className="w-4 h-4 text-zinc-400" />}
-              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
+              leftIcon={<User className="w-4 h-4 text-neutral-400" />}
+              className="bg-neutral-900 border-neutral-800 text-neutral-100 placeholder-neutral-500 focus:border-neutral-500 focus:ring-neutral-500/20"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -90,8 +90,8 @@ export default function SignUpPage() {
               label="Email Address"
               type="email"
               placeholder="user@example.com"
-              leftIcon={<Mail className="w-4 h-4 text-zinc-400" />}
-              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
+              leftIcon={<Mail className="w-4 h-4 text-neutral-400" />}
+              className="bg-neutral-900 border-neutral-800 text-neutral-100 placeholder-neutral-500 focus:border-neutral-500 focus:ring-neutral-500/20"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -100,27 +100,27 @@ export default function SignUpPage() {
               label="Password"
               type="password"
               placeholder="At least 8 characters"
-              leftIcon={<Lock className="w-4 h-4 text-zinc-400" />}
-              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
+              leftIcon={<Lock className="w-4 h-4 text-neutral-400" />}
+              className="bg-neutral-900 border-neutral-800 text-neutral-100 placeholder-neutral-500 focus:border-neutral-500 focus:ring-neutral-500/20"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
             <Button
               type="submit"
-              className="w-full bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-lg border-0"
+              className="w-full bg-white hover:bg-neutral-200 text-neutral-950 font-semibold shadow-lg border-0"
               isLoading={isSubmitting || loading}
               leftIcon={<UserPlus className="w-4 h-4" />}
             >
-              Create Account
+              Create account
             </Button>
           </form>
         </CardContent>
 
-        <CardFooter className="text-center justify-center text-xs text-zinc-400 border-zinc-800">
+        <CardFooter className="text-center justify-center text-xs text-neutral-400 border-neutral-800">
           Already have an account?{" "}
-          <Link href="/sign-in" className="text-white font-bold hover:underline ml-1">
-            Sign In
+          <Link href="/sign-in" className="text-white font-semibold hover:underline ml-1">
+            Sign in
           </Link>
         </CardFooter>
       </Card>

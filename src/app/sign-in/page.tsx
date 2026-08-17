@@ -7,7 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
-import { Mail, Lock, LogIn, Sparkles } from "lucide-react";
+import { Mail, Lock, LogIn } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -31,22 +31,22 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)] bg-zinc-950 text-zinc-100 font-sans">
-      <Card glass={false} className="max-w-md w-full bg-zinc-900 border-zinc-800 shadow-2xl space-y-6 rounded-3xl">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white mb-2 shadow-inner">
-            <Sparkles className="w-6 h-6" />
+    <div className="flex-1 flex items-center justify-center p-6 min-h-[calc(100vh-4rem)]">
+      <Card glass={false} className="max-w-sm w-full bg-neutral-900/50 border-neutral-800/50 rounded-2xl">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto w-10 h-10 rounded-xl bg-white flex items-center justify-center mb-3">
+            <span className="text-[#0a0a0a] text-sm font-bold">O</span>
           </div>
-          <CardTitle className="text-2xl font-black font-heading text-zinc-100">Welcome Back</CardTitle>
-          <CardDescription className="text-zinc-400 text-sm">
-            Sign in to access your saved Shopify projects & Obsidian websites.
+          <CardTitle className="text-xl font-semibold text-white">Welcome back</CardTitle>
+          <CardDescription className="text-neutral-500 text-sm">
+            Sign in to your account
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           <Button
             variant="secondary"
-            className="w-full justify-center bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700 font-semibold"
+            className="w-full justify-center bg-neutral-800/80 hover:bg-neutral-700 text-neutral-200 border-neutral-700/50 font-medium"
             onClick={handleGoogle}
             isLoading={isSubmitting || loading}
           >
@@ -71,18 +71,18 @@ export default function SignInPage() {
             Continue with Google
           </Button>
 
-          <div className="relative flex items-center justify-center my-4">
-            <div className="border-t border-zinc-800 w-full" />
-            <span className="bg-zinc-900 px-3 text-xs text-zinc-500 font-mono absolute">OR EMAIL</span>
+          <div className="relative flex items-center justify-center my-3">
+            <div className="border-t border-neutral-800 w-full" />
+            <span className="bg-neutral-900 px-3 text-[11px] text-neutral-600 absolute">or</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <Input
-              label="Email Address"
+              label="Email"
               type="email"
-              placeholder="user@example.com"
-              leftIcon={<Mail className="w-4 h-4 text-zinc-400" />}
-              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
+              placeholder="you@example.com"
+              leftIcon={<Mail className="w-4 h-4 text-neutral-500" />}
+              className="bg-neutral-900/50 border-neutral-800 text-white placeholder-neutral-600 focus:border-neutral-600 focus:ring-0"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -91,15 +91,15 @@ export default function SignInPage() {
               label="Password"
               type="password"
               placeholder="••••••••"
-              leftIcon={<Lock className="w-4 h-4 text-zinc-400" />}
-              className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:ring-zinc-500/20"
+              leftIcon={<Lock className="w-4 h-4 text-neutral-500" />}
+              className="bg-neutral-900/50 border-neutral-800 text-white placeholder-neutral-600 focus:border-neutral-600 focus:ring-0"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
             <Button
               type="submit"
-              className="w-full bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-lg border-0"
+              className="w-full bg-white hover:bg-neutral-200 text-neutral-950 font-medium border-0"
               isLoading={isSubmitting || loading}
               leftIcon={<LogIn className="w-4 h-4" />}
             >
@@ -108,9 +108,9 @@ export default function SignInPage() {
           </form>
         </CardContent>
 
-        <CardFooter className="text-center justify-center text-xs text-zinc-400 border-zinc-800">
+        <CardFooter className="text-center justify-center text-xs text-neutral-600 border-neutral-800/50">
           Don't have an account?{" "}
-          <Link href="/sign-up" className="text-white font-bold hover:underline ml-1">
+          <Link href="/sign-up" className="text-white hover:underline underline-offset-4 ml-1">
             Sign Up
           </Link>
         </CardFooter>

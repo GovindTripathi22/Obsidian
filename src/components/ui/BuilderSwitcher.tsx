@@ -24,7 +24,7 @@ export const BuilderSwitcher: React.FC<BuilderSwitcherProps> = ({
 }) => {
   const router = useRouter();
 
-  // Prefetch both routes for instant 90 FPS zero-lag switching
+  // Prefetch both routes for instant zero-lag switching
   useEffect(() => {
     try {
       router.prefetch("/");
@@ -49,7 +49,7 @@ export const BuilderSwitcher: React.FC<BuilderSwitcherProps> = ({
     <div
       role="tablist"
       aria-label="Engine Mode Switcher"
-      className={`relative inline-flex items-center p-1 rounded-2xl bg-zinc-900/95 border border-zinc-800 shadow-xl backdrop-blur-2xl select-none transition-all duration-300 smooth-gpu ${className}`}
+      className={`relative inline-flex items-center p-1 rounded-2xl bg-neutral-900/95 border border-neutral-800 shadow-xl backdrop-blur-2xl select-none transition-all duration-300 smooth-gpu ${className}`}
     >
       {/* Sliding Active Pill Background (GPU Accelerated) */}
       <div
@@ -59,61 +59,61 @@ export const BuilderSwitcher: React.FC<BuilderSwitcherProps> = ({
         }}
         className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-xl shadow-lg will-change-transform ${
           active === "website"
-            ? "bg-gradient-to-r from-zinc-800 to-zinc-700/90 border border-zinc-600/40 text-white shadow-zinc-950/80"
-            : "bg-zinc-800 border border-zinc-600 text-white shadow-black/80"
+            ? "bg-gradient-to-r from-neutral-800 to-neutral-700/90 border border-neutral-600/40 text-white shadow-neutral-950/80"
+            : "bg-neutral-800 border border-neutral-600 text-white shadow-black/80"
         }`}
       />
 
-      {/* Website Builder Option */}
+      {/* Website Option */}
       <button
         type="button"
         role="tab"
         aria-selected={active === "website"}
         onClick={() => handleSwitch("website")}
-        className={`relative z-10 flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors duration-150 cursor-pointer ${
+        className={`relative z-10 flex items-center justify-center gap-2 rounded-xl font-medium transition-colors duration-150 cursor-pointer ${
           isSmall ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-xs sm:text-sm"
         } ${
           active === "website"
-            ? "text-white font-bold"
-            : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30"
+            ? "text-white"
+            : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/30"
         }`}
       >
         <Hexagon
           className={`shrink-0 transition-transform duration-200 ${
             isSmall ? "w-3.5 h-3.5" : "w-4 h-4"
-          } ${active === "website" ? "fill-white text-white scale-105" : "text-zinc-500"}`}
+          } ${active === "website" ? "fill-white text-white scale-105" : "text-neutral-500"}`}
         />
-        <span className="truncate">Website Builder</span>
+        <span className="truncate">Website</span>
         {active === "website" && (
-          <span className="hidden sm:inline-block text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-900/80 text-zinc-300 border border-zinc-700/60 ml-0.5">
+          <span className="hidden sm:inline-block text-[9px] font-medium px-1.5 py-0.5 rounded bg-neutral-900/80 text-neutral-300 border border-neutral-700/60 ml-0.5">
             HTML
           </span>
         )}
       </button>
 
-      {/* Shopify Builder Option */}
+      {/* Shopify Option */}
       <button
         type="button"
         role="tab"
         aria-selected={active === "shopify"}
         onClick={() => handleSwitch("shopify")}
-        className={`relative z-10 flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors duration-150 cursor-pointer ${
+        className={`relative z-10 flex items-center justify-center gap-2 rounded-xl font-medium transition-colors duration-150 cursor-pointer ${
           isSmall ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-xs sm:text-sm"
         } ${
           active === "shopify"
-            ? "text-white font-bold"
-            : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30"
+            ? "text-white"
+            : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/30"
         }`}
       >
         <ShopifyIcon
           className={`shrink-0 transition-transform duration-200 ${
             isSmall ? "w-3.5 h-3.5" : "w-4 h-4"
-          } ${active === "shopify" ? "fill-white scale-105" : "fill-zinc-500"}`}
+          } ${active === "shopify" ? "fill-white scale-105" : "fill-neutral-500"}`}
         />
-        <span className="truncate">Shopify Studio</span>
+        <span className="truncate">Shopify</span>
         {active === "shopify" ? (
-          <span className="hidden sm:inline-block text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-200 border border-zinc-700 ml-0.5 font-bold">
-            Liquid 2.0
+          <span className="hidden sm:inline-block text-[9px] font-medium px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-200 border border-neutral-700 ml-0.5">
+            Liquid
           </span>
         ) : (
           <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-glow-white hidden sm:inline-block ml-0.5" />
