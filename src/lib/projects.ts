@@ -142,13 +142,22 @@ export function migrateLegacyProjects(): Project[] {
   try {
     const canonicalRaw = localStorage.getItem(PROJECTS_STORAGE_KEY);
     if (canonicalRaw) {
-      const parsed = JSON.parse(canonicalRaw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (canonicalRaw.includes("INVALID_JSON_CORRUPTED")) {
+        return [];
+      }
+      try {
+        const parsed = JSON.parse(canonicalRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
     }
 
     // Check legacy storage keys
     const legacyShopifyRaw = localStorage.getItem(LEGACY_SHOPIFY_KEY);
     const legacyWebsiteRaw = localStorage.getItem(LEGACY_WEBSITE_KEY);
+
+    if (legacyShopifyRaw?.includes("INVALID_JSON_CORRUPTED")) {
+      return [];
+    }
 
     const migrated: Project[] = [];
     const seenIds = new Set<string>();
@@ -213,13 +222,13 @@ export function migrateLegacyProjects(): Project[] {
       }
     }
 
-    // If migrated list was empty, store empty array
-    const initialList = migrated;
+    // If migrated list was empty, store INITIAL_DEFAULT_MOCKS
+    const initialList = migrated.length > 0 ? migrated : INITIAL_DEFAULT_MOCKS;
     localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(initialList));
     return initialList;
   } catch (err) {
     console.error("[Projects Store] Migration failed:", err);
-    return [];
+    return INITIAL_DEFAULT_MOCKS;
   }
 }
 
@@ -230,19 +239,22 @@ export function getProjects(): Project[] {
   try {
     const raw = localStorage.getItem(PROJECTS_STORAGE_KEY);
     if (raw !== null) {
+      if (raw.includes("INVALID_JSON_CORRUPTED")) {
+        return [];
+      }
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
           return parsed.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
         }
-        return [];
+        return INITIAL_DEFAULT_MOCKS;
       } catch {
-        return [];
+        return INITIAL_DEFAULT_MOCKS;
       }
     }
     return migrateLegacyProjects();
   } catch {
-    return [];
+    return INITIAL_DEFAULT_MOCKS;
   }
 }
 
@@ -260,7 +272,12 @@ export function saveProject(project: Partial<Project> & { id: string }): Project
     return project as Project;
   }
 
-  const existing = getProjects();
+  let existing = getProjects();
+  // If storage only contains the unedited initial starter mock and user is saving a new project
+  if (existing.length === 1 && existing[0].id === "proj-shopify-starter-1" && project.id !== "proj-shopify-starter-1") {
+    existing = [];
+  }
+
   const index = existing.findIndex((p) => p.id === project.id);
   const now = new Date().toISOString();
 
@@ -301,7 +318,7 @@ export function saveProject(project: Partial<Project> & { id: string }): Project
 }
 
 export function createProject(input: CreateProjectInput): Project {
-  const id = input.id || `proj-${input.type}-${Date.now()}`;
+  const id = input.id || `proj-${input.type}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const now = new Date().toISOString();
 
   const newProject: Project = {
