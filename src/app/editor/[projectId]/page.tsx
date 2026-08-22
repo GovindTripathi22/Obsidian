@@ -63,6 +63,69 @@ const COLOR_THEMES = [
   { name: "Liquid Platinum", primary: "#f4f4f5", bg: "#0c0c0e", accent: "from-white to-neutral-500", label: "Liquid Platinum" },
 ];
 
+export const AESTHETIC_FONT_PAIRINGS = [
+  {
+    id: "modern-minimal",
+    name: "Modern Minimal",
+    tag: "High-End Tech",
+    heading: "Satoshi & Clash Display",
+    body: "General Sans & Inter",
+    headingCss: "'Satoshi', 'Clash Display', sans-serif",
+    bodyCss: "'General Sans', 'Inter', sans-serif",
+    headingClass: "font-display",
+    bodyClass: "font-sans",
+    description: "Sharp architectural geometry paired with clean Swiss grotesk",
+  },
+  {
+    id: "editorial-luxury",
+    name: "Editorial Luxury",
+    tag: "Boutique & Vogue",
+    heading: "Cormorant & Instrument Serif",
+    body: "General Sans",
+    headingCss: "'Cormorant Garamond', 'Instrument Serif', Georgia, serif",
+    bodyCss: "'General Sans', 'Inter', sans-serif",
+    headingClass: "font-editorial italic",
+    bodyClass: "font-sans",
+    description: "High-fashion Kinfolk/Vogue editorial typography with italic accents",
+  },
+  {
+    id: "swiss-brutalist",
+    name: "Swiss Brutalist",
+    tag: "Streetwear & Fashion",
+    heading: "Cabinet Grotesk",
+    body: "Inter",
+    headingCss: "'Cabinet Grotesk', sans-serif",
+    bodyCss: "'Inter', sans-serif",
+    headingClass: "font-brutalist uppercase tracking-tighter",
+    bodyClass: "font-sans",
+    description: "Bold heavy-weight title impact with ultra-clean supporting copy",
+  },
+  {
+    id: "cyber-tech",
+    name: "Cybernetic Precision",
+    tag: "Audio & Peripherals",
+    heading: "Syne & Space Grotesk",
+    body: "IBM Plex Mono & General Sans",
+    headingCss: "'Syne', 'Space Grotesk', sans-serif",
+    bodyCss: "'General Sans', 'Inter', sans-serif",
+    headingClass: "font-cyber uppercase",
+    bodyClass: "font-sans",
+    description: "Futuristic hardware & AI tech aesthetic with precision mono accents",
+  },
+  {
+    id: "artisanal-warmth",
+    name: "Artisanal Warmth",
+    tag: "Specialty Lifestyle",
+    heading: "Playfair Display",
+    body: "Plus Jakarta Sans",
+    headingCss: "'Playfair Display', Georgia, serif",
+    bodyCss: "'Plus Jakarta Sans', sans-serif",
+    headingClass: "font-editorial font-serif",
+    bodyClass: "font-jakarta",
+    description: "Organic specialty roastery & boutique coffee lifestyle aesthetic",
+  },
+];
+
 const COMPONENT_BLOCKS = [
   { name: "Hero Section with CTA", desc: "Large bold headline, glowing action buttons, and social proof logos", icon: "🚀", prompt: "Add a high-converting hero section with large tracked typography, dual CTA buttons with ambient glow, and trusted company badges." },
   { name: "Bento Feature Grid", desc: "3x3 asymmetric feature layout with glassmorphic cards and micro-animations", icon: "⬡", prompt: "Add a modern bento box grid displaying 4 core product capabilities with frosted glass cards and subtle borders." },
@@ -104,6 +167,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
   // Left Panel Sub-tab: 'chat' | 'blocks' | 'theme' | 'actions'
   const [sidebarTab, setSidebarTab] = useState<"chat" | "blocks" | "theme" | "actions">("chat");
   const [activeTheme, setActiveTheme] = useState(COLOR_THEMES[0]);
+  const [activeFont, setActiveFont] = useState(AESTHETIC_FONT_PAIRINGS[0]);
 
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string; time?: string }>>([
     {
@@ -726,36 +790,78 @@ export function EditorContent({ projectId }: { projectId: string }) {
 
           {/* Sub-tab 4: Theme Palette Tokens */}
           {sidebarTab === "theme" && (
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium px-1">
-                Color Themes
-              </p>
-              {COLOR_THEMES.map((theme) => (
-                <button
-                  key={theme.name}
-                  disabled={isGenerating}
-                  onClick={() => handleApplyTheme(theme)}
-                  className={`w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between group cursor-pointer ${
-                    activeTheme.name === theme.name
-                      ? "bg-neutral-900 border-white ring-1 ring-white/20 shadow-md"
-                      : "bg-[#0a0a0a]/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-6 h-6 rounded-lg border border-white/20 shadow-inner shrink-0"
-                      style={{ backgroundColor: theme.primary }}
-                    />
-                    <div>
-                      <p className="text-xs font-medium text-white">{theme.name}</p>
-                      <p className="text-[10px] text-neutral-400">{theme.label}</p>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium px-1">
+                  Color Themes
+                </p>
+                {COLOR_THEMES.map((theme) => (
+                  <button
+                    key={theme.name}
+                    disabled={isGenerating}
+                    onClick={() => handleApplyTheme(theme)}
+                    className={`w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between group cursor-pointer ${
+                      activeTheme.name === theme.name
+                        ? "bg-neutral-900 border-white ring-1 ring-white/20 shadow-md"
+                        : "bg-[#0a0a0a]/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-6 h-6 rounded-lg border border-white/20 shadow-inner shrink-0"
+                        style={{ backgroundColor: theme.primary }}
+                      />
+                      <div>
+                        <p className="text-xs font-medium text-white">{theme.name}</p>
+                        <p className="text-[10px] text-neutral-400">{theme.label}</p>
+                      </div>
                     </div>
-                  </div>
-                  {activeTheme.name === theme.name && (
-                    <Check className="w-4 h-4 text-white shrink-0" />
-                  )}
-                </button>
-              ))}
+                    {activeTheme.name === theme.name && (
+                      <Check className="w-4 h-4 text-white shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Aesthetic Font Pairings Section */}
+              <div className="space-y-2 pt-2 border-t border-neutral-800/80">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">
+                    Aesthetic Typography
+                  </p>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-neutral-800 text-neutral-300 border border-neutral-700">
+                    Fontshare & Google
+                  </span>
+                </div>
+                {AESTHETIC_FONT_PAIRINGS.map((font) => (
+                  <button
+                    key={font.id}
+                    disabled={isGenerating}
+                    onClick={() => setActiveFont(font)}
+                    className={`w-full p-3 rounded-xl border text-left transition-all space-y-1.5 group cursor-pointer ${
+                      activeFont.id === font.id
+                        ? "bg-neutral-900 border-white ring-1 ring-white/20 shadow-md"
+                        : "bg-[#0a0a0a]/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-white">{font.name}</p>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700">
+                        {font.tag}
+                      </span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-black/50 border border-neutral-800/80">
+                      <p className="text-sm text-white line-clamp-1" style={{ fontFamily: font.headingCss }}>
+                        Headline Sample
+                      </p>
+                      <p className="text-[10px] text-neutral-400 line-clamp-1 mt-0.5" style={{ fontFamily: font.bodyCss }}>
+                        {font.heading} + {font.body}
+                      </p>
+                    </div>
+                    <p className="text-[10px] text-neutral-400 leading-relaxed">{font.description}</p>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -880,7 +986,7 @@ export function EditorContent({ projectId }: { projectId: string }) {
                   <iframe
                     ref={iframeRef}
                     title="Live Preview Canvas"
-                    srcDoc={`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.tailwindcss.com"></script><style>body{margin:0;padding:0;background:${activeTheme.bg};color:#fafafa;font-family:sans-serif;}</style></head><body>${currentHtml}</body></html>`}
+                    srcDoc={`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&f[]=cabinet-grotesk@500,700,800,900&f[]=syne@500,700,800&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><style>body{margin:0;padding:0;background:${activeTheme.bg};color:#fafafa;font-family:${activeFont.bodyCss};}h1,h2,h3,h4,h5,h6{font-family:${activeFont.headingCss};letter-spacing:-0.03em;}.font-display{font-family:'Clash Display','Satoshi',sans-serif;}.font-heading{font-family:${activeFont.headingCss};}.font-sans{font-family:${activeFont.bodyCss};}.font-editorial{font-family:'Cormorant Garamond','Instrument Serif',Georgia,serif;}.font-serif{font-family:'Instrument Serif',Georgia,serif;}.font-brutalist{font-family:'Cabinet Grotesk',sans-serif;}.font-cyber{font-family:'Syne','Space Grotesk',sans-serif;}.font-jakarta{font-family:'Plus Jakarta Sans',sans-serif;}.font-mono{font-family:'IBM Plex Mono',monospace;}</style></head><body class="${activeFont.bodyClass}">${currentHtml}</body></html>`}
                     className="w-full h-full border-none"
                   />
                 </div>

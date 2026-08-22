@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { GoogleAuthModal } from "@/components/auth/GoogleAuthModal";
 import { X, Sparkles } from "lucide-react";
 
 export const GoogleOneTap: React.FC = () => {
   const { user, loading, signInWithGoogle } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [showGoogleDialog, setShowGoogleDialog] = useState(false);
 
   useEffect(() => {
     // Show prompt after 2 seconds if user is guest and hasn't dismissed it
@@ -21,12 +23,21 @@ export const GoogleOneTap: React.FC = () => {
   }, [user, dismissed]);
 
   if (loading || user || !isVisible || dismissed) {
-    return null;
+    return (
+      <GoogleAuthModal
+        isOpen={showGoogleDialog}
+        onClose={() => setShowGoogleDialog(false)}
+        onSelectAccount={async (name, email) => {
+          await signInWithGoogle(name, email);
+          setShowGoogleDialog(false);
+        }}
+      />
+    );
   }
 
-  const handleSignIn = async () => {
+  const handleSignIn = () => {
     setIsVisible(false);
-    await signInWithGoogle();
+    setShowGoogleDialog(true);
   };
 
   const handleDismiss = () => {

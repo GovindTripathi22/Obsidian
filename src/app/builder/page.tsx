@@ -40,6 +40,9 @@ const PRESET_STORES = [
     tag: "Beauty & Cosmetics",
     icon: "💄",
     name: "Aura Botanicals Skincare",
+    fontPairing: "Cormorant & Instrument Serif (Editorial Luxury)",
+    headingFontClass: "font-editorial italic",
+    bodyFontClass: "font-sans",
     prompt: "Create an ultra-luxurious clean beauty storefront with rose water mist, peptide glow serums, sticky cart preview, customer reviews, and Shopify Liquid 2.0 theme compatibility.",
     heroTitle: "Pure Botanical Science for Radiant Skin",
     heroSubtitle: "Wild-harvested adaptogens, cold-pressed seed oils, and clinically-proven bio-peptides.",
@@ -55,6 +58,9 @@ const PRESET_STORES = [
     tag: "Apparel & Streetwear",
     icon: "👕",
     name: "KINETIC Supply Streetwear",
+    fontPairing: "Clash Display & Cabinet Grotesk (Brutalist Streetwear)",
+    headingFontClass: "font-brutalist uppercase tracking-tighter",
+    bodyFontClass: "font-display",
     prompt: "Design a high-contrast minimalist streetwear shop with lookbook gallery, custom product size filters, 450 GSM French terry hoodies, and Liquid theme sections.",
     heroTitle: "Engineered for Movement. Built for Culture.",
     heroSubtitle: "450 GSM organic French terry cotton, waterproof taped zippers, and modular utility silhouettes.",
@@ -70,6 +76,9 @@ const PRESET_STORES = [
     tag: "Tech & Peripherals",
     icon: "⚡",
     name: "Apex Cybernetics Audio",
+    fontPairing: "Syne & Space Grotesk (Industrial Precision)",
+    headingFontClass: "font-cyber uppercase tracking-tight",
+    bodyFontClass: "font-sans",
     prompt: "Build an industrial tech store for planar magnetic headphones, mechanical keyboard spec tables, fast charging hubs, and Liquid theme templates.",
     heroTitle: "Acoustic Perfection. Titanium Engineering.",
     heroSubtitle: "Precision planar magnetic drivers, lossless LDAC streaming, and CNC machined aerospace titanium.",
@@ -85,6 +94,9 @@ const PRESET_STORES = [
     tag: "Specialty Coffee",
     icon: "☕",
     name: "Velvet & Vine Roastery",
+    fontPairing: "Playfair Display & Jakarta (Artisanal Warmth)",
+    headingFontClass: "font-editorial font-serif",
+    bodyFontClass: "font-jakarta",
     prompt: "Create a warm artisanal lifestyle roastery store with recurring coffee subscriptions, pour-over glass drippers, customer review sliders, and Shopify theme export.",
     heroTitle: "Single-Origin Specialty Beans Roasted Fresh.",
     heroSubtitle: "Direct trade beans harvested from high-altitude volcanic soils in Yirgacheffe and Huila.",
@@ -413,23 +425,28 @@ export default function BuilderPage() {
             </div>
 
             {/* Showcase Card */}
-            <div className="rounded-3xl border border-neutral-800 bg-[#0a0a0a] overflow-hidden shadow-2xl space-y-0">
+            <div className={`rounded-3xl border border-neutral-800 bg-[#0a0a0a] overflow-hidden shadow-2xl space-y-0 ${activePreset.bodyFontClass || "font-sans"}`}>
               {/* Store Header */}
               <div className="p-4 sm:p-5 bg-neutral-900/80 border-b border-neutral-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-xs text-white font-semibold">
                     🛍️
                   </div>
-                  <span className="text-sm font-semibold text-white">{activePreset.name}</span>
+                  <span className={`text-sm font-semibold text-white ${activePreset.headingFontClass || "font-heading"}`}>{activePreset.name}</span>
                 </div>
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                  Liquid 2.0
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 border border-neutral-700 hidden sm:inline-block">
+                    {activePreset.fontPairing}
+                  </span>
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                    Liquid 2.0
+                  </span>
+                </div>
               </div>
 
               {/* Store Hero */}
               <div className="py-10 px-6 text-center bg-gradient-to-b from-neutral-900/40 to-[#0a0a0a] border-b border-neutral-800/80 space-y-3">
-                <h2 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">{activePreset.heroTitle}</h2>
+                <h2 className={`text-2xl sm:text-3xl font-semibold text-white tracking-tight ${activePreset.headingFontClass || "font-heading"}`}>{activePreset.heroTitle}</h2>
                 <p className="text-xs sm:text-sm text-neutral-400 max-w-xl mx-auto">{activePreset.heroSubtitle}</p>
               </div>
 

@@ -56,26 +56,79 @@ export default function DesignSystemPage() {
         </div>
       </section>
 
-      {/* 2. Typography Scale */}
+      {/* 2. Aesthetic Typography Combinations */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-neutral-100">Typography</h2>
-        <div className="p-6 rounded-xl border border-neutral-800 bg-neutral-900 space-y-4 font-sans">
-          <div>
-            <span className="text-xs text-neutral-500">h1 (text-4xl)</span>
-            <p className="text-4xl font-semibold text-neutral-100">Heading 1: Modern E-Commerce Generator</p>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-neutral-100">Aesthetic Typography Combinations</h2>
+          <span className="text-xs text-neutral-400 bg-neutral-900 px-3 py-1 rounded-full border border-neutral-800">
+            Fontshare & Google Fonts
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="p-5 rounded-xl border border-neutral-800 bg-neutral-900 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-white">Modern Minimal</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">Obsidian Default</span>
+            </div>
+            <p className="text-2xl font-bold font-display text-white">Clash Display & Satoshi</p>
+            <p className="text-xs font-sans text-neutral-400 leading-relaxed">
+              Geometric Swiss grotesk paired with clean architectural sans-serif for high-contrast digital products.
+            </p>
           </div>
-          <div>
-            <span className="text-xs text-neutral-500">h2 (text-2xl)</span>
-            <p className="text-2xl font-semibold text-neutral-200">Heading 2: AI Powered Shopify Themes</p>
+
+          <div className="p-5 rounded-xl border border-neutral-800 bg-neutral-900 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-white">Editorial Luxury</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">Beauty & Fashion</span>
+            </div>
+            <p className="text-2xl font-editorial italic text-white">Cormorant & Instrument</p>
+            <p className="text-xs font-sans text-neutral-400 leading-relaxed">
+              High-fashion Kinfolk/Vogue editorial typography with elegant high-contrast serif headlines.
+            </p>
           </div>
-          <div>
-            <span className="text-xs text-neutral-500">h3 (text-lg)</span>
-            <p className="text-lg font-semibold text-neutral-300">Heading 3: Interactive Live Preview</p>
+
+          <div className="p-5 rounded-xl border border-neutral-800 bg-neutral-900 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-white">Swiss Brutalist</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">Streetwear & Apparel</span>
+            </div>
+            <p className="text-2xl font-brutalist uppercase text-white">Cabinet Grotesk</p>
+            <p className="text-xs font-sans text-neutral-400 leading-relaxed">
+              Heavy structured grotesk title impact engineered for high-energy modern streetwear storefronts.
+            </p>
           </div>
-          <div>
-            <span className="text-xs text-neutral-500">body (text-sm)</span>
-            <p className="text-sm text-neutral-400">
-              Standard body text formatted cleanly for dark background readability.
+
+          <div className="p-5 rounded-xl border border-neutral-800 bg-neutral-900 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-white">Cyber Tech</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">Hardware & Audio</span>
+            </div>
+            <p className="text-2xl font-cyber uppercase text-white">Syne & Space Grotesk</p>
+            <p className="text-xs font-sans text-neutral-400 leading-relaxed">
+              Futuristic industrial precision typography paired with technical monospace specification tokens.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-xl border border-neutral-800 bg-neutral-900 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-white">Artisanal Warmth</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">Specialty Coffee</span>
+            </div>
+            <p className="text-2xl font-editorial font-serif text-white">Playfair & Jakarta</p>
+            <p className="text-xs font-jakarta text-neutral-400 leading-relaxed">
+              Warm editorial serif headings balanced with contemporary humanist body copy for artisanal brands.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-xl border border-neutral-800 bg-neutral-900 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-white">Technical Mono</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">Code & Liquid</span>
+            </div>
+            <p className="text-xl font-mono text-white font-semibold">IBM Plex Mono</p>
+            <p className="text-xs font-mono text-neutral-400 leading-relaxed">
+              Precise, high-legibility monospaced typeface for Liquid 2.0 schemas and code trees.
             </p>
           </div>
         </div>

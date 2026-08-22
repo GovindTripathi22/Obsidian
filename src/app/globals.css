@@ -1,5 +1,5 @@
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&f[]=cabinet-grotesk@500,700,800,900&f[]=syne@500,700,800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
 @import "tailwindcss";
 
 @layer base {
@@ -38,10 +38,15 @@
     --input-bg: #141414;
 
     /* Typography */
-    --font-heading: 'Satoshi', system-ui, -apple-system, sans-serif;
-    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-heading: 'Satoshi', 'Clash Display', system-ui, -apple-system, sans-serif;
+    --font-display: 'Clash Display', 'Satoshi', system-ui, sans-serif;
+    --font-sans: 'General Sans', 'Inter', system-ui, -apple-system, sans-serif;
     --font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
-    --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-serif: 'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
+    --font-editorial: 'Cormorant Garamond', 'Instrument Serif', Georgia, serif;
+    --font-brutalist: 'Cabinet Grotesk', system-ui, sans-serif;
+    --font-cyber: 'Syne', 'Space Grotesk', system-ui, sans-serif;
+    --font-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 }
 
@@ -63,8 +68,16 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.03em;
 }
 
-/* Serif accent class for special callouts */
+/* ── Aesthetic Typography Classes ── */
+.font-display { font-family: var(--font-display); letter-spacing: -0.035em; }
+.font-heading { font-family: var(--font-heading); letter-spacing: -0.03em; }
+.font-sans { font-family: var(--font-sans); }
 .font-serif { font-family: var(--font-serif); }
+.font-editorial { font-family: var(--font-editorial); }
+.font-brutalist { font-family: var(--font-brutalist); letter-spacing: -0.04em; }
+.font-cyber { font-family: var(--font-cyber); letter-spacing: -0.025em; }
+.font-jakarta { font-family: var(--font-jakarta); }
+.font-mono { font-family: var(--font-mono); }
 
 /* ── Scrollbars ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
