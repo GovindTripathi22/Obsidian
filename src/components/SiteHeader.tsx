@@ -29,6 +29,12 @@ export const SiteHeader: React.FC = () => {
         {/* Right */}
         <nav className="flex items-center gap-4">
           <Link
+            href="/inspiration"
+            className="text-xs text-neutral-500 hover:text-white transition-colors hidden md:block"
+          >
+            Templates
+          </Link>
+          <Link
             href={isShopify ? "/projects?tab=shopify" : "/projects?tab=website"}
             className="text-xs text-neutral-500 hover:text-white transition-colors hidden md:block"
           >

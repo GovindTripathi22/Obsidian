@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { GoogleAuthModal } from "@/components/auth/GoogleAuthModal";
-import { X, Sparkles } from "lucide-react";
+import { X } from "lucide-react";
 
 export const GoogleOneTap: React.FC = () => {
   const { user, loading, signInWithGoogle } = useAuth();
@@ -46,7 +46,7 @@ export const GoogleOneTap: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 max-w-sm w-full bg-zinc-950/95 border border-zinc-800 backdrop-blur-2xl rounded-2xl p-4 shadow-2xl animate-fade-in text-zinc-100 font-sans">
+    <div className="fixed bottom-4 left-4 z-30 max-w-xs w-full bg-zinc-950/95 border border-zinc-800 backdrop-blur-2xl rounded-2xl p-3.5 shadow-2xl animate-fade-in text-zinc-100 font-sans">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 shadow-inner">

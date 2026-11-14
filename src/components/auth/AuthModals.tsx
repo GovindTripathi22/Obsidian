@@ -155,7 +155,7 @@ export const AuthModals: React.FC = () => {
               </form>
 
               <p className="text-center text-xs text-neutral-400 pt-2">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <button
                   type="button"
                   onClick={openSignUp}

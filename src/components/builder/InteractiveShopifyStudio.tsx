@@ -80,7 +80,7 @@ export const STORE_PRESETS: StorePreset[] = [
         title: "Celestial Glow Peptide Serum",
         price: 68,
         comparePrice: 85,
-        image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-skincare.jpg",
         tag: "BEST SELLER",
         rating: 4.9,
       },
@@ -88,7 +88,7 @@ export const STORE_PRESETS: StorePreset[] = [
         id: "aura-2",
         title: "Rose Damascena Hydration Mist",
         price: 42,
-        image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-skincare.jpg",
         tag: "ORGANIC",
         rating: 4.8,
       },
@@ -97,7 +97,7 @@ export const STORE_PRESETS: StorePreset[] = [
         title: "Bakuchiol Overnight Repair Oil",
         price: 74,
         comparePrice: 90,
-        image: "https://images.unsplash.com/photo-1608248597359-0098f98c8c50?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-skincare.jpg",
         tag: "RETINOL ALT",
         rating: 5.0,
       },
@@ -105,7 +105,7 @@ export const STORE_PRESETS: StorePreset[] = [
         id: "aura-4",
         title: "Velvet Cloud Ceramide Crème",
         price: 58,
-        image: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-skincare.jpg",
         tag: "DEEP HYDRATION",
         rating: 4.9,
       },
@@ -139,7 +139,7 @@ export const STORE_PRESETS: StorePreset[] = [
         title: "Heavyweight Boxy Graphic Hoodie (450 GSM)",
         price: 130,
         comparePrice: 160,
-        image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-streetwear.jpg",
         tag: "LIMITED DROP",
         rating: 4.9,
       },
@@ -147,7 +147,7 @@ export const STORE_PRESETS: StorePreset[] = [
         id: "kin-2",
         title: "Tactical Ripstop Parachute Pant",
         price: 145,
-        image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-streetwear.jpg",
         tag: "WATERPROOF",
         rating: 4.8,
       },
@@ -155,7 +155,7 @@ export const STORE_PRESETS: StorePreset[] = [
         id: "kin-3",
         title: "Raw Edge Minimal Oversized Tee",
         price: 55,
-        image: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-streetwear.jpg",
         tag: "ESSENTIAL",
         rating: 4.7,
       },
@@ -164,7 +164,7 @@ export const STORE_PRESETS: StorePreset[] = [
         title: "Modular Crossbody Utility Rig",
         price: 88,
         comparePrice: 110,
-        image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-streetwear.jpg",
         tag: "CORDURA",
         rating: 5.0,
       },
@@ -198,7 +198,7 @@ export const STORE_PRESETS: StorePreset[] = [
         title: "Apex Horizon Pro Planar ANC Headphones",
         price: 349,
         comparePrice: 399,
-        image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-audio.jpg",
         tag: "FLAGSHIP",
         rating: 5.0,
       },
@@ -206,7 +206,7 @@ export const STORE_PRESETS: StorePreset[] = [
         id: "apx-2",
         title: "Cybernetic 75% Gasket Mechanical Keyboard",
         price: 210,
-        image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-audio.jpg",
         tag: "CNC ALUMINUM",
         rating: 4.9,
       },
@@ -214,7 +214,7 @@ export const STORE_PRESETS: StorePreset[] = [
         id: "apx-3",
         title: "140W GaN Fast Dual Magnetic Charger",
         price: 89,
-        image: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-audio.jpg",
         tag: "FAST CHARGE",
         rating: 4.8,
       },
@@ -223,7 +223,7 @@ export const STORE_PRESETS: StorePreset[] = [
         title: "Titanium Precision Haptic Stylus",
         price: 119,
         comparePrice: 140,
-        image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=800&auto=format&fit=crop&q=80",
+        image: "/images/product-audio.jpg",
         tag: "PRECISION",
         rating: 4.9,
       },
@@ -773,7 +773,7 @@ export function InteractiveShopifyStudio() {
                             <Star key={i} className="w-3.5 h-3.5 fill-current" />
                           ))}
                         </div>
-                        <p className="text-xs text-zinc-300 leading-relaxed italic">"{rev.text}"</p>
+                        <p className="text-xs text-zinc-300 leading-relaxed italic">&ldquo;{rev.text}&rdquo;</p>
                         <div className="pt-1 text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>{rev.author} • {rev.role}</span>
@@ -926,7 +926,7 @@ export function InteractiveShopifyStudio() {
                       <Button
                         size="md"
                         onClick={() => {
-                          alert(`Simulated Shopify Checkout Initialized! Total: ${formatPrice(cartSubtotal)}`);
+                          setPromoMessage(`✓ Shopify Express Order Authorized for ${formatPrice(cartSubtotal)}!`);
                         }}
                         className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-950/60"
                       >

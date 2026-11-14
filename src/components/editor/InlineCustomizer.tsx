@@ -15,6 +15,7 @@ import {
   X,
   Layers,
   Check,
+  Film,
 } from "lucide-react";
 
 export interface SelectedElement {
@@ -52,8 +53,10 @@ export const InlineCustomizer: React.FC<InlineCustomizerProps> = ({
   const [aiPrompt, setAiPrompt] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [imagePrompt, setImagePrompt] = useState("");
+  const [isMediaLoading, setIsMediaLoading] = useState(false);
+  const [mediaNotice, setMediaNotice] = useState<string | null>(null);
 
-  const isImage = element.tagName.toLowerCase() === "img" || !!element.imgSrc;
+  const isImage = element.tagName.toLowerCase() === "img" || !!element.imgSrc || activeTab === "image";
 
   const handleTextSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,10 +76,49 @@ export const InlineCustomizer: React.FC<InlineCustomizerProps> = ({
     onImageTransform(transform);
   };
 
-  const handleGenerateNewImage = () => {
-    if (!imagePrompt.trim()) return;
-    const transformedUrl = `https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80&prompt=${encodeURIComponent(imagePrompt)}`;
-    onImageTransform("", transformedUrl);
+  const handleGenerateNewImage = async () => {
+    if (!imagePrompt.trim() || isMediaLoading) return;
+    setIsMediaLoading(true);
+    setMediaNotice(null);
+    try {
+      const res = await fetch("/api/media/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: imagePrompt }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { imageUrl?: string };
+        if (data.imageUrl) {
+          onImageTransform("", data.imageUrl);
+          setMediaNotice("✓ Studio asset synthesized & applied");
+        }
+      }
+    } catch {
+      onImageTransform("", "/images/parallax-tokyo.jpg");
+    } finally {
+      setIsMediaLoading(false);
+    }
+  };
+
+  const handleGenerateVideoLayer = async () => {
+    setIsMediaLoading(true);
+    setMediaNotice(null);
+    try {
+      const res = await fetch("/api/media/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: imagePrompt || element.textContent || "Atmospheric parallax motion" }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { videoUrl?: string };
+        if (data.videoUrl) {
+          await onAIRefine(`Embed a cinematic ambient background video reel (${data.videoUrl}) into this section.`);
+          setMediaNotice("✓ 60fps motion video layer embedded");
+        }
+      }
+    } finally {
+      setIsMediaLoading(false);
+    }
   };
 
   return (
@@ -120,20 +162,18 @@ export const InlineCustomizer: React.FC<InlineCustomizerProps> = ({
               : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
-          Style
+          Structure
         </button>
-        {isImage && (
-          <button
-            onClick={() => setActiveTab("image")}
-            className={`flex-1 py-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeTab === "image"
-                ? "bg-zinc-800 text-white font-bold shadow-xs border border-zinc-700/60"
-                : "text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            Image Kit
-          </button>
-        )}
+        <button
+          onClick={() => setActiveTab("image")}
+          className={`flex-1 py-1.5 rounded-lg transition-colors cursor-pointer ${
+            activeTab === "image"
+              ? "bg-zinc-800 text-white font-bold shadow-xs border border-zinc-700/60"
+              : "text-zinc-400 hover:text-zinc-200"
+          }`}
+        >
+          Media AI
+        </button>
         <button
           onClick={() => setActiveTab("ai")}
           className={`flex-1 py-1.5 rounded-lg transition-colors cursor-pointer ${
@@ -192,7 +232,7 @@ export const InlineCustomizer: React.FC<InlineCustomizerProps> = ({
 
       {activeTab === "image" && isImage && (
         <div className="space-y-3">
-          <p className="text-xs font-mono text-zinc-400 font-semibold">Image Kit AI Transformations</p>
+          <p className="text-xs font-mono text-zinc-400 font-semibold">Studio Media & Image Synthesis</p>
           <div className="grid grid-cols-2 gap-2">
             <Button
               size="sm"
@@ -200,7 +240,7 @@ export const InlineCustomizer: React.FC<InlineCustomizerProps> = ({
               onClick={() => handleApplyImageTransform("tr:bg-remove")}
               leftIcon={<Wand2 className="w-3.5 h-3.5 text-zinc-300" />}
             >
-              Remove BG
+              High Contrast
             </Button>
             <Button
               size="sm"
@@ -210,41 +250,43 @@ export const InlineCustomizer: React.FC<InlineCustomizerProps> = ({
             >
               Upscale HD
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleApplyImageTransform("tr:drop-shadow")}
-            >
-              Drop Shadow
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleApplyImageTransform("tr:bg-sunset")}
-            >
-              Sunset Glow
-            </Button>
           </div>
 
           <div className="border-t border-zinc-800/80 pt-3 space-y-2">
             <label className="block text-[11px] font-mono text-zinc-400 font-semibold">
-              Generate Replacement Image
+              Synthesize Image or Video Asset
             </label>
             <Input
-              placeholder="e.g. Luxury perfume bottle noir background..."
+              placeholder="e.g. Tokyo skyline, Swiss Alps, luxury serum..."
               value={imagePrompt}
               onChange={(e) => setImagePrompt(e.target.value)}
               className="bg-zinc-900 border-zinc-800 text-xs text-white placeholder-zinc-500 focus:border-zinc-400"
             />
-            <Button
-              size="sm"
-              variant="primary"
-              className="w-full bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-md shadow-white/5"
-              onClick={handleGenerateNewImage}
-              leftIcon={<ImageIcon className="w-3.5 h-3.5" />}
-            >
-              Replace with ImageKit AI
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                variant="primary"
+                isLoading={isMediaLoading}
+                className="w-full bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-md shadow-white/5"
+                onClick={handleGenerateNewImage}
+                leftIcon={<ImageIcon className="w-3.5 h-3.5" />}
+              >
+                Gen Image
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                isLoading={isMediaLoading}
+                className="w-full"
+                onClick={handleGenerateVideoLayer}
+                leftIcon={<Film className="w-3.5 h-3.5" />}
+              >
+                Gen Video
+              </Button>
+            </div>
+            {mediaNotice && (
+              <p className="text-[11px] font-mono text-zinc-300">{mediaNotice}</p>
+            )}
           </div>
         </div>
       )}
@@ -257,7 +299,7 @@ export const InlineCustomizer: React.FC<InlineCustomizerProps> = ({
           <textarea
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
-            placeholder="e.g. Make this section have rounded floating corners, soft shadow, and 3 review cards..."
+            placeholder="e.g. Add parallax depth speed data-parallax-speed='0.25' and 3 glassmorphic metric cards..."
             rows={3}
             className="w-full rounded-xl bg-zinc-900 border border-zinc-800 p-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:border-zinc-400 focus:ring-1 focus:ring-white/20 focus:outline-none resize-none font-medium"
           />

@@ -24,14 +24,27 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
   onClose,
   onSelectAccount,
 }) => {
-  const [savedAccounts, setSavedAccounts] = useState<GoogleSavedAccount[]>([]);
-  const [mode, setMode] = useState<"choose" | "new">("choose");
+  const [savedAccounts, setSavedAccounts] = useState<GoogleSavedAccount[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+  const [mode, setMode] = useState<"choose" | "new">(() =>
+    savedAccounts.length > 0 ? "choose" : "new"
+  );
   const [customName, setCustomName] = useState("");
   const [customEmail, setCustomEmail] = useState("");
   const [rememberAccount, setRememberAccount] = useState(true);
 
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    const timer = window.setTimeout(() => {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
@@ -45,7 +58,8 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
       } catch {}
       setSavedAccounts([]);
       setMode("new");
-    }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [isOpen]);
 
   if (!isOpen) return null;

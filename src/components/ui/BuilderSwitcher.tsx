@@ -2,7 +2,8 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Hexagon } from "lucide-react";
+import { Hexagon, ArrowLeftRight } from "lucide-react";
+import { loadBuilderDraftTransaction } from "@/lib/builder-bridge";
 
 /* ── Official Shopify SVG Icon ── */
 const ShopifyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -15,12 +16,14 @@ interface BuilderSwitcherProps {
   active: "website" | "shopify";
   className?: string;
   size?: "sm" | "md";
+  onBeforeSwitch?: (targetMode: "website" | "shopify") => void;
 }
 
 export const BuilderSwitcher: React.FC<BuilderSwitcherProps> = ({
   active,
   className = "",
   size = "md",
+  onBeforeSwitch,
 }) => {
   const router = useRouter();
 
@@ -36,10 +39,15 @@ export const BuilderSwitcher: React.FC<BuilderSwitcherProps> = ({
 
   const handleSwitch = (mode: "website" | "shopify") => {
     if (mode === active) return;
+    if (onBeforeSwitch) {
+      onBeforeSwitch(mode);
+    }
+    const draft = loadBuilderDraftTransaction();
+    const hasDraft = Boolean(draft?.prompt?.trim());
     if (mode === "website") {
-      router.push("/");
+      router.push(hasDraft ? "/?from=shopify" : "/");
     } else {
-      router.push("/builder");
+      router.push(hasDraft ? "/builder?from=website" : "/builder");
     }
   };
 
@@ -86,10 +94,18 @@ export const BuilderSwitcher: React.FC<BuilderSwitcherProps> = ({
         <span className="truncate">Website</span>
         {active === "website" && (
           <span className="hidden sm:inline-block text-[9px] font-medium px-1.5 py-0.5 rounded bg-neutral-900/80 text-neutral-300 border border-neutral-700/60 ml-0.5">
-            HTML
+            HTML / 3D
           </span>
         )}
       </button>
+
+      {/* Center Sync Indicator */}
+      <span
+        title="Cross-Builder Transaction Sync Active"
+        className="relative z-10 hidden md:inline-flex items-center justify-center text-neutral-500 px-0.5 pointer-events-none"
+      >
+        <ArrowLeftRight className="w-3 h-3" />
+      </span>
 
       {/* Shopify Option */}
       <button
@@ -113,7 +129,7 @@ export const BuilderSwitcher: React.FC<BuilderSwitcherProps> = ({
         <span className="truncate">Shopify</span>
         {active === "shopify" ? (
           <span className="hidden sm:inline-block text-[9px] font-medium px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-200 border border-neutral-700 ml-0.5">
-            Liquid
+            Liquid 2.0
           </span>
         ) : (
           <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-glow-white hidden sm:inline-block ml-0.5" />

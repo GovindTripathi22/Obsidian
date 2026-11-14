@@ -4,21 +4,23 @@ import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useProjects, deleteProject, canCreateProject } from "@/lib/projects";
+import { useProjects, deleteProject, canCreateProject, Project } from "@/lib/projects";
+import {
+  convertWebsitePromptToShopifyPrompt,
+  convertShopifyToWebsitePrompt,
+  saveBuilderDraftTransaction,
+} from "@/lib/builder-bridge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardTitle, CardDescription, CardFooter } from "@/components/ui/Card";
 import { QuotaLimitModal } from "@/components/ui/QuotaLimitModal";
 import {
-  FolderKanban,
   ExternalLink,
   Calendar,
   Image as ImageIcon,
   Hexagon,
   Trash2,
   Loader2,
-  Sparkles,
-  Shield,
-  Plus,
+  ArrowLeftRight,
 } from "lucide-react";
 
 const ShopifyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -27,12 +29,19 @@ const ShopifyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
+function formatProjectDate(dateStr?: string): string {
+  if (!dateStr) return "Recent";
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) return "Recent";
+  return parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function ProjectsContent() {
   const router = useRouter();
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const isPro = user?.plan === "pro";
-  const { projects, shopifyProjects, websiteProjects, stats, loading } = useProjects(isPro);
+  const { shopifyProjects, websiteProjects, stats, loading } = useProjects(isPro);
 
   const initialTab = searchParams?.get("tab") === "website" ? "website" : "shopify";
   const [activeTab, setActiveTab] = useState<"shopify" | "website">(initialTab);
@@ -40,7 +49,6 @@ function ProjectsContent() {
 
   const handleDelete = (id: string) => {
     deleteProject(id);
-    // CustomEvent automatically updates useProjects and AuthProvider quota meters immediately
   };
 
   const handleCreateNew = (target: "shopify" | "website") => {
@@ -52,6 +60,29 @@ function ProjectsContent() {
       router.push("/builder");
     } else {
       router.push("/");
+    }
+  };
+
+  const handleBridgeTransfer = (proj: Project) => {
+    if (proj.type === "website") {
+      const converted = convertWebsitePromptToShopifyPrompt(proj.prompt || "", proj.title);
+      saveBuilderDraftTransaction({
+        source: "website",
+        prompt: converted.shopifyPrompt,
+        brandName: converted.storeName,
+        presetId: converted.suggestedPresetId,
+        parallaxMode: Boolean(proj.data?.parallaxMode),
+      });
+      router.push(`/builder?from=website&storeName=${encodeURIComponent(converted.storeName)}`);
+    } else {
+      const converted = convertShopifyToWebsitePrompt(proj.prompt || "", proj.title, false);
+      saveBuilderDraftTransaction({
+        source: "shopify",
+        prompt: converted.websitePrompt,
+        brandName: converted.brandName,
+        parallaxMode: false,
+      });
+      router.push(`/?from=shopify`);
     }
   };
 
@@ -67,11 +98,10 @@ function ProjectsContent() {
               Projects
             </h1>
             <p className="text-neutral-400 text-sm mt-1">
-              Unified repository for Obsidian Websites and Shopify Liquid Themes.
+              Unified repository for Obsidian Websites, Parallax Cityscapes, and Shopify Liquid Themes.
             </p>
           </div>
 
-          {/* Action CTAs */}
           <div className="flex items-center gap-3">
             {activeTab === "shopify" ? (
               <Button
@@ -212,7 +242,7 @@ function ProjectsContent() {
           <CardDescription className="text-neutral-400 text-sm max-w-md mx-auto">
             {activeTab === "shopify"
               ? "Build your first AI-powered Shopify Liquid store."
-              : "Generate your first website using the dark Obsidian prompt studio."}
+              : "Generate your first website or parallax cityscape using the dark Obsidian prompt studio."}
           </CardDescription>
           <Button
             onClick={() => handleCreateNew(activeTab)}
@@ -246,9 +276,13 @@ function ProjectsContent() {
                     </div>
                   )}
 
-                  <div className="absolute top-2.5 left-2.5">
+                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                     <span className="text-[10px] font-medium px-2.5 py-1 rounded-full border shadow-sm bg-neutral-900/90 text-neutral-200 border-neutral-700">
-                      {proj.type === "shopify" ? "SHOPIFY LIQUID" : "WEBSITE HTML"}
+                      {proj.type === "shopify"
+                        ? "SHOPIFY LIQUID"
+                        : proj.data?.parallaxMode
+                        ? "PARALLAX 3D"
+                        : "WEBSITE HTML"}
                     </span>
                   </div>
                 </div>
@@ -264,16 +298,22 @@ function ProjectsContent() {
               <CardFooter className="pt-4 border-t border-neutral-800 flex items-center justify-between mt-6">
                 <span className="text-[11px] text-neutral-500 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-neutral-500" />
-                  {new Date(proj.createdAt || proj.created_at || Date.now()).toLocaleDateString(
-                    "en-US",
-                    {
-                      month: "short",
-                      day: "numeric",
-                    }
-                  )}
+                  {formatProjectDate(proj.createdAt || proj.created_at)}
                 </span>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleBridgeTransfer(proj)}
+                    title={
+                      proj.type === "website"
+                        ? "Convert & Transfer to Shopify Studio"
+                        : "Convert & Transfer to Website Builder"
+                    }
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+                  >
+                    <ArrowLeftRight className="w-4 h-4" />
+                  </button>
+
                   <button
                     onClick={() => handleDelete(proj.id)}
                     title="Delete Project"
@@ -282,7 +322,11 @@ function ProjectsContent() {
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  <Link href={`/editor/${proj.id}?type=${proj.type}`}>
+                  <Link
+                    href={`/editor/${proj.id}?type=${proj.type}${
+                      proj.data?.parallaxMode ? "&parallax=true" : ""
+                    }`}
+                  >
                     <Button
                       size="sm"
                       className="bg-neutral-800 hover:bg-neutral-700 text-neutral-100 border border-neutral-700 hover:border-neutral-600 text-xs font-medium"
@@ -298,7 +342,6 @@ function ProjectsContent() {
         </div>
       )}
 
-      {/* Quota Limit Modal Guard */}
       <QuotaLimitModal
         isOpen={showQuotaModal}
         onClose={() => setShowQuotaModal(false)}

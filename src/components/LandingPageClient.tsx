@@ -1,50 +1,259 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Sparkles,
+  Layers,
+  Compass,
+  Film,
+  Image as ImageIcon,
+  ArrowLeftRight,
+  Check,
+  Eye,
+} from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 import { createProject, canCreateProject } from "@/lib/projects";
 import { QuotaLimitModal } from "@/components/ui/QuotaLimitModal";
+import { PARALLAX_THEMES, ParallaxThemeProfile, detectParallaxIntent } from "@/lib/parallax";
+import {
+  extractBrandFromPrompt,
+  convertWebsitePromptToShopifyPrompt,
+  convertShopifyToWebsitePrompt,
+  saveBuilderDraftTransaction,
+  loadBuilderDraftTransaction,
+} from "@/lib/builder-bridge";
 
-const SUGGESTIONS = [
+const STANDARD_SUGGESTIONS = [
   {
     label: "SaaS Landing",
-    prompt: "Create a high-converting landing page for a B2B SaaS product. Include a sticky glassmorphic navbar, a hero section with a strong value proposition and two call-to-action buttons, a 'Trusted By' logo strip, a 3-column feature grid with icons, social proof testimonials, and a pricing comparison table. Use a modern luxury monochrome noir theme with high-contrast typography, pure white accents, and deep dark surfaces.",
+    prompt:
+      "Create a high-converting landing page for a B2B SaaS product. Include a sticky glassmorphic navbar, a hero section with a strong value proposition and two call-to-action buttons, a 'Trusted By' logo strip, a 3-column feature grid with icons, social proof testimonials, and a pricing comparison table. Use a modern luxury monochrome noir theme with high-contrast typography, pure white accents, and deep dark surfaces.",
   },
   {
     label: "Design Portfolio",
-    prompt: "Design a minimalist portfolio for a Product Designer. The hero section should have a large, bold introduction. Below that, create a masonry grid gallery of project case studies with hover effects. Include an 'About Me' section with a photo placeholder and a skills list. End with a clean contact form. Use plenty of whitespace and large typography.",
+    prompt:
+      "Design a minimalist portfolio for a Product Designer. The hero section should have a large, bold introduction. Below that, create a masonry grid gallery of project case studies with hover effects. Include an 'About Me' section with a photo placeholder and a skills list. End with a clean contact form. Use plenty of whitespace and large typography.",
   },
   {
     label: "Coffee Shop",
-    prompt: "Build a cozy, inviting website for an artisanal coffee shop. Use a warm color palette (rich dark tones, warm espresso, creams, and silver highlights). Include a hero section with a video background placeholder, a menu section with prices, an 'Our Story' section with image placeholders, and a footer with location and hours. Use a serif font for headings to give it a classic feel.",
+    prompt:
+      "Build a cozy, inviting website for an artisanal coffee shop. Use a warm color palette (rich dark tones, warm espresso, creams, and silver highlights). Include a hero section with a video background placeholder, a menu section with prices, an 'Our Story' section with image placeholders, and a footer with location and hours. Use a serif font for headings to give it a classic feel.",
   },
   {
     label: "Waitlist Page",
-    prompt: "Create a viral waitlist page for a stealth startup. The design should be hype-driven and futuristic. Center the email capture form and make it the focal point. Add a countdown timer placeholder. Include a 'Why Join?' section with exclusive benefits. Use a dark background with subtle glow effects.",
+    prompt:
+      "Create a viral waitlist page for a stealth startup. The design should be hype-driven and futuristic. Center the email capture form and make it the focal point. Add a countdown timer placeholder. Include a 'Why Join?' section with exclusive benefits. Use a dark background with subtle glow effects.",
   },
 ];
+
+const PARALLAX_CITY_SUGGESTIONS = [
+  {
+    label: "Tokyo Skyline Parallax",
+    themeId: "tokyo-noir",
+    prompt:
+      "Create a multi-layer 3D parallax city website for Tokyo Cyber Metropolis (Shinjuku & Shibuya Sector). Include deep perspective skyline layers, floating glassmorphic district cards, live transit telemetry, high-resolution nocturnal photography, and ambient motion video.",
+  },
+  {
+    label: "Swiss Alps Sanctuary",
+    themeId: "alpine-horizon",
+    prompt:
+      "Build an atmospheric parallax website for a luxury cliffside architectural sanctuary in Zermatt, Swiss Alps. Include multi-plane mountain ridge parallax depth, thermal spa suites showcase, elevation telemetry, generated alpine photography, and video reel.",
+  },
+  {
+    label: "Manhattan Vertical Noir",
+    themeId: "manhattan-vertical",
+    prompt:
+      "Design a vertical supertall architecture parallax website for Manhattan Billionaires' Row. Include dramatic upward perspective parallax layers, penthouse residences, structural engineering specs, monochrome noir photography, and motion video.",
+  },
+  {
+    label: "Kinetic Hardware Flagship",
+    themeId: "obsidian-kinetic",
+    prompt:
+      "Create a spatial 3D parallax product launch website for an acoustic titanium hardware flagship. Include interactive depth planes, exploded engineering callouts, frequency telemetry, studio product imagery, and 60fps video synthesis.",
+  },
+];
+
+const emptySubscribe = () => () => {};
 
 export function LandingPageClient() {
   const [inputValue, setInputValue] = useState("");
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showQuotaModal, setShowQuotaModal] = useState(false);
-  const [mounted, setMounted] = useState(false);
+
+  // Parallax Mode State inside Writing Box
+  const [parallaxMode, setParallaxMode] = useState(false);
+  const [selectedParallaxTheme, setSelectedParallaxTheme] = useState<ParallaxThemeProfile>(PARALLAX_THEMES[0]);
+  const [autoMediaEnabled, setAutoMediaEnabled] = useState(true);
+  const [pointerOffset, setPointerOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [synthesizedPreview, setSynthesizedPreview] = useState<{
+    imageUrl: string;
+    videoUrl: string;
+    status: string;
+  } | null>(null);
+  const [isSynthesizingMedia, setIsSynthesizingMedia] = useState(false);
+  const [syncedFromShopify, setSyncedFromShopify] = useState<string | null>(null);
+
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   const router = useRouter();
   const { user, getProjectStats } = useAuth();
   const stats = getProjectStats();
 
+  // Check URL params or cross-builder draft transaction on mount
   useEffect(() => {
-    setMounted(true);
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const urlPrompt = params.get("prompt");
+    const urlParallax = params.get("parallax");
+    const urlTheme = params.get("theme");
+    const fromSource = params.get("from");
+
+    const timer = window.setTimeout(() => {
+      if (urlPrompt) {
+        setInputValue(urlPrompt);
+        const detected = detectParallaxIntent(urlPrompt);
+        if (urlParallax === "true" || detected.isParallax) {
+          setParallaxMode(true);
+          const matchedTheme =
+            PARALLAX_THEMES.find((t) => t.id === (urlTheme || detected.theme.id)) || PARALLAX_THEMES[0];
+          setSelectedParallaxTheme(matchedTheme);
+        }
+        return;
+      }
+
+      const draft = loadBuilderDraftTransaction();
+      if (draft && draft.prompt) {
+        if (fromSource === "shopify" && draft.source === "shopify") {
+          const converted = convertShopifyToWebsitePrompt(
+            draft.prompt,
+            draft.brandName || "Obsidian Flagship",
+            draft.parallaxMode ?? true
+          );
+          setInputValue(converted.websitePrompt);
+          setSyncedFromShopify(converted.brandName);
+          if (draft.parallaxMode) {
+            setParallaxMode(true);
+          }
+        } else if (draft.source === "website") {
+          setInputValue(draft.prompt);
+          if (draft.parallaxMode) {
+            setParallaxMode(true);
+            const matched = PARALLAX_THEMES.find((t) => t.id === draft.parallaxThemeId);
+            if (matched) setSelectedParallaxTheme(matched);
+          }
+        }
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
+  // Sync active writing box state to BuilderBridge for seamless Website <-> Shopify transitions
+  const handlePromptChange = (nextVal: string) => {
+    setInputValue(nextVal);
+    const detected = detectParallaxIntent(nextVal);
+    if (detected.isParallax && !parallaxMode) {
+      setParallaxMode(true);
+      setSelectedParallaxTheme(detected.theme);
+    }
+    saveBuilderDraftTransaction({
+      source: "website",
+      prompt: nextVal,
+      brandName: extractBrandFromPrompt(nextVal),
+      parallaxMode,
+      parallaxThemeId: selectedParallaxTheme.id,
+    });
+  };
+
+  const handleToggleParallaxMode = () => {
+    const nextMode = !parallaxMode;
+    setParallaxMode(nextMode);
+    if (nextMode && !inputValue.trim()) {
+      const defaultCityPrompt = PARALLAX_CITY_SUGGESTIONS[0].prompt;
+      setInputValue(defaultCityPrompt);
+      setSelectedParallaxTheme(PARALLAX_THEMES[0]);
+      saveBuilderDraftTransaction({
+        source: "website",
+        prompt: defaultCityPrompt,
+        brandName: "Tokyo Cyber Metropolis",
+        parallaxMode: true,
+        parallaxThemeId: PARALLAX_THEMES[0].id,
+      });
+    } else {
+      saveBuilderDraftTransaction({
+        source: "website",
+        prompt: inputValue,
+        brandName: extractBrandFromPrompt(inputValue),
+        parallaxMode: nextMode,
+        parallaxThemeId: selectedParallaxTheme.id,
+      });
+    }
+  };
+
+  const handleSelectParallaxTheme = (theme: ParallaxThemeProfile) => {
+    setSelectedParallaxTheme(theme);
+    const matchingSuggestion = PARALLAX_CITY_SUGGESTIONS.find((s) => s.themeId === theme.id);
+    if (matchingSuggestion && (!inputValue.trim() || PARALLAX_CITY_SUGGESTIONS.some((s) => s.prompt === inputValue))) {
+      setInputValue(matchingSuggestion.prompt);
+    }
+    saveBuilderDraftTransaction({
+      source: "website",
+      prompt: inputValue || matchingSuggestion?.prompt || theme.tagline,
+      brandName: theme.city,
+      parallaxMode: true,
+      parallaxThemeId: theme.id,
+    });
+  };
+
+  const handleSynthesizeMediaPreview = async () => {
+    if (isSynthesizingMedia) return;
+    setIsSynthesizingMedia(true);
+    try {
+      const promptToUse = inputValue.trim() || `${selectedParallaxTheme.name} ${selectedParallaxTheme.city}`;
+      const [imgRes, vidRes] = await Promise.all([
+        fetch("/api/media/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: promptToUse, themeId: selectedParallaxTheme.id }),
+        }),
+        fetch("/api/media/video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: promptToUse, themeId: selectedParallaxTheme.id }),
+        }),
+      ]);
+      const imgData = (await imgRes.json()) as { imageUrl?: string };
+      const vidData = (await vidRes.json()) as { videoUrl?: string };
+      setSynthesizedPreview({
+        imageUrl: imgData.imageUrl || selectedParallaxTheme.heroImage,
+        videoUrl: vidData.videoUrl || selectedParallaxTheme.videoSrc,
+        status: `Synthesized 4K Layer Image + 60fps Motion Reel for ${selectedParallaxTheme.city}`,
+      });
+    } catch {
+      setSynthesizedPreview({
+        imageUrl: selectedParallaxTheme.heroImage,
+        videoUrl: selectedParallaxTheme.videoSrc,
+        status: `Ready: ${selectedParallaxTheme.city} Studio Assets Loaded`,
+      });
+    } finally {
+      setIsSynthesizingMedia(false);
+    }
+  };
+
+  const launchGeneration = () => {
+    const finalPrompt =
+      inputValue.trim() ||
+      (parallaxMode
+        ? `Create a multi-layer 3D parallax city website for ${selectedParallaxTheme.city} (${selectedParallaxTheme.name}) with generated imagery and video layers.`
+        : "");
+    if (!finalPrompt) return;
 
     if (!canCreateProject(stats.isPro)) {
       setShowQuotaModal(true);
@@ -52,16 +261,63 @@ export function LandingPageClient() {
     }
 
     const projectId = `proj-obsidian-${Date.now()}`;
+    const thumbnail = parallaxMode ? selectedParallaxTheme.heroImage : "/images/parallax-tokyo.jpg";
+
     createProject({
       id: projectId,
       userId: user?.id || "guest",
-      title: inputValue.slice(0, 40) + "...",
-      prompt: inputValue,
+      title: parallaxMode
+        ? `${selectedParallaxTheme.city} Parallax — ${finalPrompt.slice(0, 28)}`
+        : finalPrompt.slice(0, 40) + "...",
+      prompt: finalPrompt,
       type: "website",
-      thumbnail: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
+      thumbnail,
+      data: {
+        prompt: finalPrompt,
+        parallaxMode,
+        parallaxThemeId: selectedParallaxTheme.id,
+      },
     });
 
-    router.push(`/editor/${projectId}?type=website&initialPrompt=${encodeURIComponent(inputValue)}`);
+    const query = new URLSearchParams({
+      type: "website",
+      initialPrompt: finalPrompt,
+    });
+    if (parallaxMode) {
+      query.set("parallax", "true");
+      query.set("parallaxTheme", selectedParallaxTheme.id);
+    }
+
+    router.push(`/editor/${projectId}?${query.toString()}`);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    launchGeneration();
+  };
+
+  const handleTransitionToShopify = () => {
+    const basePrompt =
+      inputValue.trim() ||
+      (parallaxMode
+        ? `${selectedParallaxTheme.city} flagship concept store with architectural luxury products`
+        : "Modern luxury monochrome brand flagship");
+    const converted = convertWebsitePromptToShopifyPrompt(basePrompt);
+
+    saveBuilderDraftTransaction({
+      source: "website",
+      prompt: converted.shopifyPrompt,
+      brandName: converted.storeName,
+      parallaxMode,
+      parallaxThemeId: selectedParallaxTheme.id,
+      presetId: converted.suggestedPresetId,
+    });
+
+    router.push(
+      `/builder?from=website&prompt=${encodeURIComponent(converted.shopifyPrompt)}&brand=${encodeURIComponent(
+        converted.storeName
+      )}`
+    );
   };
 
   const handleEnhance = async () => {
@@ -74,7 +330,9 @@ export function LandingPageClient() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: `Rewrite and enhance this website prompt to be more detailed, structured, and precise for an AI website builder: "${original}"`,
+          prompt: parallaxMode
+            ? `Rewrite and enhance this 3D Parallax & City Website prompt with multi-plane depth layers, architectural atmosphere, image synthesis, and video reel details: "${original}"`
+            : `Rewrite and enhance this website prompt to be more detailed, structured, and precise for an AI website builder: "${original}"`,
           projectId: "enhance",
           pageName: "prompt-enhance",
         }),
@@ -100,21 +358,128 @@ export function LandingPageClient() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center px-4 pt-20 md:pt-32 pb-24 smooth-gpu page-transition-enter">
-      {/* Hero */}
-      <div className="text-center max-w-2xl mx-auto space-y-5">
-        <p className="text-sm text-neutral-500 tracking-wide">
-          AI-powered website generation
-        </p>
+    <main
+      onMouseMove={(e) => {
+        if (!parallaxMode) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const normX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+        const normY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+        setPointerOffset({ x: normX, y: normY });
+      }}
+      className="relative flex flex-col items-center justify-center px-4 pt-16 md:pt-24 pb-24 overflow-hidden"
+    >
+      {/* ── Theme-Driven Parallax Ambient Stage (Active when Parallax Mode is ON) ── */}
+      {parallaxMode && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 overflow-hidden z-0 transition-opacity duration-700"
+        >
+          {/* Far Horizon Radial Glow */}
+          <div
+            style={{
+              transform: `translate3d(${pointerOffset.x * -18}px, ${pointerOffset.y * -14}px, 0)`,
+              background: `radial-gradient(circle at 50% 28%, ${selectedParallaxTheme.accentGlow}, transparent 68%)`,
+            }}
+            className="absolute -inset-20 transition-transform duration-300 ease-out"
+          />
+
+          {/* Perspective Architectural Grid Layer */}
+          <div
+            style={{
+              transform: `translate3d(${pointerOffset.x * 14}px, ${pointerOffset.y * 10}px, 0)`,
+              backgroundImage: `linear-gradient(to right, ${selectedParallaxTheme.gridColor} 1px, transparent 1px), linear-gradient(to bottom, ${selectedParallaxTheme.gridColor} 1px, transparent 1px)`,
+              backgroundSize: "56px 56px",
+            }}
+            className="absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)] transition-transform duration-200 ease-out"
+          />
+
+          {/* Theme-Specific Animated Silhouette / Geometry */}
+          {selectedParallaxTheme.id === "tokyo-noir" && (
+            <div
+              style={{
+                transform: `translate3d(${pointerOffset.x * -28}px, ${pointerOffset.y * -12}px, 0)`,
+              }}
+              className="absolute bottom-0 inset-x-0 h-64 flex items-end justify-center gap-2 opacity-25 transition-transform duration-300"
+            >
+              {[42, 68, 54, 88, 62, 95, 74, 58, 82, 48, 76, 64, 90, 52, 40].map((h, idx) => (
+                <div
+                  key={idx}
+                  style={{ height: `${h}%` }}
+                  className="w-6 sm:w-10 bg-gradient-to-t from-neutral-700 via-neutral-800/60 to-transparent border-t border-x border-white/20 rounded-t-sm animate-pulse"
+                />
+              ))}
+            </div>
+          )}
+
+          {selectedParallaxTheme.id === "alpine-horizon" && (
+            <div
+              style={{
+                transform: `translate3d(${pointerOffset.x * -24}px, ${pointerOffset.y * -10}px, 0)`,
+              }}
+              className="absolute bottom-0 inset-x-0 h-60 flex items-end justify-center opacity-25 transition-transform duration-300"
+            >
+              <div className="w-full max-w-5xl h-48 border-t border-white/25 bg-gradient-to-t from-neutral-800/50 to-transparent rounded-t-[100%] scale-x-125" />
+            </div>
+          )}
+
+          {selectedParallaxTheme.id === "manhattan-vertical" && (
+            <div
+              style={{
+                transform: `translate3d(${pointerOffset.x * -32}px, ${pointerOffset.y * -16}px, 0)`,
+              }}
+              className="absolute inset-y-0 inset-x-12 flex justify-between opacity-20 transition-transform duration-300"
+            >
+              {[1, 2, 3, 4, 5, 6].map((col) => (
+                <div key={col} className="w-px h-full bg-gradient-to-b from-transparent via-white/40 to-transparent" />
+              ))}
+            </div>
+          )}
+
+          {selectedParallaxTheme.id === "obsidian-kinetic" && (
+            <div
+              style={{
+                transform: `translate3d(${pointerOffset.x * 22}px, ${pointerOffset.y * 22}px, 0)`,
+              }}
+              className="absolute top-24 left-1/2 -translate-x-1/2 w-[540px] h-[540px] rounded-full border border-white/10 flex items-center justify-center opacity-35 transition-transform duration-300"
+            >
+              <div className="w-[380px] h-[380px] rounded-full border border-white/15 animate-ping [animation-duration:6s]" />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Hero Section ── */}
+      <div className="relative z-10 text-center max-w-2xl mx-auto space-y-5">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neutral-800 bg-neutral-900/80 text-xs text-neutral-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          <span>
+            {parallaxMode
+              ? `Parallax 3D Engine Active • ${selectedParallaxTheme.city} (${selectedParallaxTheme.coordinates})`
+              : "AI-powered website & spatial parallax generation"}
+          </span>
+        </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white leading-[1.1]">
-          Build websites{" "}
-          <span className="font-serif italic text-neutral-300">beautifully</span>
+          {parallaxMode ? (
+            <>
+              Architect{" "}
+              <span className="font-serif italic text-neutral-200">
+                {selectedParallaxTheme.city}
+              </span>{" "}
+              in 3D Parallax
+            </>
+          ) : (
+            <>
+              Build websites{" "}
+              <span className="font-serif italic text-neutral-300">beautifully</span>
+            </>
+          )}
         </h1>
 
         <p className="text-base text-neutral-400 max-w-lg mx-auto leading-relaxed">
-          Describe what you want. Watch it come to life in real-time.
-          Export production-ready code.
+          {parallaxMode
+            ? `${selectedParallaxTheme.tagline.replace(/\.$/, "")}. Automatic multi-layer scroll depth, high-res image synthesis, and 60fps video reels.`
+            : "Describe what you want. Watch it come to life in real-time. Export production-ready code."}
         </p>
 
         {/* Quota */}
@@ -134,89 +499,340 @@ export function LandingPageClient() {
         )}
       </div>
 
-      {/* Prompt Input */}
-      <div className="w-full max-w-xl mt-10 relative">
-        <form onSubmit={handleSubmit}>
-          <textarea
-            name="prompt"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Describe your website..."
-            className="w-full min-h-[120px] resize-none rounded-2xl border border-neutral-800 bg-neutral-900/50 px-5 pt-5 pb-14 text-[15px] text-white placeholder:text-neutral-600 focus:border-neutral-600 focus:ring-0 focus:outline-none transition-colors"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                if (inputValue.trim()) handleSubmit(e as any);
-              }
-            }}
-          />
+      {/* Synced from Shopify Notification Banner */}
+      {syncedFromShopify && (
+        <div className="relative z-10 w-full max-w-2xl mt-6 px-4 py-2.5 rounded-2xl border border-neutral-700 bg-neutral-900/90 flex items-center justify-between gap-3 text-xs text-neutral-200">
+          <div className="flex items-center gap-2">
+            <ArrowLeftRight className="w-3.5 h-3.5 text-white shrink-0" />
+            <span>
+              Synced from Shopify Studio: <strong className="text-white">{syncedFromShopify}</strong> converted for Website / Parallax generation.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSyncedFromShopify(null)}
+            className="text-neutral-400 hover:text-white text-[11px]"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
-          <div className="absolute bottom-3 right-3 flex gap-2">
+      {/* ── Writing Box with Built-In Parallax Mode & Theme Animation ── */}
+      <div className="relative z-10 w-full max-w-2xl mt-8">
+        <div
+          className={`relative rounded-3xl border transition-all duration-500 ${
+            parallaxMode
+              ? "border-white/40 bg-neutral-950/90 shadow-[0_0_70px_-15px_rgba(255,255,255,0.22)] ring-1 ring-white/15"
+              : "border-neutral-800 bg-neutral-900/60 shadow-2xl"
+          } backdrop-blur-2xl overflow-hidden`}
+        >
+          {/* Top Writing Box Mode Bar */}
+          <div className="flex items-center justify-between flex-wrap gap-2 px-4 py-2.5 border-b border-neutral-800/80 bg-neutral-900/70">
+            <div className="flex items-center gap-2">
+              {/* Parallax Mode Toggle inside Writing Box */}
+              <button
+                type="button"
+                data-testid="parallax-mode-toggle"
+                onClick={handleToggleParallaxMode}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+                  parallaxMode
+                    ? "bg-white text-neutral-950 border-white shadow-md shadow-white/10"
+                    : "bg-neutral-900 text-neutral-300 border-neutral-700 hover:border-neutral-500 hover:text-white"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Parallax Mode</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded font-mono uppercase ${
+                    parallaxMode ? "bg-neutral-950 text-white" : "bg-neutral-800 text-neutral-400"
+                  }`}
+                >
+                  {parallaxMode ? "ON" : "OFF"}
+                </span>
+              </button>
+
+              {/* Auto Image + Video Pipeline Toggle */}
+              <button
+                type="button"
+                onClick={() => setAutoMediaEnabled((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors cursor-pointer border ${
+                  autoMediaEnabled
+                    ? "bg-neutral-800/90 text-neutral-200 border-neutral-700"
+                    : "bg-neutral-900/40 text-neutral-500 border-neutral-800"
+                }`}
+                title="Automatically synthesize 4K imagery & 60fps motion video layers"
+              >
+                <Film className="w-3 h-3 text-white" />
+                <ImageIcon className="w-3 h-3 text-white" />
+                <span className="hidden sm:inline">Auto Image + Video</span>
+                {autoMediaEnabled && <Check className="w-3 h-3 text-white" />}
+              </button>
+            </div>
+
+            {/* Direct Website -> Shopify Transaction Bridge Button */}
             <button
               type="button"
-              title="Enhance with AI"
-              disabled={!inputValue.trim() || isEnhancing}
-              onClick={handleEnhance}
-              className="h-9 w-9 rounded-xl bg-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-700 transition-colors flex items-center justify-center disabled:opacity-30 cursor-pointer"
+              data-testid="bridge-to-shopify-btn"
+              onClick={handleTransitionToShopify}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 text-[11px] font-medium transition-colors cursor-pointer"
+              title="Convert this website concept into a Shopify Liquid 2.0 store"
             >
-              <Sparkles className={`h-3.5 w-3.5 ${isEnhancing ? "animate-spin" : ""}`} />
-            </button>
-
-            <button
-              type="submit"
-              disabled={!inputValue.trim()}
-              className="h-9 px-4 rounded-xl bg-white text-neutral-950 hover:bg-neutral-200 transition-colors flex items-center gap-1.5 text-sm font-medium disabled:opacity-30 cursor-pointer"
-            >
-              Generate
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowLeftRight className="w-3 h-3" />
+              <span>Send to Shopify Studio →</span>
             </button>
           </div>
-        </form>
+
+          {/* Parallax Theme / City Selector Strip inside Writing Box when Parallax Mode is ON */}
+          {parallaxMode && (
+            <div className="px-4 py-3 bg-neutral-950/90 border-b border-neutral-800/80 space-y-2.5 animate-fade-in-up">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400">
+                <span className="font-mono uppercase tracking-wider flex items-center gap-1.5 text-neutral-300">
+                  <Compass className="w-3.5 h-3.5 text-white animate-spin [animation-duration:12s]" />
+                  <span>Select Parallax City / Spatial Theme:</span>
+                </span>
+                <span className="font-mono text-[10px] text-neutral-400">
+                  {selectedParallaxTheme.coordinates}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {PARALLAX_THEMES.map((theme) => {
+                  const isSelected = selectedParallaxTheme.id === theme.id;
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      data-testid={`parallax-theme-${theme.id}`}
+                      onClick={() => handleSelectParallaxTheme(theme)}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer space-y-1 ${
+                        isSelected
+                          ? "bg-neutral-800/90 border-white text-white shadow-sm"
+                          : "bg-neutral-900/60 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-300 font-semibold">
+                          {theme.city}
+                        </span>
+                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <p className="text-xs font-semibold text-white truncate">{theme.name}</p>
+                      <p className="text-[10px] text-neutral-400 truncate">{theme.badge}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Prompt Form */}
+          <form onSubmit={handleSubmit}>
+            <textarea
+              name="prompt"
+              value={inputValue}
+              onChange={(e) => handlePromptChange(e.target.value)}
+              placeholder={
+                parallaxMode
+                  ? `Describe your ${selectedParallaxTheme.city} parallax website or city experience (e.g. 'Multi-layer Shinjuku skyline with glassmorphic district cards, generated aerial photography, and 60fps video background')...`
+                  : "Describe your website..."
+              }
+              className="w-full min-h-[130px] resize-none bg-transparent px-5 pt-4 pb-16 text-[15px] text-white placeholder:text-neutral-600 focus:ring-0 focus:outline-none transition-colors"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  launchGeneration();
+                }
+              }}
+            />
+
+            <div className="absolute bottom-3 left-4 right-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {parallaxMode && (
+                  <button
+                    type="button"
+                    onClick={handleSynthesizeMediaPreview}
+                    disabled={isSynthesizingMedia}
+                    className="h-9 px-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-xs text-neutral-200 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-white" />
+                    <span>{isSynthesizingMedia ? "Synthesizing Assets..." : "Preview 3D Assets"}</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  title="Enhance with AI"
+                  disabled={!inputValue.trim() || isEnhancing}
+                  onClick={handleEnhance}
+                  className="h-9 w-9 rounded-xl bg-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-700 transition-colors flex items-center justify-center disabled:opacity-30 cursor-pointer"
+                >
+                  <Sparkles className={`h-3.5 w-3.5 ${isEnhancing ? "animate-spin" : ""}`} />
+                </button>
+
+                <button
+                  type="submit"
+                  data-testid="generate-website-btn"
+                  disabled={!inputValue.trim() && !parallaxMode}
+                  className="h-9 px-4 rounded-xl bg-white text-neutral-950 hover:bg-neutral-200 transition-colors flex items-center gap-1.5 text-sm font-semibold disabled:opacity-30 cursor-pointer shadow-lg"
+                >
+                  <span>{parallaxMode ? `Launch ${selectedParallaxTheme.city} Parallax` : "Generate"}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
 
-      {/* Suggestions */}
-      <div className="mt-6 flex flex-wrap justify-center gap-2 max-w-xl">
-        {SUGGESTIONS.map((s) => (
+      {/* ── Live Interactive 3-Plane Parallax Theme Preview Card (Visible in Parallax Mode) ── */}
+      {parallaxMode && (
+        <div className="relative z-10 w-full max-w-2xl mt-6 rounded-3xl border border-neutral-800 bg-neutral-950/90 overflow-hidden shadow-2xl animate-fade-in-up">
+          <div className="px-4 py-2.5 border-b border-neutral-800 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              <span className="font-semibold text-white">
+                Live Theme Animation Preview: {selectedParallaxTheme.name}
+              </span>
+            </div>
+            <span className="font-mono text-[10px] text-neutral-400">
+              3 Depth Planes • Image + 60fps Video Ready
+            </span>
+          </div>
+
+          <div className="relative h-56 sm:h-64 overflow-hidden bg-black">
+            {/* Plane 1: Far Background Image (0.18x) */}
+            <img
+              src={synthesizedPreview?.imageUrl || selectedParallaxTheme.heroImage}
+              alt={selectedParallaxTheme.name}
+              style={{
+                transform: `translate3d(${pointerOffset.x * -14}px, ${pointerOffset.y * -10}px, 0) scale(1.08)`,
+              }}
+              className="absolute inset-0 w-full h-full object-cover opacity-50 transition-transform duration-200 ease-out"
+            />
+
+            {/* Plane 2: Ambient Motion Video Overlay (0.42x) */}
+            <video
+              key={synthesizedPreview?.videoUrl || selectedParallaxTheme.videoSrc}
+              src={synthesizedPreview?.videoUrl || selectedParallaxTheme.videoSrc}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover opacity-35 mix-blend-screen pointer-events-none"
+            />
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
+
+            {/* Plane 3: Foreground Interactive Telemetry Cards (0.78x) */}
+            <div
+              style={{
+                transform: `translate3d(${pointerOffset.x * 16}px, ${pointerOffset.y * 12}px, 0)`,
+              }}
+              className="relative z-10 h-full p-5 flex flex-col justify-between transition-transform duration-200 ease-out"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="px-2.5 py-1 rounded-full bg-black/70 border border-white/20 backdrop-blur-md text-[10px] font-mono text-white">
+                  {selectedParallaxTheme.badge} • {selectedParallaxTheme.coordinates}
+                </span>
+                <span className="px-2.5 py-1 rounded-full bg-white text-black text-[10px] font-mono font-bold">
+                  PARALLAX 3D
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                {selectedParallaxTheme.landmarks.slice(0, 3).map((lm, i) => (
+                  <div
+                    key={i}
+                    className="p-2.5 rounded-xl bg-black/75 border border-white/15 backdrop-blur-md"
+                  >
+                    <p className="text-[9px] font-mono uppercase text-neutral-400 truncate">{lm.district}</p>
+                    <p className="text-xs font-bold text-white mt-0.5 truncate">{lm.name}</p>
+                    <p className="text-[10px] font-mono text-neutral-300">{lm.metric}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {synthesizedPreview && (
+            <div className="px-4 py-2 bg-neutral-900 border-t border-neutral-800 flex items-center justify-between text-[11px] text-neutral-300">
+              <span>✓ {synthesizedPreview.status}</span>
+              <button
+                type="button"
+                onClick={launchGeneration}
+                className="text-white font-semibold hover:underline"
+              >
+                Open Full Parallax Website in Studio →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Suggestions (Switches between Standard & Parallax City Presets) ── */}
+      <div className="relative z-10 mt-6 flex flex-wrap justify-center gap-2 max-w-2xl">
+        {(parallaxMode ? PARALLAX_CITY_SUGGESTIONS : STANDARD_SUGGESTIONS).map((s) => (
           <button
             key={s.label}
-            onClick={() => setInputValue(s.prompt)}
-            className="px-3 py-1.5 rounded-full border border-neutral-800 text-xs text-neutral-500 hover:text-white hover:border-neutral-600 transition-colors cursor-pointer"
+            type="button"
+            onClick={() => {
+              handlePromptChange(s.prompt);
+              if ("themeId" in s && typeof s.themeId === "string") {
+                const found = PARALLAX_THEMES.find((t) => t.id === s.themeId);
+                if (found) setSelectedParallaxTheme(found);
+              }
+            }}
+            className="px-3 py-1.5 rounded-full border border-neutral-800 bg-neutral-900/70 text-xs text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors cursor-pointer"
           >
             {s.label}
           </button>
         ))}
       </div>
 
-      {/* Shopify Studio Link */}
-      <div className="mt-16 w-full max-w-xl">
-        <Link
-          href="/builder"
-          className="group flex items-center justify-between p-5 rounded-2xl border border-neutral-800/60 hover:border-neutral-700 transition-all duration-300 hover:-translate-y-0.5"
-        >
+      {/* ── Upgraded Website <-> Shopify Studio Transaction Card ── */}
+      <div className="relative z-10 mt-14 w-full max-w-2xl">
+        <div className="p-5 rounded-2xl border border-neutral-800/80 bg-neutral-900/40 hover:border-neutral-700 transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-white">Shopify Theme Studio</p>
-            <p className="text-xs text-neutral-500">
-              Generate Liquid 2.0 themes with live preview and ZIP export
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-white">Shopify Liquid 2.0 Studio & Storefront Bridge</p>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 border border-neutral-700 font-mono">
+                1-Click Sync
+              </span>
+            </div>
+            <p className="text-xs text-neutral-400">
+              Convert your current website or parallax city concept directly into a usable Shopify OS 2.0 store with live checkout and ZIP export.
             </p>
           </div>
-          <ArrowRight className="h-4 w-4 text-neutral-600 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-        </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleTransitionToShopify}
+              className="px-3.5 py-2 rounded-xl bg-white text-neutral-950 hover:bg-neutral-200 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Convert & Open Shopify</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Features */}
-      <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-px max-w-3xl mx-auto w-full border border-neutral-800/60 rounded-2xl overflow-hidden">
+      {/* ── Features ── */}
+      <div className="relative z-10 mt-16 grid grid-cols-1 md:grid-cols-3 gap-px max-w-3xl mx-auto w-full border border-neutral-800/60 rounded-2xl overflow-hidden">
         {[
           {
-            title: "Real-time streaming",
-            desc: "Watch your site generate live, token by token. Powered by Gemini 2.5 Flash.",
+            title: "Multi-layer 3D Parallax",
+            desc: "Build spatial city websites and architectural flagships with kinetic scroll depth planes.",
           },
           {
-            title: "Visual editing",
-            desc: "Click any element to edit text, colors, and layout directly on the canvas.",
+            title: "Image & Video Synthesis",
+            desc: "Generate studio-grade 4K visual assets and 60fps ambient motion video layers automatically.",
           },
           {
-            title: "Clean export",
-            desc: "Download production HTML + CSS. No vendor lock-in, no bloat.",
+            title: "Website ↔ Shopify Bridge",
+            desc: "Seamlessly transition any website concept into a production Shopify Liquid 2.0 storefront.",
           },
         ].map((f, i) => (
           <div

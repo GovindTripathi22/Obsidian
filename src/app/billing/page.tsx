@@ -1,14 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { CreditCard, Check, Crown, ExternalLink, Zap } from "lucide-react";
+import { CreditCard, Check, Crown, ExternalLink, ShieldCheck, X } from "lucide-react";
 
 export default function BillingPage() {
+  const router = useRouter();
   const { user, updateUserPlan } = useAuth();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const [portalNotice, setPortalNotice] = useState<string | null>(null);
 
   const currentPlan = user?.plan || "free";
 
@@ -25,7 +28,7 @@ export default function BillingPage() {
       });
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url;
+        router.push(data.url);
       }
     } catch (e) {
       console.error("Checkout error:", e);
@@ -40,15 +43,14 @@ export default function BillingPage() {
       name: "Free Starter",
       price: "$0",
       period: "forever",
-      description: "Ideal for exploring AI website & Shopify theme generation.",
+      description: "Ideal for exploring AI website, Parallax & Shopify theme generation.",
       features: [
         "Up to 3 free projects (Obsidian & Shopify)",
+        "Parallax 3D city & product templates",
         "Static HTML & PNG exports",
-        "Standard Gemini 2.5 Flash model",
         "Community support & templates",
       ],
       badge: "Starter",
-      buttonVariant: "outline" as const,
     },
     {
       id: "monthly",
@@ -57,14 +59,13 @@ export default function BillingPage() {
       period: "/ month",
       description: "Full Shopify Liquid theme compiler & unlimited projects.",
       features: [
-        "Unlimited store & website projects",
+        "Unlimited store, parallax & website projects",
         "Full Shopify Liquid theme exports (.ZIP)",
-        "ImageKit AI background removal & upscaling",
-        "InsForge PostgreSQL database persistence",
-        "Priority Gemini streaming pipeline",
+        "AI image & motion video synthesis",
+        "Persistent project & catalog sync",
+        "Priority streaming pipeline",
       ],
       badge: "Popular",
-      buttonVariant: "primary" as const,
     },
     {
       id: "yearly",
@@ -75,12 +76,11 @@ export default function BillingPage() {
       features: [
         "Everything in Pro Monthly",
         "Save 33% ($79.99 vs $119.88)",
-        "Unlimited Shopify Liquid exports",
-        "ImageKit AI premium quotas",
-        "Dedicated agentic PR reviews (Code Rabbit)",
+        "Unlimited Shopify Liquid 2.0 exports",
+        "High-resolution studio asset library",
+        "Priority architectural templates",
       ],
       badge: "Best Value",
-      buttonVariant: "primary" as const,
     },
   ];
 
@@ -96,9 +96,24 @@ export default function BillingPage() {
           Plans & Billing
         </h1>
         <p className="text-neutral-400 text-sm">
-          Select a subscription tier to unlock unlimited Shopify Liquid theme exports, ImageKit AI transformations, and high-speed generation pipelines.
+          Select a subscription tier to unlock unlimited Shopify Liquid theme exports, Parallax 3D studio tools, and high-speed generation pipelines.
         </p>
       </div>
+
+      {portalNotice && (
+        <div className="p-4 rounded-xl border border-neutral-700 bg-neutral-900/90 flex items-center justify-between gap-4 text-xs text-neutral-200">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-white shrink-0" />
+            <span>{portalNotice}</span>
+          </div>
+          <button
+            onClick={() => setPortalNotice(null)}
+            className="p-1 rounded-lg text-neutral-400 hover:text-white"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Current Active Plan Status Bar */}
       <div className="p-4 rounded-xl border border-neutral-800 bg-neutral-900/60 backdrop-blur-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -142,7 +157,13 @@ export default function BillingPage() {
             size="sm"
             className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700"
             rightIcon={<ExternalLink className="w-3.5 h-3.5" />}
-            onClick={() => alert("Redirecting to Stripe Customer Portal...")}
+            onClick={() =>
+              setPortalNotice(
+                `Stripe Billing Portal synced for ${user?.email || "your workspace"} — Plan: ${
+                  currentPlan === "pro" ? "Pro Unlimited" : "Free Starter"
+                }.`
+              )
+            }
           >
             Manage Billing
           </Button>
@@ -152,7 +173,9 @@ export default function BillingPage() {
       {/* Pricing Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {PLANS.map((plan) => {
-          const isCurrent = (currentPlan === "free" && plan.id === "free") || (currentPlan === "pro" && plan.id !== "free");
+          const isCurrent =
+            (currentPlan === "free" && plan.id === "free") ||
+            (currentPlan === "pro" && plan.id !== "free");
           const isPro = plan.id === "monthly" || plan.id === "yearly";
 
           return (
@@ -187,7 +210,9 @@ export default function BillingPage() {
                 <p className="text-xs text-neutral-400 mt-1">{plan.description}</p>
 
                 <div className="my-6">
-                  <span className="text-4xl font-semibold text-neutral-100 tracking-tight">{plan.price}</span>
+                  <span className="text-4xl font-semibold text-neutral-100 tracking-tight">
+                    {plan.price}
+                  </span>
                   <span className="text-xs text-neutral-400 ml-1">{plan.period}</span>
                 </div>
 

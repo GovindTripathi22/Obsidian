@@ -4,32 +4,68 @@ import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card, CardFooter } from "@/components/ui/Card";
-import { Sparkles, ArrowRight, Star } from "lucide-react";
+import { Sparkles, ArrowRight, Star, Layers } from "lucide-react";
 
 const INSPIRATION_GALLERY = [
   {
+    title: "Tokyo Nocturnal Parallax Metropolis",
+    category: "Parallax City Website",
+    prompt:
+      "Create an immersive multi-layer parallax city website for Tokyo Metropolis at dusk with 3D skyline depth planes, Shibuya & Shinjuku district cards, and aerial motion video.",
+    image: "/images/parallax-tokyo.jpg",
+    rating: "5.0",
+    parallax: true,
+    tags: ["Parallax 3D", "City Skyline", "60fps Motion"],
+  },
+  {
     title: "Velvet Aura Luxury Cosmetics",
     category: "Cosmetics & Skincare",
-    prompt: "Luxurious cosmetics store with pastel pink accents, product grids, and customer reviews.",
-    image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80",
+    prompt:
+      "Create an ultra-luxurious clean beauty storefront with rose water mist, peptide glow serums, sticky cart preview, customer reviews, and Shopify Liquid 2.0 theme compatibility.",
+    image: "/images/product-skincare.jpg",
     rating: "4.9",
-    tags: ["Luxury Noir", "Liquid 2.0", "ImageKit AI"],
+    parallax: false,
+    tags: ["Luxury Noir", "Liquid 2.0", "Studio AI"],
   },
   {
-    title: "AeroTech 3D Printers & Filaments",
+    title: "Apex Cybernetics Planar Audio",
     category: "Industrial & Tech",
-    prompt: "Industrial tech store for 3D printers, custom filament materials, spec tables, and instant quotes.",
-    image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80",
-    rating: "4.8",
-    tags: ["Tech", "Specs Table", "Shopify Ready"],
+    prompt:
+      "Build an industrial tech store for planar magnetic headphones, mechanical keyboard spec tables, fast charging hubs, and Liquid theme templates.",
+    image: "/images/product-audio.jpg",
+    rating: "4.9",
+    parallax: false,
+    tags: ["Titanium", "Specs Table", "Shopify Ready"],
   },
   {
-    title: "Monochrome Streetwear Boutique",
-    category: "Apparel & Fashion",
-    prompt: "Sleek minimalist apparel boutique with dark monochrome aesthetics and sticky cart preview.",
-    image: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800&auto=format&fit=crop&q=80",
+    title: "Alpine Horizon Brutalist Sanctuary",
+    category: "Parallax Architecture",
+    prompt:
+      "Build a cinematic parallax architectural website for an Alpine cliffside sanctuary in Switzerland with mountain ridge depth layers and valley mist.",
+    image: "/images/parallax-alps.jpg",
     rating: "5.0",
+    parallax: true,
+    tags: ["Parallax Depth", "Architecture", "Monochrome"],
+  },
+  {
+    title: "KINETIC Supply Streetwear Atelier",
+    category: "Apparel & Fashion",
+    prompt:
+      "Design a high-contrast minimalist streetwear shop with lookbook gallery, custom product size filters, 450 GSM French terry hoodies, and Liquid theme sections.",
+    image: "/images/product-streetwear.jpg",
+    rating: "5.0",
+    parallax: false,
     tags: ["Minimalist", "Monochrome", "Lookbook"],
+  },
+  {
+    title: "Manhattan Supertall Vertical Noir",
+    category: "Parallax Real Estate",
+    prompt:
+      "Design a luxury monochrome noir parallax website for Manhattan supertall real estate and urban architecture with vertical scroll depth layers.",
+    image: "/images/parallax-nyc.jpg",
+    rating: "4.9",
+    parallax: true,
+    tags: ["Parallax City", "NYC Skyline", "Editorial"],
   },
 ];
 
@@ -42,16 +78,23 @@ export default function InspirationPage() {
           <Sparkles className="w-4 h-4 text-white" />
           <span>Curated Gallery</span>
         </div>
-        <h1 className="text-3xl font-semibold text-neutral-100 tracking-tight">Store Inspiration & Templates</h1>
+        <h1 className="text-3xl font-semibold text-neutral-100 tracking-tight">
+          Parallax Cityscapes & Store Inspiration
+        </h1>
         <p className="text-neutral-400 text-sm">
-          Explore high-converting store concepts built with Obsidian AI, Gemini 2.5 Flash, and Shopify Liquid 2.0.
+          Explore high-converting parallax city experiences and Shopify Liquid 2.0 storefronts built with Obsidian Studio.
         </p>
       </div>
 
       {/* Gallery Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {INSPIRATION_GALLERY.map((item) => (
-          <Card key={item.title} hoverable glass={false} className="group flex flex-col justify-between overflow-hidden bg-neutral-900 border-neutral-800 hover:border-neutral-700">
+          <Card
+            key={item.title}
+            hoverable
+            glass={false}
+            className="group flex flex-col justify-between overflow-hidden bg-neutral-900 border-neutral-800 hover:border-neutral-700"
+          >
             <div>
               <div className="aspect-video bg-[#0a0a0a] rounded-xl overflow-hidden mb-4 relative border border-neutral-800">
                 <img
@@ -59,6 +102,11 @@ export default function InspirationPage() {
                   alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
+                {item.parallax && (
+                  <span className="absolute top-2 left-2 bg-white text-neutral-950 px-2 py-0.5 rounded-md text-[10px] flex items-center gap-1 font-bold shadow-xs">
+                    <Layers className="w-3 h-3" /> PARALLAX 3D
+                  </span>
+                )}
                 <span className="absolute top-2 right-2 bg-[#0a0a0a]/90 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] text-amber-400 border border-amber-500/30 flex items-center gap-1 font-semibold shadow-xs">
                   <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {item.rating}
                 </span>
@@ -66,7 +114,10 @@ export default function InspirationPage() {
 
               <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                 {item.tags.map((t) => (
-                  <span key={t} className="text-[10px] px-2 py-0.5 rounded-md bg-neutral-800 text-neutral-300 border border-neutral-700 font-medium">
+                  <span
+                    key={t}
+                    className="text-[10px] px-2 py-0.5 rounded-md bg-neutral-800 text-neutral-300 border border-neutral-700 font-medium"
+                  >
                     {t}
                   </span>
                 ))}
@@ -82,8 +133,16 @@ export default function InspirationPage() {
 
             <CardFooter className="pt-4 border-neutral-800">
               <span className="text-xs text-neutral-500">{item.category}</span>
-              <Link href={`/?prompt=${encodeURIComponent(item.prompt)}`}>
-                <Button size="sm" className="bg-white hover:bg-neutral-200 text-neutral-950 font-semibold border-0 shadow-md shadow-white/5" rightIcon={<ArrowRight className="w-3.5 h-3.5 text-neutral-950" />}>
+              <Link
+                href={`/?prompt=${encodeURIComponent(item.prompt)}${
+                  item.parallax ? "&parallax=true" : ""
+                }`}
+              >
+                <Button
+                  size="sm"
+                  className="bg-white hover:bg-neutral-200 text-neutral-950 font-semibold border-0 shadow-md shadow-white/5"
+                  rightIcon={<ArrowRight className="w-3.5 h-3.5 text-neutral-950" />}
+                >
                   Use Template
                 </Button>
               </Link>

@@ -10,7 +10,6 @@ export async function POST(req: NextRequest) {
         ? "price_yearly_7999"
         : "price_monthly_999";
 
-    // Create mock or real Stripe Checkout session
     try {
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
@@ -32,7 +31,8 @@ export async function POST(req: NextRequest) {
         url: `${req.nextUrl.origin}/billing?success=true&tier=${planTier}`,
       });
     }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Checkout failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,14 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
+import { detectParallaxIntent, generateParallaxWebsiteHtml } from "@/lib/parallax";
 
-const apiKey = process.env.GEMINI_API_KEY || "AIzaSyDummyKeyForDevelopmentSetup";
-const modelName = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash";
+const apiKey = process.env.GEMINI_API_KEY;
+const modelName = process.env.GEMINI_MODEL_NAME || "gemini-4-hydrogen";
 
-const genAI = new GoogleGenerativeAI(apiKey);
+const ai = apiKey
+  ? new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
+      },
+    })
+  : null;
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, projectId, pageName = "Home Page" } = await req.json();
+    const body = await req.json();
+    const prompt: string = body?.prompt || "";
+    const projectId: string = body?.projectId || "";
+    const pageName: string = body?.pageName || "Home Page";
+    const parallaxMode: boolean = Boolean(body?.parallaxMode);
+    const parallaxThemeId: string | undefined = body?.parallaxThemeId;
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
@@ -24,8 +39,9 @@ export async function POST(req: NextRequest) {
     // ── 1. Prompt Enhancement Mode ──
     if (isEnhanceRequest) {
       const cleanPrompt = extractSubjectFromPrompt(prompt);
-      const enhancedText = generateEnhancedPromptText(cleanPrompt, pageName.includes("shopify") || projectId.includes("shopify"));
-      
+      const isShopifyEnhance = pageName.includes("shopify") || projectId.includes("shopify");
+      const enhancedText = generateEnhancedPromptText(cleanPrompt, isShopifyEnhance, parallaxMode);
+
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         async start(controller) {
@@ -33,7 +49,7 @@ export async function POST(req: NextRequest) {
           for (let i = 0; i < words.length; i += 3) {
             const chunk = words.slice(i, i + 3).join(" ") + " ";
             controller.enqueue(encoder.encode(chunk));
-            await new Promise((resolve) => setTimeout(resolve, 20));
+            await new Promise((resolve) => setTimeout(resolve, 18));
           }
           controller.close();
         },
@@ -48,16 +64,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── 2. Full Page / Liquid HTML Generation Mode ──
-    const isShopify = projectId.includes("shopify") || pageName.toLowerCase().includes("store") || prompt.toLowerCase().includes("shopify") || prompt.toLowerCase().includes("liquid");
+    // ── 2. Full Page / Parallax / Liquid HTML Generation Mode ──
+    const isShopify =
+      projectId.includes("shopify") ||
+      pageName.toLowerCase().includes("store") ||
+      prompt.toLowerCase().includes("shopify") ||
+      prompt.toLowerCase().includes("liquid");
 
-    const systemInstruction = `You are an expert AI front-end engineer and Shopify Liquid Theme architect.
+    const { isParallax, theme: detectedParallaxTheme } = detectParallaxIntent(
+      prompt,
+      parallaxMode || projectId.includes("parallax"),
+      parallaxThemeId
+    );
+
+    const systemInstruction = `You are an expert AI front-end engineer, spatial parallax architect, and Shopify Liquid Theme designer.
 Generate a complete, modern, responsive HTML page styled strictly with Tailwind CSS utility classes using the Obsidian Luxury Monochrome Noir Theme.
 
 DESIGN SPECIFICATIONS:
 1. Palette: Strict luxury monochrome noir palette. Deep obsidian background (bg-zinc-950), dark zinc card surfaces (bg-zinc-900/90 border border-zinc-800), high-contrast pure white headings and primary CTA buttons (text-white font-black, bg-white text-zinc-950 hover:bg-zinc-200), silver/frost accents (border-zinc-700, bg-zinc-800/80 text-zinc-200), and muted zinc descriptions (text-zinc-400). Strictly 0 green, emerald, teal, or saturated color accents.
 2. Typography: Clean modern typography with proper letter-spacing (font-heading, font-sans).
-3. Section Annotations: Annotate each section with data-section attributes:
+3. Local Assets Only: Use local high-resolution assets (/images/parallax-tokyo.jpg, /images/parallax-alps.jpg, /images/parallax-nyc.jpg, /images/product-skincare.jpg, /images/product-streetwear.jpg, /images/product-audio.jpg, /images/product-coffee.jpg, /background.mp4, /shopify-bg.mp4). Never use external Unsplash URLs.
+4. Section Annotations: Annotate each section with data-section attributes:
    - <section data-section="announcement-bar" class="bg-zinc-900/90 border-b border-zinc-800 text-zinc-300 py-2 px-4 text-center text-xs font-mono">
    - <header data-section="header" class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
    - <section data-section="hero" id="hero" class="relative py-24 px-6 text-center border-b border-zinc-800 bg-gradient-to-b from-zinc-900/50 to-zinc-950">
@@ -65,22 +92,33 @@ DESIGN SPECIFICATIONS:
    - <section data-section="features" id="features" class="py-20 px-6 max-w-7xl mx-auto border-b border-zinc-800">
    - <section data-section="reviews" id="reviews" class="py-20 px-6 max-w-7xl mx-auto border-b border-zinc-800">
    - <footer data-section="footer" id="footer" class="py-16 px-6 bg-zinc-950 border-t border-zinc-800 text-zinc-400 text-xs">
-4. Output: Return ONLY pure, valid HTML markup. Zero markdown wrappers, zero meta preambles.`;
+${isParallax ? "5. Parallax Architecture: Include multi-plane data-parallax-speed attributes and a smooth requestAnimationFrame scroll listener for 3D depth." : ""}
+Output: Return ONLY pure, valid HTML markup. Zero markdown wrappers, zero meta preambles.`;
 
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContentStream([
-        systemInstruction,
-        `User Prompt: ${prompt} for page: ${pageName}. Generate obsidian dark theme e-commerce HTML.`,
-      ]);
+      if (!ai) {
+        throw new Error("GEMINI_API_KEY not configured");
+      }
+
+      const result = await ai.models.generateContentStream({
+        model: modelName,
+        contents: `User Prompt: ${prompt} for page: ${pageName}. Mode: ${
+          isParallax ? `Parallax Website (${detectedParallaxTheme.name})` : isShopify ? "Shopify Storefront" : "Website"
+        }. Generate obsidian dark theme HTML.`,
+        config: {
+          systemInstruction,
+        },
+      });
 
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            for await (const chunk of result.stream) {
-              const text = chunk.text();
-              controller.enqueue(encoder.encode(text));
+            for await (const chunk of result) {
+              const text = chunk.text ?? "";
+              if (text) {
+                controller.enqueue(encoder.encode(text));
+              }
             }
             controller.close();
           } catch (err) {
@@ -96,19 +134,23 @@ DESIGN SPECIFICATIONS:
           Connection: "keep-alive",
         },
       });
-    } catch (apiError) {
-      console.warn("Gemini API live stream fallback activated:", apiError);
-      
-      const fullHtml = generateObsidianDarkEcommerceHtml(prompt, pageName, isShopify);
+    } catch {
+      const fullHtml = isParallax
+        ? generateParallaxWebsiteHtml({
+            prompt,
+            pageName,
+            themeId: detectedParallaxTheme.id,
+          })
+        : generateObsidianDarkEcommerceHtml(prompt, pageName, isShopify);
+
       const encoder = new TextEncoder();
-      
       const stream = new ReadableStream({
         async start(controller) {
-          const chunkSize = 150;
+          const chunkSize = 180;
           for (let i = 0; i < fullHtml.length; i += chunkSize) {
             const chunk = fullHtml.slice(i, i + chunkSize);
             controller.enqueue(encoder.encode(chunk));
-            await new Promise((resolve) => setTimeout(resolve, 30));
+            await new Promise((resolve) => setTimeout(resolve, 22));
           }
           controller.close();
         },
@@ -122,28 +164,117 @@ DESIGN SPECIFICATIONS:
         },
       });
     }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Generation failed" }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Generation failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 function extractSubjectFromPrompt(prompt: string): string {
   const match = prompt.match(/"([^"]+)"/);
   if (match && match[1]) return match[1];
-  return prompt.replace(/^Rewrite and enhance[^\:]*\:\s*/i, "").replace(/^Expand this design[^\:]*\:\s*/i, "");
+  return prompt
+    .replace(/^Rewrite and enhance[^:]*:\s*/i, "")
+    .replace(/^Expand this design[^:]*:\s*/i, "");
 }
 
-function generateEnhancedPromptText(subject: string, isShopify: boolean): string {
+function generateEnhancedPromptText(subject: string, isShopify: boolean, isParallax: boolean): string {
   const clean = subject.replace(/["']/g, "").trim();
   if (isShopify) {
     return `Create an ultra-luxurious high-converting Shopify storefront for "${clean || "a luxury lifestyle boutique"}". Include a top announcement ticker with discount promo codes, sticky glassmorphic navigation header with live cart drawer, dark cinematic hero section with high-contrast pure white call-to-action buttons, 4-product featured collection grid with instant quick-add cards, customer reviews slider with 5-star ratings, trust badges strip with 256-bit SSL and express worldwide shipping, and complete Liquid 2.0 section schema compatibility.`;
+  }
+  if (isParallax || clean.toLowerCase().includes("parallax") || clean.toLowerCase().includes("city")) {
+    return `Architect a multi-layer scroll-driven parallax experience for "${clean || "Tokyo Nocturnal Metropolis"}". Include 4 independent GPU-accelerated depth planes (foreground architecture, midground mist, horizon skyline, and spatial telemetry HUD), interactive district explorer cards, embedded 60fps aerial motion video showcase, generated architectural photography, and strict luxury monochrome noir styling.`;
   }
   return `Design a state-of-the-art, high-converting digital platform for "${clean || "a modern SaaS product"}". Include a sticky glass navbar with glowing white CTA, a dynamic hero banner with value proposition and video modal, interactive 3-column feature grid with hover states, social proof testimonial cards with client avatars, 3-tier pricing matrix with monthly/annual toggle, expandable FAQ accordion, and strict dark luxury monochrome noir aesthetic with pure white and silver highlights.`;
 }
 
 function generateObsidianDarkEcommerceHtml(prompt: string, pageName: string, isShopify: boolean): string {
   const cleanSubject = extractSubjectFromPrompt(prompt);
-  const brandName = cleanSubject.length > 0 && cleanSubject.length < 35 ? cleanSubject : "Aura Botanicals";
+  const lower = prompt.toLowerCase();
+  const isStreetwear = lower.includes("streetwear") || lower.includes("hoodie") || lower.includes("kinetic");
+  const isAudio = lower.includes("audio") || lower.includes("headphone") || lower.includes("apex") || lower.includes("cyber");
+  const isCoffee = lower.includes("coffee") || lower.includes("roast") || lower.includes("cafe") || lower.includes("velvet");
+
+  const brandName =
+    cleanSubject.length > 0 && cleanSubject.length < 36
+      ? cleanSubject
+      : isStreetwear
+      ? "KINETIC Supply"
+      : isAudio
+      ? "Apex Cybernetics"
+      : isCoffee
+      ? "Velvet & Vine Roastery"
+      : "Aura Botanicals";
+
+  const heroTitle = isStreetwear
+    ? "Engineered for Movement. Built for Culture."
+    : isAudio
+    ? "Acoustic Perfection. Titanium Engineering."
+    : isCoffee
+    ? "Single-Origin Specialty Beans Roasted Fresh."
+    : "Pure Botanical Science for Radiant Skin.";
+
+  const heroDesc = isStreetwear
+    ? "450 GSM organic French terry cotton, waterproof taped zippers, and modular utility silhouettes."
+    : isAudio
+    ? "Precision planar magnetic drivers, lossless LDAC streaming, and CNC machined aerospace titanium."
+    : isCoffee
+    ? "Direct trade beans harvested from high-altitude volcanic soils in Yirgacheffe and Huila."
+    : "Wild-harvested adaptogens, cold-pressed seed oils, and clinically-proven bio-peptides engineered for radiant results.";
+
+  const productImg = isStreetwear
+    ? "/images/product-streetwear.jpg"
+    : isAudio
+    ? "/images/product-audio.jpg"
+    : isCoffee
+    ? "/images/product-coffee.jpg"
+    : "/images/product-skincare.jpg";
+
+  if (pageName.toLowerCase().includes("product")) {
+    return `
+<header data-section="header" class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+  <span class="font-extrabold text-lg text-white font-heading">${brandName}</span>
+  <span class="text-xs font-mono text-zinc-400">PRODUCT SPECIFICATION • LIQUID 2.0</span>
+</header>
+<section data-section="hero" id="hero" class="py-20 px-6 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center border-b border-zinc-800">
+  <div class="aspect-square rounded-3xl overflow-hidden border border-zinc-800 bg-zinc-900">
+    <img src="${productImg}" alt="${brandName} Flagship" class="w-full h-full object-cover" />
+  </div>
+  <div class="space-y-6">
+    <span class="px-3 py-1 rounded-full bg-white text-zinc-950 font-mono text-xs font-bold">FLAGSHIP EDITION</span>
+    <h1 class="text-4xl font-black text-white tracking-tight">${heroTitle}</h1>
+    <p class="text-zinc-400 text-sm leading-relaxed">${heroDesc}</p>
+    <div class="text-3xl font-black text-white font-mono">$148.00</div>
+    <button class="w-full py-4 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-sm transition-all">Add to Bag — Instant Checkout</button>
+  </div>
+</section>`;
+  }
+
+  if (pageName.toLowerCase().includes("cart")) {
+    return `
+<header data-section="header" class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+  <span class="font-extrabold text-lg text-white font-heading">${brandName} — Bag & Checkout</span>
+  <span class="text-xs font-mono text-zinc-400">256-BIT SSL ENCRYPTED</span>
+</header>
+<section data-section="products" id="products" class="py-20 px-6 max-w-4xl mx-auto space-y-8">
+  <h1 class="text-3xl font-black text-white">Your Shopping Bag (2 Items)</h1>
+  <div class="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <img src="${productImg}" alt="Item" class="w-20 h-20 rounded-xl object-cover border border-zinc-700" />
+      <div>
+        <h3 class="text-base font-bold text-white">${brandName} Signature Edition</h3>
+        <p class="text-xs text-zinc-400 mt-1">In Stock • Express Global Delivery</p>
+      </div>
+    </div>
+    <span class="text-lg font-bold text-white font-mono">$136.00</span>
+  </div>
+  <div class="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
+    <span class="text-sm text-zinc-300 font-semibold">Estimated Total (Free Express Shipping)</span>
+    <span class="text-2xl font-black text-white font-mono">$136.00</span>
+  </div>
+</section>`;
+  }
 
   return `
 <section data-section="announcement-bar" class="bg-zinc-900/90 border-b border-zinc-800 text-zinc-300 py-2.5 px-4 text-center text-xs font-mono font-medium flex items-center justify-center gap-2">
@@ -154,7 +285,7 @@ function generateObsidianDarkEcommerceHtml(prompt: string, pageName: string, isS
 <header data-section="header" class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800 px-6 py-4 flex items-center justify-between shadow-lg">
   <div class="flex items-center gap-3">
     <div class="w-8 h-8 rounded-xl bg-white text-zinc-950 flex items-center justify-center font-black text-sm shadow-lg shadow-white/10">
-      🛍️
+      ${isShopify ? "🛍️" : "O"}
     </div>
     <span class="font-extrabold text-lg tracking-tight text-white font-heading">${brandName}</span>
   </div>
@@ -176,21 +307,21 @@ function generateObsidianDarkEcommerceHtml(prompt: string, pageName: string, isS
   <div class="absolute inset-0 bg-gradient-radial from-zinc-800/30 via-transparent to-transparent blur-3xl pointer-events-none"></div>
   <div class="max-w-4xl mx-auto space-y-6 relative z-10">
     <span class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900 text-zinc-200 border border-zinc-700 text-xs font-mono font-semibold">
-      ✨ Next-Gen Liquid 2.0 Collection
+      ✨ ${isShopify ? "Next-Gen Liquid 2.0 Collection" : "Obsidian Digital Architecture"}
     </span>
     <h1 class="text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-tight font-heading">
-      Pure Botanical Science for Radiant Skin.
+      ${heroTitle}
     </h1>
     <p class="text-zinc-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed font-normal">
-      Wild-harvested adaptogens, cold-pressed seed oils, and clinically-proven bio-peptides engineered for radiant results.
+      ${heroDesc}
     </p>
     <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
-      <button class="px-8 py-3.5 rounded-xl bg-white hover:bg-zinc-200 shadow-lg shadow-white/5 text-zinc-950 font-black transition-all transform hover:-translate-y-0.5 cursor-pointer">
+      <a href="#products" class="px-8 py-3.5 rounded-xl bg-white hover:bg-zinc-200 shadow-lg shadow-white/5 text-zinc-950 font-black transition-all transform hover:-translate-y-0.5 cursor-pointer">
         Shop Featured Catalog →
-      </button>
-      <button class="px-8 py-3.5 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold transition-all shadow-sm cursor-pointer">
+      </a>
+      <a href="#features" class="px-8 py-3.5 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold transition-all shadow-sm cursor-pointer">
         View Lookbook
-      </button>
+      </a>
     </div>
   </div>
 </section>
@@ -207,7 +338,7 @@ function generateObsidianDarkEcommerceHtml(prompt: string, pageName: string, isS
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
     <div class="group rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 hover:border-zinc-600 transition-all hover:shadow-2xl hover:shadow-black/80 hover:-translate-y-1">
       <div class="aspect-square bg-zinc-950 rounded-xl overflow-hidden mb-4 relative border border-zinc-800">
-        <img src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800&auto=format&fit=crop&q=80" alt="Celestial Glow Serum" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        <img src="${productImg}" alt="Celestial Glow Serum" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
         <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-white text-zinc-950 font-mono text-[9px] font-bold">BEST SELLER</span>
       </div>
       <h3 class="text-sm font-bold text-white group-hover:text-white transition-colors">Celestial Glow Peptide Serum</h3>
@@ -219,34 +350,34 @@ function generateObsidianDarkEcommerceHtml(prompt: string, pageName: string, isS
 
     <div class="group rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 hover:border-zinc-600 transition-all hover:shadow-2xl hover:shadow-black/80 hover:-translate-y-1">
       <div class="aspect-square bg-zinc-950 rounded-xl overflow-hidden mb-4 relative border border-zinc-800">
-        <img src="https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop&q=80" alt="Rose Hydration Mist" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-        <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700 font-mono text-[9px] font-bold">ORGANIC</span>
+        <img src="/images/product-streetwear.jpg" alt="Technical Utility Silhouette" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700 font-mono text-[9px] font-bold">LIMITED</span>
       </div>
-      <h3 class="text-sm font-bold text-white group-hover:text-white transition-colors">Rose Damascena Hydration Mist</h3>
+      <h3 class="text-sm font-bold text-white group-hover:text-white transition-colors">Atelier Heavyweight Edition</h3>
       <div class="flex items-center justify-between mt-3">
-        <span class="text-sm font-bold text-zinc-100 font-mono">$42.00</span>
+        <span class="text-sm font-bold text-zinc-100 font-mono">$130.00</span>
         <button class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-white hover:text-zinc-950 text-white text-xs font-semibold transition-colors">+ Add</button>
       </div>
     </div>
 
     <div class="group rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 hover:border-zinc-600 transition-all hover:shadow-2xl hover:shadow-black/80 hover:-translate-y-1">
       <div class="aspect-square bg-zinc-950 rounded-xl overflow-hidden mb-4 relative border border-zinc-800">
-        <img src="https://images.unsplash.com/photo-1608248597359-0098f98c8c50?w=800&auto=format&fit=crop&q=80" alt="Overnight Repair Oil" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-        <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700 font-mono text-[9px] font-bold">RETINOL ALT</span>
+        <img src="/images/product-audio.jpg" alt="Titanium Acoustic Reference" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700 font-mono text-[9px] font-bold">FLAGSHIP</span>
       </div>
-      <h3 class="text-sm font-bold text-white group-hover:text-white transition-colors">Bakuchiol Overnight Repair Oil</h3>
+      <h3 class="text-sm font-bold text-white group-hover:text-white transition-colors">Horizon Planar Reference</h3>
       <div class="flex items-center justify-between mt-3">
-        <span class="text-sm font-bold text-zinc-100 font-mono">$74.00</span>
+        <span class="text-sm font-bold text-zinc-100 font-mono">$349.00</span>
         <button class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-white hover:text-zinc-950 text-white text-xs font-semibold transition-colors">+ Add</button>
       </div>
     </div>
 
     <div class="group rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 hover:border-zinc-600 transition-all hover:shadow-2xl hover:shadow-black/80 hover:-translate-y-1">
       <div class="aspect-square bg-zinc-950 rounded-xl overflow-hidden mb-4 relative border border-zinc-800">
-        <img src="https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=800&auto=format&fit=crop&q=80" alt="Ceramide Crème" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-        <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-200 border border-zinc-700 font-mono text-[9px] font-bold">HYDRATING</span>
+        <img src="/images/product-coffee.jpg" alt="Borosilicate Pour-Over" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-200 border border-zinc-700 font-mono text-[9px] font-bold">ARTISANAL</span>
       </div>
-      <h3 class="text-sm font-bold text-white group-hover:text-white transition-colors">Velvet Cloud Ceramide Crème</h3>
+      <h3 class="text-sm font-bold text-white group-hover:text-white transition-colors">Precision Borosilicate Carafe</h3>
       <div class="flex items-center justify-between mt-3">
         <span class="text-sm font-bold text-zinc-100 font-mono">$58.00</span>
         <button class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-white hover:text-zinc-950 text-white text-xs font-semibold transition-colors">+ Add</button>
@@ -255,14 +386,34 @@ function generateObsidianDarkEcommerceHtml(prompt: string, pageName: string, isS
   </div>
 </section>
 
+<section data-section="features" id="features" class="py-20 px-6 max-w-7xl mx-auto border-b border-zinc-800">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-2">
+      <p class="text-xs font-mono text-zinc-400">01 / ARCHITECTURE</p>
+      <h3 class="text-lg font-bold text-white">Zero-Latency Global Edge</h3>
+      <p class="text-xs text-zinc-400 leading-relaxed">Sub-second storefront rendering with Shopify OS 2.0 JSON templates and modular Liquid sections.</p>
+    </div>
+    <div class="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-2">
+      <p class="text-xs font-mono text-zinc-400">02 / CRAFTSMANSHIP</p>
+      <h3 class="text-lg font-bold text-white">Clinical & Artisanal Grade</h3>
+      <p class="text-xs text-zinc-400 leading-relaxed">Small-batch production with full material traceability and sustainable packaging.</p>
+    </div>
+    <div class="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-2">
+      <p class="text-xs font-mono text-zinc-400">03 / CONCIERGE</p>
+      <h3 class="text-lg font-bold text-white">Express Worldwide Dispatch</h3>
+      <p class="text-xs text-zinc-400 leading-relaxed">Complimentary insured air courier delivery on orders over $100 with instant returns.</p>
+    </div>
+  </div>
+</section>
+
 <footer data-section="footer" id="footer" class="py-16 px-6 bg-zinc-950 text-zinc-400 border-t border-zinc-800 text-xs">
   <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
     <p>&copy; ${new Date().getFullYear()} ${brandName}. Powered by Obsidian AI Liquid Studio.</p>
     <div class="flex items-center gap-6 font-semibold text-zinc-400">
-      <a href="#" class="hover:text-white transition-colors">Shipping & Returns</a>
-      <a href="#" class="hover:text-white transition-colors">Liquid 2.0 Spec</a>
-      <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
-      <a href="#" class="hover:text-white transition-colors">Support</a>
+      <a href="#hero" class="hover:text-white transition-colors">Shipping & Returns</a>
+      <a href="#products" class="hover:text-white transition-colors">Liquid 2.0 Spec</a>
+      <a href="#features" class="hover:text-white transition-colors">Privacy Policy</a>
+      <a href="#footer" class="hover:text-white transition-colors">Support</a>
     </div>
   </div>
 </footer>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 type Theme = "dark" | "light";
 
@@ -17,26 +17,30 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export const ShopifyThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>("dark");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("obsidian_theme") as Theme;
-    if (saved) setTheme(saved);
-  }, []);
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "dark";
+    try {
+      const saved = localStorage.getItem("obsidian_theme") as Theme | null;
+      if (saved === "dark" || saved === "light") return saved;
+    } catch {}
+    return "dark";
+  });
 
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
-    localStorage.setItem("obsidian_theme", next);
+    try {
+      localStorage.setItem("obsidian_theme", next);
+    } catch {}
   };
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === "dark" }}>
-      <div className={`transition-colors duration-500 min-h-screen ${
-        theme === "dark" 
-          ? "bg-zinc-950 text-zinc-100" 
-          : "bg-zinc-100 text-zinc-900"
-      }`}>
+      <div
+        className={`transition-colors duration-500 min-h-screen ${
+          theme === "dark" ? "bg-zinc-950 text-zinc-100" : "bg-zinc-100 text-zinc-900"
+        }`}
+      >
         {children}
       </div>
     </ThemeContext.Provider>

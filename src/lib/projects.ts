@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback } from "react";
 export type ProjectType = "shopify" | "website";
 
 export interface ProjectPageData {
-  name: string;
+  name?: string;
   html: string;
   css: string;
 }
@@ -33,10 +33,13 @@ export interface ProjectData {
     accent?: string;
     label?: string;
   };
+  fontId?: string;
+  parallaxMode?: boolean;
+  parallaxThemeId?: string;
   presetId?: string;
   storeName?: string;
-  settings?: Record<string, any>;
-  [key: string]: any;
+  settings?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export interface Project {
@@ -106,8 +109,8 @@ export const INITIAL_DEFAULT_MOCKS: Project[] = [
     created_at: new Date(Date.now() - 86400000).toISOString(),
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
     updated_at: new Date(Date.now() - 86400000).toISOString(),
-    thumbnail: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80",
-    thumbnail_url: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80",
+    thumbnail: "/images/product-skincare.jpg",
+    thumbnail_url: "/images/product-skincare.jpg",
     data: {
       storeName: "LuxeAura Cosmetics",
       presetId: "cosmetics",
@@ -151,7 +154,6 @@ export function migrateLegacyProjects(): Project[] {
       } catch {}
     }
 
-    // Check legacy storage keys
     const legacyShopifyRaw = localStorage.getItem(LEGACY_SHOPIFY_KEY);
     const legacyWebsiteRaw = localStorage.getItem(LEGACY_WEBSITE_KEY);
 
@@ -180,8 +182,8 @@ export function migrateLegacyProjects(): Project[] {
                 created_at: item.created_at || item.createdAt || new Date().toISOString(),
                 updatedAt: item.updatedAt || item.updated_at || item.created_at || new Date().toISOString(),
                 updated_at: item.updated_at || item.updatedAt || item.created_at || new Date().toISOString(),
-                thumbnail: item.thumbnail || item.thumbnail_url,
-                thumbnail_url: item.thumbnail_url || item.thumbnail,
+                thumbnail: item.thumbnail || item.thumbnail_url || "/images/product-skincare.jpg",
+                thumbnail_url: item.thumbnail_url || item.thumbnail || "/images/product-skincare.jpg",
                 data: item.data || { prompt: item.prompt },
               });
             }
@@ -210,8 +212,8 @@ export function migrateLegacyProjects(): Project[] {
                 created_at: item.created_at || item.createdAt || new Date().toISOString(),
                 updatedAt: item.updatedAt || item.updated_at || item.created_at || new Date().toISOString(),
                 updated_at: item.updated_at || item.updatedAt || item.created_at || new Date().toISOString(),
-                thumbnail: item.thumbnail || item.thumbnail_url,
-                thumbnail_url: item.thumbnail_url || item.thumbnail,
+                thumbnail: item.thumbnail || item.thumbnail_url || "/images/parallax-tokyo.jpg",
+                thumbnail_url: item.thumbnail_url || item.thumbnail || "/images/parallax-tokyo.jpg",
                 data: item.data || { prompt: item.prompt },
               });
             }
@@ -222,7 +224,6 @@ export function migrateLegacyProjects(): Project[] {
       }
     }
 
-    // If migrated list was empty, store INITIAL_DEFAULT_MOCKS
     const initialList = migrated.length > 0 ? migrated : INITIAL_DEFAULT_MOCKS;
     localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(initialList));
     return initialList;
@@ -245,7 +246,11 @@ export function getProjects(): Project[] {
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          return parsed.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
+          return parsed.sort(
+            (a, b) =>
+              new Date(b.updatedAt || b.createdAt || 0).getTime() -
+              new Date(a.updatedAt || a.createdAt || 0).getTime()
+          );
         }
         return INITIAL_DEFAULT_MOCKS;
       } catch {
@@ -273,8 +278,11 @@ export function saveProject(project: Partial<Project> & { id: string }): Project
   }
 
   let existing = getProjects();
-  // If storage only contains the unedited initial starter mock and user is saving a new project
-  if (existing.length === 1 && existing[0].id === "proj-shopify-starter-1" && project.id !== "proj-shopify-starter-1") {
+  if (
+    existing.length === 1 &&
+    existing[0].id === "proj-shopify-starter-1" &&
+    project.id !== "proj-shopify-starter-1"
+  ) {
     existing = [];
   }
 
@@ -291,6 +299,7 @@ export function saveProject(project: Partial<Project> & { id: string }): Project
       updated_at: now,
       thumbnail: project.thumbnail || project.thumbnail_url || existing[index].thumbnail,
       thumbnail_url: project.thumbnail_url || project.thumbnail || existing[index].thumbnail_url,
+      data: project.data ? { ...existing[index].data, ...project.data } : existing[index].data,
     };
     existing[index] = updatedProject;
   } else {
@@ -318,7 +327,9 @@ export function saveProject(project: Partial<Project> & { id: string }): Project
 }
 
 export function createProject(input: CreateProjectInput): Project {
-  const id = input.id || `proj-${input.type}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const id =
+    input.id ||
+    `proj-${input.type}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const now = new Date().toISOString();
 
   const newProject: Project = {
@@ -351,21 +362,26 @@ export function deleteProject(id: string): boolean {
   if (filtered.length === existing.length) return false;
 
   localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(filtered));
-  
-  // Also clean from legacy keys if present
+
   try {
     const shopifyRaw = localStorage.getItem(LEGACY_SHOPIFY_KEY);
     if (shopifyRaw) {
-      const parsed = JSON.parse(shopifyRaw);
+      const parsed = JSON.parse(shopifyRaw) as Array<{ id?: string }>;
       if (Array.isArray(parsed)) {
-        localStorage.setItem(LEGACY_SHOPIFY_KEY, JSON.stringify(parsed.filter((p: any) => p.id !== id)));
+        localStorage.setItem(
+          LEGACY_SHOPIFY_KEY,
+          JSON.stringify(parsed.filter((p) => p.id !== id))
+        );
       }
     }
     const websiteRaw = localStorage.getItem(LEGACY_WEBSITE_KEY);
     if (websiteRaw) {
-      const parsed = JSON.parse(websiteRaw);
+      const parsed = JSON.parse(websiteRaw) as Array<{ id?: string }>;
       if (Array.isArray(parsed)) {
-        localStorage.setItem(LEGACY_WEBSITE_KEY, JSON.stringify(parsed.filter((p: any) => p.id !== id)));
+        localStorage.setItem(
+          LEGACY_WEBSITE_KEY,
+          JSON.stringify(parsed.filter((p) => p.id !== id))
+        );
       }
     }
   } catch {}
@@ -378,7 +394,9 @@ export function duplicateProject(id: string): Project | undefined {
   const original = getProjectById(id);
   if (!original) return undefined;
 
-  const newId = `proj-${original.type}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const newId = `proj-${original.type}-${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 7)}`;
   return createProject({
     id: newId,
     title: `${original.title} (Copy)`,
@@ -390,7 +408,11 @@ export function duplicateProject(id: string): Project | undefined {
   });
 }
 
-export function getProjectCount(): { totalCount: number; shopifyCount: number; websiteCount: number } {
+export function getProjectCount(): {
+  totalCount: number;
+  shopifyCount: number;
+  websiteCount: number;
+} {
   const projects = getProjects();
   const shopifyCount = projects.filter((p) => p.type === "shopify").length;
   const websiteCount = projects.filter((p) => p.type === "website").length;
@@ -439,13 +461,16 @@ export function useProjects(isPro: boolean = false) {
   }, [isPro]);
 
   useEffect(() => {
-    refresh();
+    const timer = window.setTimeout(() => {
+      refresh();
+    }, 0);
 
     const handleUpdate = () => refresh();
     window.addEventListener(PROJECTS_UPDATED_EVENT, handleUpdate);
     window.addEventListener("storage", handleUpdate);
 
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener(PROJECTS_UPDATED_EVENT, handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
@@ -463,4 +488,3 @@ export function useProjects(isPro: boolean = false) {
     deleteProject,
   };
 }
-
