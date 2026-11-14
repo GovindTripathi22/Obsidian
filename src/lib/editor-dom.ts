@@ -195,23 +195,76 @@ export function updateSectionImageInHtml(
   return updated;
 }
 
+export interface BridgeSelectedElement {
+  sectionId: string;
+  tagName: string;
+  textContent: string;
+  imgSrc?: string;
+}
+
+/**
+ * Safely normalizes postMessage payloads from the Live Preview iframe bridge.
+ */
+export function extractSelectedElementFromMessage(data: unknown): BridgeSelectedElement | null {
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+  if (record.type !== "OBSIDIAN_SELECT_ELEMENT") return null;
+
+  const nested =
+    record.element && typeof record.element === "object"
+      ? (record.element as Record<string, unknown>)
+      : record;
+
+  return {
+    sectionId: String(nested.sectionId || "hero"),
+    tagName: String(nested.tagName || "section"),
+    textContent: String(nested.textContent || "Section Content"),
+    imgSrc: nested.imgSrc ? String(nested.imgSrc) : undefined,
+  };
+}
+
 /**
  * Generates an interactive script for the preview iframe so clicking any section, heading, or image
  * sends its exact sectionId, tagName, textContent, and imgSrc to the parent editor.
  */
 export function buildIframeBridgeScript(): string {
   return `
+<style id="obsidian-bridge-style">
+  [data-section]:hover {
+    outline: 1px dashed rgba(255, 255, 255, 0.28);
+    outline-offset: -2px;
+  }
+  [data-obsidian-selected="true"] {
+    outline: 2px solid rgba(255, 255, 255, 0.75) !important;
+    outline-offset: -2px;
+  }
+</style>
 <script>
   (function() {
+    var lastSelected = null;
     document.addEventListener('click', function(e) {
       var target = e.target;
       if (!target || !target.closest) return;
+
+      // Allow in-page anchor navigation & interactive product configurator buttons to operate naturally
       var anchor = target.closest('a');
       if (anchor && anchor.getAttribute('href') && anchor.getAttribute('href').startsWith('#')) {
         return;
       }
+      if (target.closest('[data-variant-btn]') || target.closest('#obsidian-quick-reserve-btn')) {
+        return;
+      }
+
       e.preventDefault();
       var sectionEl = target.closest('[data-section], section, header, footer') || document.body;
+      if (lastSelected && lastSelected !== sectionEl) {
+        lastSelected.removeAttribute('data-obsidian-selected');
+      }
+      if (sectionEl && sectionEl.setAttribute) {
+        sectionEl.setAttribute('data-obsidian-selected', 'true');
+        lastSelected = sectionEl;
+      }
+
       var sectionId = (sectionEl && (sectionEl.getAttribute('data-section') || sectionEl.id || sectionEl.tagName.toLowerCase())) || 'hero';
       var imgEl = target.tagName === 'IMG' ? target : (sectionEl ? sectionEl.querySelector('img') : null);
       var headingEl = target.closest('h1, h2, h3, h4, p, button, span') || (sectionEl ? sectionEl.querySelector('h1, h2, h3') : null);

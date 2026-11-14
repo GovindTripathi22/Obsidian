@@ -1,28 +1,36 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { GoogleAuthModal } from "@/components/auth/GoogleAuthModal";
 import { X } from "lucide-react";
 
 export const GoogleOneTap: React.FC = () => {
+  const pathname = usePathname();
   const { user, loading, signInWithGoogle } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [showGoogleDialog, setShowGoogleDialog] = useState(false);
 
+  const isStudioRoute =
+    Boolean(pathname?.startsWith("/editor")) ||
+    Boolean(pathname?.startsWith("/builder")) ||
+    Boolean(pathname?.startsWith("/sign-"));
+
   useEffect(() => {
-    // Show prompt after 2 seconds if user is guest and hasn't dismissed it
+    if (isStudioRoute) return;
+    // Show prompt after 15 seconds on landing/browse pages if user is guest and hasn't dismissed it
     const timer = setTimeout(() => {
       if (!user && !dismissed) {
         setIsVisible(true);
       }
-    }, 2000);
+    }, 15000);
 
     return () => clearTimeout(timer);
-  }, [user, dismissed]);
+  }, [user, dismissed, isStudioRoute]);
 
-  if (loading || user || !isVisible || dismissed) {
+  if (loading || user || !isVisible || dismissed || isStudioRoute) {
     return (
       <GoogleAuthModal
         isOpen={showGoogleDialog}

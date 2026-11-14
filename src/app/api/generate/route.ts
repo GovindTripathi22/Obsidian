@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
     const pageName: string = body?.pageName || "Home Page";
     const parallaxMode: boolean = Boolean(body?.parallaxMode);
     const parallaxThemeId: string | undefined = body?.parallaxThemeId;
+    const parallaxOptions = body?.parallaxOptions && typeof body.parallaxOptions === "object"
+      ? body.parallaxOptions
+      : undefined;
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
@@ -77,7 +80,7 @@ export async function POST(req: NextRequest) {
       parallaxThemeId
     );
 
-    const systemInstruction = `You are an expert AI front-end engineer, spatial parallax architect, and Shopify Liquid Theme designer.
+    const systemInstruction = `You are an expert AI front-end engineer, spatial 3D parallax architect, and Shopify Liquid Theme designer.
 Generate a complete, modern, responsive HTML page styled strictly with Tailwind CSS utility classes using the Obsidian Luxury Monochrome Noir Theme.
 
 DESIGN SPECIFICATIONS:
@@ -92,7 +95,7 @@ DESIGN SPECIFICATIONS:
    - <section data-section="features" id="features" class="py-20 px-6 max-w-7xl mx-auto border-b border-zinc-800">
    - <section data-section="reviews" id="reviews" class="py-20 px-6 max-w-7xl mx-auto border-b border-zinc-800">
    - <footer data-section="footer" id="footer" class="py-16 px-6 bg-zinc-950 border-t border-zinc-800 text-zinc-400 text-xs">
-${isParallax ? "5. Parallax Architecture: Include multi-plane data-parallax-speed attributes and a smooth requestAnimationFrame scroll listener for 3D depth." : ""}
+${isParallax ? "5. 3D Parallax Architecture: Include perspective(1200px), preserve-3d, data-parallax-speed and data-parallax-z planes, damped cursor 3D tilt, and viewport-centered requestAnimationFrame scroll physics." : ""}
 Output: Return ONLY pure, valid HTML markup. Zero markdown wrappers, zero meta preambles.`;
 
     try {
@@ -103,7 +106,7 @@ Output: Return ONLY pure, valid HTML markup. Zero markdown wrappers, zero meta p
       const result = await ai.models.generateContentStream({
         model: modelName,
         contents: `User Prompt: ${prompt} for page: ${pageName}. Mode: ${
-          isParallax ? `Parallax Website (${detectedParallaxTheme.name})` : isShopify ? "Shopify Storefront" : "Website"
+          isParallax ? `3D Parallax Website (${detectedParallaxTheme.name}, Category: ${detectedParallaxTheme.category})` : isShopify ? "Shopify Storefront" : "Website"
         }. Generate obsidian dark theme HTML.`,
         config: {
           systemInstruction,
@@ -140,17 +143,18 @@ Output: Return ONLY pure, valid HTML markup. Zero markdown wrappers, zero meta p
             prompt,
             pageName,
             themeId: detectedParallaxTheme.id,
+            parallaxOptions,
           })
         : generateObsidianDarkEcommerceHtml(prompt, pageName, isShopify);
 
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         async start(controller) {
-          const chunkSize = 180;
+          const chunkSize = 1200;
           for (let i = 0; i < fullHtml.length; i += chunkSize) {
             const chunk = fullHtml.slice(i, i + chunkSize);
             controller.enqueue(encoder.encode(chunk));
-            await new Promise((resolve) => setTimeout(resolve, 22));
+            await new Promise((resolve) => setTimeout(resolve, 12));
           }
           controller.close();
         },

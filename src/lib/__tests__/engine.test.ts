@@ -13,6 +13,7 @@ import {
   deleteSectionInHtml,
   updateSectionTextInHtml,
   updateSectionImageInHtml,
+  extractSelectedElementFromMessage,
 } from "../editor-dom";
 import {
   extractBrandFromPrompt,
@@ -22,8 +23,8 @@ import {
 } from "../builder-bridge";
 import { compileShopifyLiquidTheme } from "../shopify";
 
-describe("Parallax Engine (src/lib/parallax.ts)", () => {
-  it("detects parallax and city intent accurately across themes", () => {
+describe("3D Parallax & Product Dedicated Engine (src/lib/parallax.ts)", () => {
+  it("detects parallax, city, and product-dedicated intent accurately across themes", () => {
     const tokyo = detectParallaxIntent("Create a Tokyo skyline parallax website at dusk");
     assert.equal(tokyo.isParallax, true);
     assert.equal(tokyo.theme.id, "tokyo-noir");
@@ -36,26 +37,66 @@ describe("Parallax Engine (src/lib/parallax.ts)", () => {
     assert.equal(nyc.isParallax, true);
     assert.equal(nyc.theme.id, "manhattan-vertical");
 
+    const serum = detectParallaxIntent("Create a 3D parallax skincare serum bottle launch", true);
+    assert.equal(serum.isParallax, true);
+    assert.equal(serum.theme.id, "product-botanical");
+    assert.equal(serum.theme.category, "product");
+
+    const saas = detectParallaxIntent("Build a 3D spatial SaaS dashboard showcase", true);
+    assert.equal(saas.isParallax, true);
+    assert.equal(saas.theme.id, "spatial-saas");
+
     const standard = detectParallaxIntent("Simple B2B SaaS accounting dashboard", false);
     assert.equal(standard.isParallax, false);
   });
 
-  it("generates complete multi-layer parallax HTML with data-parallax-speed planes and local assets", () => {
+  it("generates true 3D perspective & cursor-tilt parallax HTML with viewport-centered physics", () => {
     const html = generateParallaxWebsiteHtml({
       prompt: 'Create a parallax city website for "Neo Tokyo Sky"',
       pageName: "Home Page",
       themeId: "tokyo-noir",
+      parallaxOptions: {
+        depthPreset: "interactive-3d",
+        enableTiltStage: true,
+        enableExplodedSpecs: true,
+        enableVideoLayer: true,
+      },
     });
 
     assert.ok(html.includes("Neo Tokyo Sky"));
     assert.ok(html.includes('data-section="hero"'));
-    assert.ok(html.includes("data-parallax-speed="));
+    assert.ok(html.includes("perspective(1200px)"));
+    assert.ok(html.includes("preserve-3d"));
+    assert.ok(html.includes("data-parallax-z="));
+    assert.ok(html.includes("rotateX("));
+    assert.ok(html.includes("rotateY("));
     assert.ok(html.includes("/images/parallax-tokyo.jpg"));
     assert.ok(html.includes("/background.mp4"));
     assert.ok(!html.includes("images.unsplash.com"));
   });
 
-  it("generates dedicated Districts and Reservations subpages for parallax projects", () => {
+  it("generates Product-Dedicated 3D showcase with variant finish switcher & exploded hardware planes", () => {
+    const productHtml = generateParallaxWebsiteHtml({
+      prompt: 'Product-dedicated 3D website for "Apex Planar Studio"',
+      pageName: "Home Page",
+      themeId: "obsidian-kinetic",
+      parallaxOptions: {
+        category: "product",
+        depthPreset: "cinematic",
+        enableTiltStage: true,
+        enableExplodedSpecs: true,
+      },
+    });
+
+    assert.ok(productHtml.includes("Apex Planar Studio"));
+    assert.ok(productHtml.includes("PRODUCT DEDICATED 3D MONOLITH"));
+    assert.ok(productHtml.includes("data-variant-btn"));
+    assert.ok(productHtml.includes("Matte Titanium"));
+    assert.ok(productHtml.includes("obsidian-quick-reserve-btn"));
+    assert.ok(productHtml.includes("$349.00"));
+  });
+
+  it("generates dedicated Specs/Districts and Editions/Reservations subpages", () => {
     const districtsHtml = generateParallaxWebsiteHtml({
       prompt: 'Create a parallax website for "Alpine Monolith"',
       pageName: "Features",
@@ -70,11 +111,12 @@ describe("Parallax Engine (src/lib/parallax.ts)", () => {
     });
     assert.ok(pricingHtml.includes("Reserve Your Elevation"));
     assert.equal(getParallaxThemeById("alpine-horizon").city, "Zermatt & Vals, Switzerland");
-    assert.equal(PARALLAX_THEMES.length, 4);
+    assert.ok(PARALLAX_THEMES.length >= 8);
+    assert.equal(PARALLAX_THEMES.filter((t) => t.category === "product").length, 4);
   });
 });
 
-describe("Editor DOM Manipulation (src/lib/editor-dom.ts)", () => {
+describe("Editor DOM Manipulation & Iframe Bridge (src/lib/editor-dom.ts)", () => {
   const sampleHtml = `
 <header data-section="header"><h1>Brand Header</h1></header>
 <section data-section="hero" id="hero"><h1>Original Hero Headline</h1><img src="/images/parallax-tokyo.jpg" class="w-full" /></section>
@@ -127,6 +169,27 @@ describe("Editor DOM Manipulation (src/lib/editor-dom.ts)", () => {
     );
     assert.ok(imgUpdated.includes("/images/parallax-nyc.jpg"));
     assert.ok(imgUpdated.includes("drop-shadow-"));
+  });
+
+  it("extracts nested element payloads from OBSIDIAN_SELECT_ELEMENT postMessage events", () => {
+    const nested = extractSelectedElementFromMessage({
+      type: "OBSIDIAN_SELECT_ELEMENT",
+      element: {
+        sectionId: "products",
+        tagName: "h3",
+        textContent: "50mm Planar Magnetic Driver",
+        imgSrc: "/images/product-audio.jpg",
+      },
+    });
+    assert.deepEqual(nested, {
+      sectionId: "products",
+      tagName: "h3",
+      textContent: "50mm Planar Magnetic Driver",
+      imgSrc: "/images/product-audio.jpg",
+    });
+
+    const ignored = extractSelectedElementFromMessage({ type: "UNRELATED_EVENT" });
+    assert.equal(ignored, null);
   });
 });
 

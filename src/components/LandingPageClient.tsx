@@ -12,12 +12,22 @@ import {
   ArrowLeftRight,
   Check,
   Eye,
+  Box,
+  Building2,
+  Cpu,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 import { createProject, canCreateProject } from "@/lib/projects";
 import { QuotaLimitModal } from "@/components/ui/QuotaLimitModal";
-import { PARALLAX_THEMES, ParallaxThemeProfile, detectParallaxIntent } from "@/lib/parallax";
+import {
+  PARALLAX_THEMES,
+  ParallaxCategory,
+  ParallaxDepthPreset,
+  ParallaxThemeProfile,
+  detectParallaxIntent,
+} from "@/lib/parallax";
 import {
   extractBrandFromPrompt,
   convertWebsitePromptToShopifyPrompt,
@@ -51,29 +61,46 @@ const STANDARD_SUGGESTIONS = [
 
 const PARALLAX_CITY_SUGGESTIONS = [
   {
-    label: "Tokyo Skyline Parallax",
+    label: "Audio Flagship (3D Product)",
+    themeId: "obsidian-kinetic",
+    category: "product" as const,
+    prompt:
+      "Create a product-dedicated 3D parallax launch website for Obsidian Acoustic Reference headphones. Include a 3D cursor-tilting monolith stage, exploded CNC titanium driver layers, finish variant switcher, and instant reserve CTA.",
+  },
+  {
+    label: "Botanical Serum (3D Product)",
+    themeId: "product-botanical",
+    category: "product" as const,
+    prompt:
+      "Create a product-dedicated 3D parallax website for Aura Cellular Botanical luxury serum. Feature a floating 3D bottle showcase, exploded active bio-peptide spec layers, volume selector, and tactile noir glassmorphism.",
+  },
+  {
+    label: "Tokyo Skyline (3D City)",
     themeId: "tokyo-noir",
+    category: "city" as const,
     prompt:
       "Create a multi-layer 3D parallax city website for Tokyo Cyber Metropolis (Shinjuku & Shibuya Sector). Include deep perspective skyline layers, floating glassmorphic district cards, live transit telemetry, high-resolution nocturnal photography, and ambient motion video.",
   },
   {
-    label: "Swiss Alps Sanctuary",
-    themeId: "alpine-horizon",
+    label: "Spatial SaaS OS (3D Stack)",
+    themeId: "spatial-saas",
+    category: "saas" as const,
     prompt:
-      "Build an atmospheric parallax website for a luxury cliffside architectural sanctuary in Zermatt, Swiss Alps. Include multi-plane mountain ridge parallax depth, thermal spa suites showcase, elevation telemetry, generated alpine photography, and video reel.",
+      "Build a spatial 3D parallax SaaS platform landing page with floating isometric dashboard layers, interactive cursor perspective stack, developer API telemetry cards, and dark monochrome glassmorphism.",
   },
-  {
-    label: "Manhattan Vertical Noir",
-    themeId: "manhattan-vertical",
-    prompt:
-      "Design a vertical supertall architecture parallax website for Manhattan Billionaires' Row. Include dramatic upward perspective parallax layers, penthouse residences, structural engineering specs, monochrome noir photography, and motion video.",
-  },
-  {
-    label: "Kinetic Hardware Flagship",
-    themeId: "obsidian-kinetic",
-    prompt:
-      "Create a spatial 3D parallax product launch website for an acoustic titanium hardware flagship. Include interactive depth planes, exploded engineering callouts, frequency telemetry, studio product imagery, and 60fps video synthesis.",
-  },
+];
+
+const PARALLAX_FOCUS_TABS: Array<{ id: "all" | ParallaxCategory; label: string }> = [
+  { id: "product", label: "Product Dedicated 3D" },
+  { id: "city", label: "City & Skyline 3D" },
+  { id: "saas", label: "Spatial SaaS 3D" },
+  { id: "all", label: "All 3D Themes" },
+];
+
+const DEPTH_PRESETS: Array<{ id: ParallaxDepthPreset; label: string }> = [
+  { id: "interactive-3d", label: "Interactive 3D Tilt" },
+  { id: "cinematic", label: "Cinematic Deep" },
+  { id: "subtle", label: "Subtle Depth" },
 ];
 
 const emptySubscribe = () => () => {};
@@ -83,9 +110,15 @@ export function LandingPageClient() {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showQuotaModal, setShowQuotaModal] = useState(false);
 
-  // Parallax Mode State inside Writing Box
+  // Parallax / 3D Mode State inside Writing Box
   const [parallaxMode, setParallaxMode] = useState(false);
-  const [selectedParallaxTheme, setSelectedParallaxTheme] = useState<ParallaxThemeProfile>(PARALLAX_THEMES[0]);
+  const [parallaxCategoryFilter, setParallaxCategoryFilter] = useState<"all" | ParallaxCategory>("product");
+  const [selectedParallaxTheme, setSelectedParallaxTheme] = useState<ParallaxThemeProfile>(
+    PARALLAX_THEMES.find((t) => t.id === "tokyo-noir") || PARALLAX_THEMES[0]
+  );
+  const [depthPreset, setDepthPreset] = useState<ParallaxDepthPreset>("interactive-3d");
+  const [enableTiltStage, setEnableTiltStage] = useState(true);
+  const [enableExplodedSpecs, setEnableExplodedSpecs] = useState(true);
   const [autoMediaEnabled, setAutoMediaEnabled] = useState(true);
   const [pointerOffset, setPointerOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [synthesizedPreview, setSynthesizedPreview] = useState<{
@@ -175,37 +208,54 @@ export function LandingPageClient() {
   const handleToggleParallaxMode = () => {
     const nextMode = !parallaxMode;
     setParallaxMode(nextMode);
-    if (nextMode && !inputValue.trim()) {
-      const defaultCityPrompt = PARALLAX_CITY_SUGGESTIONS[0].prompt;
-      setInputValue(defaultCityPrompt);
-      setSelectedParallaxTheme(PARALLAX_THEMES[0]);
+    if (nextMode) {
+      const defaultTheme =
+        PARALLAX_THEMES.find((t) => t.category === parallaxCategoryFilter) || PARALLAX_THEMES[0];
+      if (!inputValue.trim()) {
+        setInputValue(defaultTheme.defaultPrompt);
+      }
+      setSelectedParallaxTheme(defaultTheme);
       saveBuilderDraftTransaction({
         source: "website",
-        prompt: defaultCityPrompt,
-        brandName: "Tokyo Cyber Metropolis",
+        prompt: inputValue.trim() || defaultTheme.defaultPrompt,
+        brandName: defaultTheme.name,
         parallaxMode: true,
-        parallaxThemeId: PARALLAX_THEMES[0].id,
+        parallaxThemeId: defaultTheme.id,
       });
     } else {
       saveBuilderDraftTransaction({
         source: "website",
         prompt: inputValue,
         brandName: extractBrandFromPrompt(inputValue),
-        parallaxMode: nextMode,
+        parallaxMode: false,
         parallaxThemeId: selectedParallaxTheme.id,
       });
+    }
+  };
+
+  const handleSelectParallaxCategory = (cat: "all" | ParallaxCategory) => {
+    setParallaxCategoryFilter(cat);
+    if (cat !== "all" && selectedParallaxTheme.category !== cat) {
+      const firstMatch = PARALLAX_THEMES.find((t) => t.category === cat);
+      if (firstMatch) {
+        handleSelectParallaxTheme(firstMatch);
+      }
     }
   };
 
   const handleSelectParallaxTheme = (theme: ParallaxThemeProfile) => {
     setSelectedParallaxTheme(theme);
     const matchingSuggestion = PARALLAX_CITY_SUGGESTIONS.find((s) => s.themeId === theme.id);
-    if (matchingSuggestion && (!inputValue.trim() || PARALLAX_CITY_SUGGESTIONS.some((s) => s.prompt === inputValue))) {
-      setInputValue(matchingSuggestion.prompt);
+    const isUsingPresetPrompt =
+      !inputValue.trim() ||
+      PARALLAX_CITY_SUGGESTIONS.some((s) => s.prompt === inputValue) ||
+      PARALLAX_THEMES.some((t) => t.defaultPrompt === inputValue);
+    if (isUsingPresetPrompt) {
+      setInputValue(matchingSuggestion?.prompt || theme.defaultPrompt);
     }
     saveBuilderDraftTransaction({
       source: "website",
-      prompt: inputValue || matchingSuggestion?.prompt || theme.tagline,
+      prompt: inputValue || theme.defaultPrompt,
       brandName: theme.city,
       parallaxMode: true,
       parallaxThemeId: theme.id,
@@ -234,13 +284,13 @@ export function LandingPageClient() {
       setSynthesizedPreview({
         imageUrl: imgData.imageUrl || selectedParallaxTheme.heroImage,
         videoUrl: vidData.videoUrl || selectedParallaxTheme.videoSrc,
-        status: `Synthesized 4K Layer Image + 60fps Motion Reel for ${selectedParallaxTheme.city}`,
+        status: `Synthesized 4K Layer Image + 60fps Motion Reel for ${selectedParallaxTheme.name}`,
       });
     } catch {
       setSynthesizedPreview({
         imageUrl: selectedParallaxTheme.heroImage,
         videoUrl: selectedParallaxTheme.videoSrc,
-        status: `Ready: ${selectedParallaxTheme.city} Studio Assets Loaded`,
+        status: `Ready: ${selectedParallaxTheme.name} 3D Assets Loaded`,
       });
     } finally {
       setIsSynthesizingMedia(false);
@@ -250,9 +300,7 @@ export function LandingPageClient() {
   const launchGeneration = () => {
     const finalPrompt =
       inputValue.trim() ||
-      (parallaxMode
-        ? `Create a multi-layer 3D parallax city website for ${selectedParallaxTheme.city} (${selectedParallaxTheme.name}) with generated imagery and video layers.`
-        : "");
+      (parallaxMode ? selectedParallaxTheme.defaultPrompt : "");
     if (!finalPrompt) return;
 
     if (!canCreateProject(stats.isPro)) {
@@ -267,7 +315,7 @@ export function LandingPageClient() {
       id: projectId,
       userId: user?.id || "guest",
       title: parallaxMode
-        ? `${selectedParallaxTheme.city} Parallax — ${finalPrompt.slice(0, 28)}`
+        ? `${selectedParallaxTheme.name} 3D — ${finalPrompt.slice(0, 24)}`
         : finalPrompt.slice(0, 40) + "...",
       prompt: finalPrompt,
       type: "website",
@@ -276,6 +324,10 @@ export function LandingPageClient() {
         prompt: finalPrompt,
         parallaxMode,
         parallaxThemeId: selectedParallaxTheme.id,
+        depthPreset,
+        enableTiltStage,
+        enableExplodedSpecs,
+        enableVideoLayer: autoMediaEnabled,
       },
     });
 
@@ -286,6 +338,10 @@ export function LandingPageClient() {
     if (parallaxMode) {
       query.set("parallax", "true");
       query.set("parallaxTheme", selectedParallaxTheme.id);
+      query.set("depthPreset", depthPreset);
+      query.set("tiltStage", String(enableTiltStage));
+      query.set("explodedSpecs", String(enableExplodedSpecs));
+      query.set("videoLayer", String(autoMediaEnabled));
     }
 
     router.push(`/editor/${projectId}?${query.toString()}`);
@@ -435,14 +491,14 @@ export function LandingPageClient() {
             </div>
           )}
 
-          {selectedParallaxTheme.id === "obsidian-kinetic" && (
+          {(selectedParallaxTheme.category === "product" || selectedParallaxTheme.id === "spatial-saas") && (
             <div
               style={{
                 transform: `translate3d(${pointerOffset.x * 22}px, ${pointerOffset.y * 22}px, 0)`,
               }}
               className="absolute top-24 left-1/2 -translate-x-1/2 w-[540px] h-[540px] rounded-full border border-white/10 flex items-center justify-center opacity-35 transition-transform duration-300"
             >
-              <div className="w-[380px] h-[380px] rounded-full border border-white/15 animate-ping [animation-duration:6s]" />
+              <div className="w-[380px] h-[380px] rounded-full border border-white/15" />
             </div>
           )}
         </div>
@@ -451,23 +507,33 @@ export function LandingPageClient() {
       {/* ── Hero Section ── */}
       <div className="relative z-10 text-center max-w-2xl mx-auto space-y-5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neutral-800 bg-neutral-900/80 text-xs text-neutral-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          <Layers className="w-3 h-3 text-white" />
           <span>
             {parallaxMode
-              ? `Parallax 3D Engine Active • ${selectedParallaxTheme.city} (${selectedParallaxTheme.coordinates})`
+              ? `3D Parallax Engine Active • ${selectedParallaxTheme.name} (${selectedParallaxTheme.coordinates})`
               : "AI-powered website & spatial parallax generation"}
           </span>
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white leading-[1.1]">
           {parallaxMode ? (
-            <>
-              Architect{" "}
-              <span className="font-serif italic text-neutral-200">
-                {selectedParallaxTheme.city}
-              </span>{" "}
-              in 3D Parallax
-            </>
+            selectedParallaxTheme.category === "product" ? (
+              <>
+                Showcase{" "}
+                <span className="font-serif italic text-neutral-200">
+                  {selectedParallaxTheme.name}
+                </span>{" "}
+                in 3D
+              </>
+            ) : (
+              <>
+                Architect{" "}
+                <span className="font-serif italic text-neutral-200">
+                  {selectedParallaxTheme.city}
+                </span>{" "}
+                in 3D Parallax
+              </>
+            )
           ) : (
             <>
               Build websites{" "}
@@ -530,7 +596,7 @@ export function LandingPageClient() {
           {/* Top Writing Box Mode Bar */}
           <div className="flex items-center justify-between flex-wrap gap-2 px-4 py-2.5 border-b border-neutral-800/80 bg-neutral-900/70">
             <div className="flex items-center gap-2">
-              {/* Parallax Mode Toggle inside Writing Box */}
+              {/* Parallax / 3D Mode Toggle inside Writing Box */}
               <button
                 type="button"
                 data-testid="parallax-mode-toggle"
@@ -542,7 +608,7 @@ export function LandingPageClient() {
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>Parallax Mode</span>
+                <span>Parallax / 3D Mode</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded font-mono uppercase ${
                     parallaxMode ? "bg-neutral-950 text-white" : "bg-neutral-800 text-neutral-400"
@@ -583,21 +649,50 @@ export function LandingPageClient() {
             </button>
           </div>
 
-          {/* Parallax Theme / City Selector Strip inside Writing Box when Parallax Mode is ON */}
+          {/* Dedicated 3D Parallax Focus Categories, Presets & Depth Controls */}
           {parallaxMode && (
-            <div className="px-4 py-3 bg-neutral-950/90 border-b border-neutral-800/80 space-y-2.5 animate-fade-in-up">
-              <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                <span className="font-mono uppercase tracking-wider flex items-center gap-1.5 text-neutral-300">
-                  <Compass className="w-3.5 h-3.5 text-white animate-spin [animation-duration:12s]" />
-                  <span>Select Parallax City / Spatial Theme:</span>
-                </span>
+            <div className="px-4 py-3 bg-neutral-950/95 border-b border-neutral-800/80 space-y-3 animate-fade-in-up">
+              {/* Focus Category Switcher */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {PARALLAX_FOCUS_TABS.map((tab) => {
+                    const active = parallaxCategoryFilter === tab.id;
+                    const Icon =
+                      tab.id === "product"
+                        ? Box
+                        : tab.id === "city"
+                        ? Building2
+                        : tab.id === "saas"
+                        ? Cpu
+                        : Compass;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        data-testid={`parallax-category-${tab.id}`}
+                        onClick={() => handleSelectParallaxCategory(tab.id)}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer border ${
+                          active
+                            ? "bg-white text-neutral-950 border-white shadow-sm"
+                            : "bg-neutral-900/70 text-neutral-400 border-neutral-800 hover:border-neutral-600 hover:text-white"
+                        }`}
+                      >
+                        <Icon className="w-3 h-3" />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
                 <span className="font-mono text-[10px] text-neutral-400">
                   {selectedParallaxTheme.coordinates}
                 </span>
               </div>
 
+              {/* Filtered Theme Grid (Product Dedicated, City, or Spatial SaaS) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {PARALLAX_THEMES.map((theme) => {
+                {PARALLAX_THEMES.filter(
+                  (t) => parallaxCategoryFilter === "all" || t.category === parallaxCategoryFilter
+                ).map((theme) => {
                   const isSelected = selectedParallaxTheme.id === theme.id;
                   return (
                     <button
@@ -607,21 +702,72 @@ export function LandingPageClient() {
                       onClick={() => handleSelectParallaxTheme(theme)}
                       className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer space-y-1 ${
                         isSelected
-                          ? "bg-neutral-800/90 border-white text-white shadow-sm"
+                          ? "bg-neutral-800/95 border-white text-white shadow-sm"
                           : "bg-neutral-900/60 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-300 font-semibold">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[9px] font-mono uppercase tracking-wider text-neutral-300 font-semibold truncate">
                           {theme.city}
                         </span>
-                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
                       </div>
                       <p className="text-xs font-semibold text-white truncate">{theme.name}</p>
-                      <p className="text-[10px] text-neutral-400 truncate">{theme.badge}</p>
+                      <p className="text-[10px] text-neutral-400 truncate">
+                        {theme.priceLabel ? `${theme.priceLabel} • 3D Stage` : theme.badge}
+                      </p>
                     </button>
                   );
                 })}
+              </div>
+
+              {/* 3D Depth & Dedicated Stage Modules Strip */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-neutral-800/70">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-mono uppercase text-neutral-400 flex items-center gap-1 mr-1">
+                    <SlidersHorizontal className="w-3 h-3" />
+                    <span>Depth:</span>
+                  </span>
+                  {DEPTH_PRESETS.map((dp) => (
+                    <button
+                      key={dp.id}
+                      type="button"
+                      onClick={() => setDepthPreset(dp.id)}
+                      className={`px-2 py-1 rounded-lg text-[10px] font-medium border transition-colors cursor-pointer ${
+                        depthPreset === dp.id
+                          ? "bg-neutral-800 border-white/60 text-white"
+                          : "bg-neutral-900/50 border-neutral-800 text-neutral-400 hover:text-neutral-200"
+                      }`}
+                    >
+                      {dp.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setEnableTiltStage((v) => !v)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-mono border transition-colors cursor-pointer ${
+                      enableTiltStage
+                        ? "bg-neutral-800 border-neutral-600 text-white"
+                        : "bg-neutral-900/40 border-neutral-800 text-neutral-500"
+                    }`}
+                  >
+                    3D Tilt Stage {enableTiltStage ? "✓" : "○"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEnableExplodedSpecs((v) => !v)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-mono border transition-colors cursor-pointer ${
+                      enableExplodedSpecs
+                        ? "bg-neutral-800 border-neutral-600 text-white"
+                        : "bg-neutral-900/40 border-neutral-800 text-neutral-500"
+                    }`}
+                  >
+                    Exploded Specs {enableExplodedSpecs ? "✓" : "○"}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -634,10 +780,10 @@ export function LandingPageClient() {
               onChange={(e) => handlePromptChange(e.target.value)}
               placeholder={
                 parallaxMode
-                  ? `Describe your ${selectedParallaxTheme.city} parallax website or city experience (e.g. 'Multi-layer Shinjuku skyline with glassmorphic district cards, generated aerial photography, and 60fps video background')...`
+                  ? `Describe your ${selectedParallaxTheme.name} 3D parallax site (e.g. 'Product-dedicated 3D titanium showcase with exploded spec layers, finish switcher, and 60fps video')...`
                   : "Describe your website..."
               }
-              className="w-full min-h-[130px] resize-none bg-transparent px-5 pt-4 pb-16 text-[15px] text-white placeholder:text-neutral-600 focus:ring-0 focus:outline-none transition-colors"
+              className="w-full min-h-[126px] resize-none bg-transparent px-5 pt-4 pb-16 text-[15px] text-white placeholder:text-neutral-600 focus:ring-0 focus:outline-none transition-colors"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -678,7 +824,7 @@ export function LandingPageClient() {
                   disabled={!inputValue.trim() && !parallaxMode}
                   className="h-9 px-4 rounded-xl bg-white text-neutral-950 hover:bg-neutral-200 transition-colors flex items-center gap-1.5 text-sm font-semibold disabled:opacity-30 cursor-pointer shadow-lg"
                 >
-                  <span>{parallaxMode ? `Launch ${selectedParallaxTheme.city} Parallax` : "Generate"}</span>
+                  <span>{parallaxMode ? `Launch ${selectedParallaxTheme.name.split(" ")[0]} 3D` : "Generate"}</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -687,85 +833,126 @@ export function LandingPageClient() {
         </div>
       </div>
 
-      {/* ── Live Interactive 3-Plane Parallax Theme Preview Card (Visible in Parallax Mode) ── */}
+      {/* ── Live Interactive 3D Perspective Stage Preview (Visible in Parallax / 3D Mode) ── */}
       {parallaxMode && (
-        <div className="relative z-10 w-full max-w-2xl mt-6 rounded-3xl border border-neutral-800 bg-neutral-950/90 overflow-hidden shadow-2xl animate-fade-in-up">
-          <div className="px-4 py-2.5 border-b border-neutral-800 flex items-center justify-between text-xs">
+        <div
+          className="relative z-10 w-full max-w-2xl mt-6 rounded-3xl border border-neutral-800 bg-neutral-950/95 overflow-visible shadow-2xl animate-fade-in-up"
+          style={{ perspective: "1200px" }}
+        >
+          <div className="px-4 py-2.5 border-b border-neutral-800 flex items-center justify-between text-xs rounded-t-3xl bg-neutral-950">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
               <span className="font-semibold text-white">
-                Live Theme Animation Preview: {selectedParallaxTheme.name}
+                Interactive 3D Stage: {selectedParallaxTheme.name}
               </span>
             </div>
             <span className="font-mono text-[10px] text-neutral-400">
-              3 Depth Planes • Image + 60fps Video Ready
+              {depthPreset.toUpperCase()} • Move Cursor to Tilt 3D Planes
             </span>
           </div>
 
-          <div className="relative h-56 sm:h-64 overflow-hidden bg-black">
-            {/* Plane 1: Far Background Image (0.18x) */}
-            <img
-              src={synthesizedPreview?.imageUrl || selectedParallaxTheme.heroImage}
-              alt={selectedParallaxTheme.name}
-              style={{
-                transform: `translate3d(${pointerOffset.x * -14}px, ${pointerOffset.y * -10}px, 0) scale(1.08)`,
-              }}
-              className="absolute inset-0 w-full h-full object-cover opacity-50 transition-transform duration-200 ease-out"
-            />
-
-            {/* Plane 2: Ambient Motion Video Overlay (0.42x) */}
-            <video
-              key={synthesizedPreview?.videoUrl || selectedParallaxTheme.videoSrc}
-              src={synthesizedPreview?.videoUrl || selectedParallaxTheme.videoSrc}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover opacity-35 mix-blend-screen pointer-events-none"
-            />
-
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
-
-            {/* Plane 3: Foreground Interactive Telemetry Cards (0.78x) */}
+          <div
+            className="relative h-64 sm:h-72 overflow-hidden bg-black rounded-b-3xl"
+            style={{
+              perspective: "1200px",
+              transformStyle: "preserve-3d",
+            }}
+          >
+            {/* 3D Tilting Stage Wrapper */}
             <div
               style={{
-                transform: `translate3d(${pointerOffset.x * 16}px, ${pointerOffset.y * 12}px, 0)`,
+                transformStyle: "preserve-3d",
+                transform: enableTiltStage
+                  ? `rotateX(${(-pointerOffset.y * (depthPreset === "subtle" ? 5 : 11)).toFixed(2)}deg) rotateY(${(pointerOffset.x * (depthPreset === "subtle" ? 5 : 11)).toFixed(2)}deg)`
+                  : "none",
               }}
-              className="relative z-10 h-full p-5 flex flex-col justify-between transition-transform duration-200 ease-out"
+              className="relative w-full h-full transition-transform duration-150 ease-out"
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="px-2.5 py-1 rounded-full bg-black/70 border border-white/20 backdrop-blur-md text-[10px] font-mono text-white">
-                  {selectedParallaxTheme.badge} • {selectedParallaxTheme.coordinates}
-                </span>
-                <span className="px-2.5 py-1 rounded-full bg-white text-black text-[10px] font-mono font-bold">
-                  PARALLAX 3D
-                </span>
-              </div>
+              {/* Plane Z-0 (-35px): Deep Horizon / Studio Plate */}
+              <img
+                src={synthesizedPreview?.imageUrl || selectedParallaxTheme.heroImage}
+                alt={selectedParallaxTheme.name}
+                style={{
+                  transform: `translate3d(${pointerOffset.x * -16}px, ${pointerOffset.y * -12}px, -35px) scale(1.12)`,
+                }}
+                className="absolute inset-0 w-full h-full object-cover opacity-55 transition-transform duration-150 ease-out"
+              />
 
-              <div className="grid grid-cols-3 gap-2.5">
-                {selectedParallaxTheme.landmarks.slice(0, 3).map((lm, i) => (
-                  <div
-                    key={i}
-                    className="p-2.5 rounded-xl bg-black/75 border border-white/15 backdrop-blur-md"
-                  >
-                    <p className="text-[9px] font-mono uppercase text-neutral-400 truncate">{lm.district}</p>
-                    <p className="text-xs font-bold text-white mt-0.5 truncate">{lm.name}</p>
-                    <p className="text-[10px] font-mono text-neutral-300">{lm.metric}</p>
+              {/* Plane Z-1 (-15px): Ambient 60fps Motion Video */}
+              {autoMediaEnabled && (
+                <video
+                  key={synthesizedPreview?.videoUrl || selectedParallaxTheme.videoSrc}
+                  src={synthesizedPreview?.videoUrl || selectedParallaxTheme.videoSrc}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  style={{
+                    transform: `translate3d(${pointerOffset.x * -8}px, ${pointerOffset.y * -6}px, -15px) scale(1.06)`,
+                  }}
+                  className="absolute inset-0 w-full h-full object-cover opacity-35 mix-blend-screen pointer-events-none"
+                />
+              )}
+
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none" />
+
+              {/* Plane Z-2 (+38px): Floating 3D HUD & Exploded Spec Layers */}
+              <div
+                style={{
+                  transform: `translate3d(${pointerOffset.x * 16}px, ${pointerOffset.y * 12}px, 38px)`,
+                  transformStyle: "preserve-3d",
+                }}
+                className="relative z-10 h-full p-5 flex flex-col justify-between transition-transform duration-150 ease-out"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="px-2.5 py-1 rounded-full bg-black/80 border border-white/20 backdrop-blur-md text-[10px] font-mono text-white">
+                    {selectedParallaxTheme.badge}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full bg-white text-black text-[10px] font-mono font-bold">
+                    {selectedParallaxTheme.priceLabel || "3D Z-STAGE"}
+                  </span>
+                </div>
+
+                {enableExplodedSpecs ? (
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {selectedParallaxTheme.landmarks.slice(0, 3).map((lm, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          transform: `translateZ(${18 + i * 8}px)`,
+                        }}
+                        className="p-2.5 rounded-xl bg-black/85 border border-white/20 backdrop-blur-md shadow-xl"
+                      >
+                        <p className="text-[9px] font-mono uppercase text-neutral-400 truncate">
+                          +{lm.zDepth}PX • {lm.district.split("•")[0]}
+                        </p>
+                        <p className="text-xs font-bold text-white mt-0.5 truncate">{lm.name}</p>
+                        <p className="text-[10px] font-mono text-neutral-300">{lm.metric}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="p-3 rounded-xl bg-black/80 border border-white/15 backdrop-blur-md flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-white">{selectedParallaxTheme.name}</p>
+                      <p className="text-[10px] text-neutral-400">{selectedParallaxTheme.coordinates}</p>
+                    </div>
+                    <span className="text-xs font-mono text-white">{selectedParallaxTheme.elevation}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {synthesizedPreview && (
-            <div className="px-4 py-2 bg-neutral-900 border-t border-neutral-800 flex items-center justify-between text-[11px] text-neutral-300">
+            <div className="px-4 py-2 bg-neutral-900 border-t border-neutral-800 flex items-center justify-between text-[11px] text-neutral-300 rounded-b-3xl">
               <span>✓ {synthesizedPreview.status}</span>
               <button
                 type="button"
                 onClick={launchGeneration}
-                className="text-white font-semibold hover:underline"
+                className="text-white font-semibold hover:underline cursor-pointer"
               >
-                Open Full Parallax Website in Studio →
+                Open Full 3D Website in Studio →
               </button>
             </div>
           )}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, use, Suspense, useCallback } from "react";
+import React, { useState, useEffect, useRef, use, Suspense, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -18,7 +18,6 @@ import {
   FileCode,
   Image as ImageIcon,
   Hexagon,
-  Download,
   RotateCcw,
   Palette,
   MessageSquare,
@@ -38,7 +37,12 @@ import { UserButton } from "@/components/auth/UserButton";
 import { InlineCustomizer, SelectedElement } from "@/components/editor/InlineCustomizer";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { getProjectById, saveProject } from "@/lib/projects";
-import { PARALLAX_THEMES, detectParallaxIntent } from "@/lib/parallax";
+import {
+  PARALLAX_THEMES,
+  ParallaxCategory,
+  ParallaxDepthPreset,
+  detectParallaxIntent,
+} from "@/lib/parallax";
 import {
   moveSectionInHtml,
   duplicateSectionInHtml,
@@ -46,6 +50,7 @@ import {
   updateSectionTextInHtml,
   updateSectionImageInHtml,
   buildIframeBridgeScript,
+  extractSelectedElementFromMessage,
 } from "@/lib/editor-dom";
 import {
   convertWebsitePromptToShopifyPrompt,
@@ -167,6 +172,10 @@ function EditorContent({ projectId }: { projectId: string }) {
 
   const urlParallax = searchParams?.get("parallax") === "true";
   const urlParallaxTheme = searchParams?.get("parallaxTheme") || "";
+  const urlDepthPreset = (searchParams?.get("depthPreset") as ParallaxDepthPreset) || "interactive-3d";
+  const urlTiltStage = searchParams?.get("tiltStage") !== "false";
+  const urlExplodedSpecs = searchParams?.get("explodedSpecs") !== "false";
+  const urlVideoLayer = searchParams?.get("videoLayer") !== "false";
   const detectedIntent = detectParallaxIntent(initialPrompt);
 
   const { user } = useAuth();
@@ -175,15 +184,20 @@ function EditorContent({ projectId }: { projectId: string }) {
     !isShopify && (urlParallax || detectedIntent.isParallax)
   );
   const [parallaxThemeId, setParallaxThemeId] = useState<string>(
-    urlParallaxTheme || detectedIntent.theme.id || "tokyo-noir"
+    urlParallaxTheme || detectedIntent.theme.id || "obsidian-kinetic"
   );
+  const [parallaxCategoryFilter, setParallaxCategoryFilter] = useState<"all" | ParallaxCategory>("all");
+  const [depthPreset, setDepthPreset] = useState<ParallaxDepthPreset>(urlDepthPreset);
+  const [enableTiltStage, setEnableTiltStage] = useState<boolean>(urlTiltStage);
+  const [enableExplodedSpecs, setEnableExplodedSpecs] = useState<boolean>(urlExplodedSpecs);
+  const [enableVideoLayer, setEnableVideoLayer] = useState<boolean>(urlVideoLayer);
 
   const [activePageTab, setActivePageTab] = useState("Home Page");
   const [pageTabs, setPageTabs] = useState(
     isShopify
       ? ["Home Page", "Product Page", "Cart Page"]
       : urlParallax || detectedIntent.isParallax
-      ? ["Home Page", "Districts", "Reservations"]
+      ? ["Home Page", "Specs", "Editions"]
       : ["Home Page", "Features", "Pricing"]
   );
 
@@ -205,14 +219,15 @@ function EditorContent({ projectId }: { projectId: string }) {
         isShopify
           ? "Shopify Liquid 2.0 Studio"
           : parallaxMode
-          ? "Obsidian 3D Parallax & City Studio"
+          ? "Obsidian 3D Parallax & Product Studio"
           : "Obsidian Website Studio"
-      }! Live workspace initialized for prompt: "${initialPrompt}"`,
+      }! Workspace initialized for prompt: "${initialPrompt}"`,
       time: "Just now",
     },
   ]);
   const [inputInstruction, setInputInstruction] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [streamingCharCount, setStreamingCharCount] = useState(0);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [copiedMsg, setCopiedMsg] = useState<number | null>(null);
 
@@ -232,17 +247,28 @@ function EditorContent({ projectId }: { projectId: string }) {
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const initializedProjectRef = useRef<string | null>(null);
 
   const generateInitialCode = useCallback(
     async (
       prompt: string,
       pageName: string,
       overrideParallaxMode?: boolean,
-      overrideParallaxThemeId?: string
+      overrideParallaxThemeId?: string,
+      overrideDepthPreset?: ParallaxDepthPreset,
+      overrideTiltStage?: boolean,
+      overrideExplodedSpecs?: boolean,
+      overrideVideoLayer?: boolean
     ) => {
       setIsGenerating(true);
+      setStreamingCharCount(0);
       const effectiveParallax = overrideParallaxMode ?? parallaxMode;
       const effectiveThemeId = overrideParallaxThemeId ?? parallaxThemeId;
+      const effectiveDepth = overrideDepthPreset ?? depthPreset;
+      const effectiveTilt = overrideTiltStage ?? enableTiltStage;
+      const effectiveExploded = overrideExplodedSpecs ?? enableExplodedSpecs;
+      const effectiveVideo = overrideVideoLayer ?? enableVideoLayer;
+
       try {
         const res = await fetch("/api/generate", {
           method: "POST",
@@ -253,6 +279,12 @@ function EditorContent({ projectId }: { projectId: string }) {
             pageName,
             parallaxMode: effectiveParallax,
             parallaxThemeId: effectiveThemeId,
+            parallaxOptions: {
+              depthPreset: effectiveDepth,
+              enableTiltStage: effectiveTilt,
+              enableExplodedSpecs: effectiveExploded,
+              enableVideoLayer: effectiveVideo,
+            },
           }),
         });
 
@@ -266,23 +298,25 @@ function EditorContent({ projectId }: { projectId: string }) {
           const { done, value } = await reader.read();
           if (done) break;
           accumulated += decoder.decode(value, { stream: true });
-
-          setPageCodes((prev) => ({
-            ...prev,
-            [pageName]: {
-              html: accumulated,
-              css: `body{background:${activeTheme.bg};color:#fafafa;font-family:sans-serif;}`,
-            },
-          }));
+          setStreamingCharCount(accumulated.length);
         }
+
+        // Commit the complete, valid HTML once so <iframe srcDoc> mounts cleanly without flicker or broken scripts
+        setPageCodes((prev) => ({
+          ...prev,
+          [pageName]: {
+            html: accumulated,
+            css: `body{background:${activeTheme.bg};color:#fafafa;font-family:sans-serif;}`,
+          },
+        }));
 
         setChatMessages((prev) => [
           ...prev,
           {
             role: "assistant",
             content: `✓ ${pageName} ${
-              effectiveParallax ? "(3D Parallax Engine + Media)" : "live layout"
-            } synthesized and compiled successfully.`,
+              effectiveParallax ? `(3D ${effectiveDepth.toUpperCase()} Engine + Media)` : "live layout"
+            } compiled cleanly.`,
             time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           },
         ]);
@@ -290,13 +324,26 @@ function EditorContent({ projectId }: { projectId: string }) {
         console.error("Generation error:", err);
       } finally {
         setIsGenerating(false);
+        setStreamingCharCount(0);
       }
     },
-    [activeTheme.bg, parallaxMode, parallaxThemeId, projectId]
+    [
+      activeTheme.bg,
+      depthPreset,
+      enableExplodedSpecs,
+      enableTiltStage,
+      enableVideoLayer,
+      parallaxMode,
+      parallaxThemeId,
+      projectId,
+    ]
   );
 
-  // Load saved project or generate initial code on mount
+  // Load saved project or generate initial code ONCE per projectId
   useEffect(() => {
+    if (initializedProjectRef.current === projectId) return;
+    initializedProjectRef.current = projectId;
+
     const existing = getProjectById(projectId);
     if (existing?.data?.pages && Object.keys(existing.data.pages).length > 0) {
       const savedPages = existing.data.pages;
@@ -304,12 +351,14 @@ function EditorContent({ projectId }: { projectId: string }) {
       const savedChat = existing.data.chatMessages;
       const savedParallax = existing.data.parallaxMode;
       const savedThemeId = existing.data.parallaxThemeId;
+      const savedDepth = existing.data.depthPreset as ParallaxDepthPreset | undefined;
       const timer = window.setTimeout(() => {
         setPageCodes(savedPages);
         if (savedTabs?.length) setPageTabs(savedTabs);
         if (savedChat?.length) setChatMessages(savedChat);
         if (typeof savedParallax === "boolean") setParallaxMode(savedParallax);
         if (savedThemeId) setParallaxThemeId(savedThemeId);
+        if (savedDepth) setDepthPreset(savedDepth);
       }, 0);
       return () => window.clearTimeout(timer);
     }
@@ -348,6 +397,10 @@ function EditorContent({ projectId }: { projectId: string }) {
         fontId: activeFont.id,
         parallaxMode,
         parallaxThemeId,
+        depthPreset,
+        enableTiltStage,
+        enableExplodedSpecs,
+        enableVideoLayer,
       },
     });
   }, [
@@ -358,26 +411,26 @@ function EditorContent({ projectId }: { projectId: string }) {
     activeFont.id,
     parallaxMode,
     parallaxThemeId,
+    depthPreset,
+    enableTiltStage,
+    enableExplodedSpecs,
+    enableVideoLayer,
     projectId,
     user?.id,
     initialPrompt,
     isShopify,
   ]);
 
-  // Listen for iframe element selection & postMessage events
+  // Listen for iframe element selection & postMessage events (FIXED nested element extraction)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data === "openChat") {
         setSidebarTab("chat");
         return;
       }
-      if (event.data && typeof event.data === "object" && event.data.type === "OBSIDIAN_SELECT_ELEMENT") {
-        setSelectedElement({
-          sectionId: String(event.data.sectionId || "hero"),
-          tagName: String(event.data.tagName || "section"),
-          textContent: String(event.data.textContent || ""),
-          imgSrc: event.data.imgSrc ? String(event.data.imgSrc) : undefined,
-        });
+      const selected = extractSelectedElementFromMessage(event.data);
+      if (selected) {
+        setSelectedElement(selected);
       }
     };
     window.addEventListener("message", handleMessage);
@@ -417,11 +470,37 @@ function EditorContent({ projectId }: { projectId: string }) {
     );
   };
 
-  const handleToggleParallaxInEditor = async (nextParallax: boolean, nextThemeId?: string) => {
+  const handleToggleParallaxInEditor = async (
+    nextParallax: boolean,
+    nextThemeId?: string,
+    nextDepth?: ParallaxDepthPreset,
+    nextTilt?: boolean,
+    nextExploded?: boolean,
+    nextVideo?: boolean
+  ) => {
     const themeToUse = nextThemeId || parallaxThemeId;
+    const depthToUse = nextDepth || depthPreset;
+    const tiltToUse = nextTilt ?? enableTiltStage;
+    const explodedToUse = nextExploded ?? enableExplodedSpecs;
+    const videoToUse = nextVideo ?? enableVideoLayer;
+
     setParallaxMode(nextParallax);
     if (nextThemeId) setParallaxThemeId(nextThemeId);
-    await generateInitialCode(initialPrompt, activePageTab, nextParallax, themeToUse);
+    if (nextDepth) setDepthPreset(nextDepth);
+    if (typeof nextTilt === "boolean") setEnableTiltStage(nextTilt);
+    if (typeof nextExploded === "boolean") setEnableExplodedSpecs(nextExploded);
+    if (typeof nextVideo === "boolean") setEnableVideoLayer(nextVideo);
+
+    await generateInitialCode(
+      initialPrompt,
+      activePageTab,
+      nextParallax,
+      themeToUse,
+      depthToUse,
+      tiltToUse,
+      explodedToUse,
+      videoToUse
+    );
   };
 
   const handleSynthesizeAndInsertMedia = async (kind: "image" | "video") => {
@@ -755,30 +834,36 @@ function EditorContent({ projectId }: { projectId: string }) {
       ];
 
   const currentHtml = pageCodes[activePageTab]?.html || "";
-  const iframeBridge = buildIframeBridgeScript();
+  const iframeBridge = useMemo(() => buildIframeBridgeScript(), []);
+
+  // Memoize srcDoc so typing in the left panel or toggling modals NEVER causes iframe flicker or script teardown
+  const previewSrcDoc = useMemo(() => {
+    if (!currentHtml.trim()) return "";
+    return `<!DOCTYPE html><html lang="en" class="dark"><head><meta charset="UTF-8"><meta name="color-scheme" content="dark"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&f[]=cabinet-grotesk@500,700,800,900&f[]=syne@500,700,800&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><style>html,body{margin:0;padding:0;background:${activeTheme.bg};color:#fafafa;font-family:${activeFont.bodyCss};overflow-x:hidden;}h1,h2,h3,h4,h5,h6{font-family:${activeFont.headingCss};letter-spacing:0.005em;}.font-display{font-family:'Clash Display','Satoshi',sans-serif;}.font-heading{font-family:${activeFont.headingCss};}.font-sans{font-family:${activeFont.bodyCss};}.font-editorial{font-family:'Cormorant Garamond','Instrument Serif',Georgia,serif;}.font-serif{font-family:'Instrument Serif',Georgia,serif;}.font-brutalist{font-family:'Cabinet Grotesk',sans-serif;}.font-cyber{font-family:'Syne','Space Grotesk',sans-serif;}.font-jakarta{font-family:'Plus Jakarta Sans',sans-serif;}.font-mono{font-family:'IBM Plex Mono',monospace;}</style></head><body class="${activeFont.bodyClass}">${currentHtml}${iframeBridge}</body></html>`;
+  }, [currentHtml, activeTheme.bg, activeFont.bodyCss, activeFont.headingCss, activeFont.bodyClass, iframeBridge]);
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] text-neutral-100 flex flex-col z-50 overflow-hidden font-sans">
       {/* Top Header Action Bar */}
-      <header className="h-14 bg-neutral-900 border-b border-neutral-800 px-4 flex items-center justify-between shrink-0 shadow-lg">
-        <div className="flex items-center gap-3">
-          <Link href={isShopify ? "/builder" : "/"}>
+      <header className="h-14 bg-neutral-900 border-b border-neutral-800 px-4 flex items-center justify-between shrink-0 shadow-lg whitespace-nowrap">
+        <div className="flex items-center gap-3 shrink-0">
+          <Link href={isShopify ? "/builder" : "/"} className="shrink-0">
             <Button size="sm" variant="outline" leftIcon={<ArrowLeft className="w-4 h-4" />}>
-              {isShopify ? "Shopify Studio" : "Website Builder"}
+              {isShopify ? "Shopify Studio" : "Studio Home"}
             </Button>
           </Link>
           <div className="h-4 w-px bg-neutral-800 hidden sm:block" />
-          <div className="flex items-center gap-2 max-w-[180px] sm:max-w-xs truncate">
+          <div className="flex items-center gap-2 max-w-[160px] sm:max-w-[200px] truncate">
             {isShopify ? (
               <ShopifyIcon className="w-4 h-4 fill-white text-white shrink-0" />
             ) : (
               <Hexagon className="w-4 h-4 fill-white text-white shrink-0" />
             )}
             <h1 className="text-xs sm:text-sm font-medium text-neutral-100 truncate">
-              {initialPrompt.slice(0, 30)}...
+              {initialPrompt.slice(0, 26)}...
             </h1>
             {parallaxMode && !isShopify && (
-              <span className="hidden lg:inline-block px-2 py-0.5 rounded bg-white text-black text-[9px] font-mono font-bold">
+              <span className="hidden xl:inline-block px-2 py-0.5 rounded bg-white text-black text-[9px] font-mono font-bold shrink-0">
                 PARALLAX 3D
               </span>
             )}
@@ -786,12 +871,12 @@ function EditorContent({ projectId }: { projectId: string }) {
         </div>
 
         {/* Page Tabs with Auto-Synthesis & Zero-Token Adding */}
-        <div className="hidden md:flex items-center gap-1 bg-[#0a0a0a] p-1 rounded-xl border border-neutral-800">
+        <div className="hidden md:flex items-center gap-1 bg-[#0a0a0a] p-1 rounded-xl border border-neutral-800 shrink-0">
           {pageTabs.map((tab) => (
             <div
               key={tab}
               onClick={() => handleSelectPageTab(tab)}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer group ${
+              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer group whitespace-nowrap ${
                 activePageTab === tab
                   ? "bg-neutral-800 text-white shadow-sm font-medium"
                   : "text-neutral-400 hover:text-neutral-200"
@@ -812,7 +897,7 @@ function EditorContent({ projectId }: { projectId: string }) {
           <button
             onClick={() => setShowAddPageModal(true)}
             title="Add Page (0 Tokens)"
-            className="p-1 text-neutral-400 hover:text-white rounded-md hover:bg-neutral-800 transition-colors flex items-center gap-1 px-2 text-xs font-medium"
+            className="p-1 text-neutral-400 hover:text-white rounded-md hover:bg-neutral-800 transition-colors flex items-center gap-1 px-2 text-xs font-medium whitespace-nowrap"
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="text-[10px]">Add Page</span>
@@ -820,15 +905,15 @@ function EditorContent({ projectId }: { projectId: string }) {
         </div>
 
         {/* Viewport, Cross-Builder Bridge & Export Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={handleCrossBuilderConvert}
-            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700 text-[11px] font-medium text-neutral-200 hover:text-white transition-colors cursor-pointer"
+            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700 text-[11px] font-medium text-neutral-200 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
             title={isShopify ? "Convert Store to 3D Parallax Website" : "Convert Website to Shopify OS 2.0 Store"}
           >
             <ArrowLeftRight className="w-3 h-3" />
-            <span>{isShopify ? "To Parallax Site" : "To Shopify Store"}</span>
+            <span>{isShopify ? "To Parallax" : "To Shopify"}</span>
           </button>
 
           <div className="hidden lg:flex items-center bg-[#0a0a0a] rounded-xl p-1 border border-neutral-800">
@@ -866,18 +951,18 @@ function EditorContent({ projectId }: { projectId: string }) {
               size="sm"
               onClick={handleExportShopify}
               leftIcon={<ShopifyIcon className="w-4 h-4 fill-neutral-950" />}
-              className="bg-white hover:bg-neutral-200 text-neutral-950 font-medium shadow-md shadow-white/5"
+              className="bg-white hover:bg-neutral-200 text-neutral-950 font-medium shadow-md shadow-white/5 whitespace-nowrap"
             >
-              Export Shopify (ZIP)
+              Export Shopify
             </Button>
           ) : (
             <Button
               size="sm"
               onClick={handleExportStaticCode}
               leftIcon={<FileCode className="w-3.5 h-3.5" />}
-              className="bg-white text-neutral-950 hover:bg-neutral-200 font-medium"
+              className="bg-white text-neutral-950 hover:bg-neutral-200 font-medium whitespace-nowrap"
             >
-              Export Code (ZIP)
+              Export ZIP
             </Button>
           )}
 
@@ -1149,31 +1234,136 @@ function EditorContent({ projectId }: { projectId: string }) {
           {sidebarTab === "theme" && (
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {!isShopify && (
-                <div className="space-y-2 pb-3 border-b border-neutral-800">
+                <div className="space-y-3 pb-4 border-b border-neutral-800">
                   <div className="flex items-center justify-between px-1">
-                    <p className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold flex items-center gap-1">
-                      <Compass className="w-3 h-3 text-white" />
-                      <span>3D Parallax City & Spatial Theme</span>
+                    <p className="text-[10px] uppercase tracking-wider text-neutral-300 font-semibold flex items-center gap-1.5">
+                      <Compass className="w-3.5 h-3.5 text-white" />
+                      <span>3D Parallax & Product Dedicated</span>
                     </p>
+                    <span className="text-[9px] font-mono text-neutral-400">
+                      {depthPreset.toUpperCase()}
+                    </span>
                   </div>
+
+                  {/* Category filter */}
+                  <div className="grid grid-cols-4 gap-1 bg-[#0a0a0a] p-1 rounded-xl border border-neutral-800 text-[10px]">
+                    {(
+                      [
+                        { id: "all", label: "All" },
+                        { id: "product", label: "Product" },
+                        { id: "city", label: "Cities" },
+                        { id: "saas", label: "SaaS" },
+                      ] as const
+                    ).map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setParallaxCategoryFilter(cat.id)}
+                        className={`py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                          parallaxCategoryFilter === cat.id
+                            ? "bg-white text-black font-semibold"
+                            : "text-neutral-400 hover:text-white"
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Depth Profile + 3D Modules */}
+                  <div className="space-y-1.5">
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(
+                        [
+                          { id: "interactive-3d", label: "3D Tilt" },
+                          { id: "cinematic", label: "Cinematic" },
+                          { id: "subtle", label: "Subtle" },
+                        ] as const
+                      ).map((dp) => (
+                        <button
+                          key={dp.id}
+                          type="button"
+                          disabled={isGenerating}
+                          onClick={() => void handleToggleParallaxInEditor(true, parallaxThemeId, dp.id)}
+                          className={`py-1.5 rounded-lg text-[10px] font-mono border transition-colors cursor-pointer ${
+                            depthPreset === dp.id
+                              ? "bg-neutral-800 border-white text-white"
+                              : "bg-[#0a0a0a] border-neutral-800 text-neutral-400 hover:text-white"
+                          }`}
+                        >
+                          {dp.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        disabled={isGenerating}
+                        onClick={() =>
+                          void handleToggleParallaxInEditor(
+                            true,
+                            parallaxThemeId,
+                            depthPreset,
+                            !enableTiltStage,
+                            enableExplodedSpecs,
+                            enableVideoLayer
+                          )
+                        }
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-mono border transition-colors cursor-pointer ${
+                          enableTiltStage
+                            ? "bg-neutral-800 border-neutral-600 text-white"
+                            : "bg-[#0a0a0a] border-neutral-800 text-neutral-500"
+                        }`}
+                      >
+                        3D Cursor Tilt {enableTiltStage ? "✓" : "○"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isGenerating}
+                        onClick={() =>
+                          void handleToggleParallaxInEditor(
+                            true,
+                            parallaxThemeId,
+                            depthPreset,
+                            enableTiltStage,
+                            !enableExplodedSpecs,
+                            enableVideoLayer
+                          )
+                        }
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-mono border transition-colors cursor-pointer ${
+                          enableExplodedSpecs
+                            ? "bg-neutral-800 border-neutral-600 text-white"
+                            : "bg-[#0a0a0a] border-neutral-800 text-neutral-500"
+                        }`}
+                      >
+                        Exploded Specs {enableExplodedSpecs ? "✓" : "○"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Theme Presets List */}
                   <div className="grid grid-cols-1 gap-2">
-                    {PARALLAX_THEMES.map((pt) => (
+                    {PARALLAX_THEMES.filter(
+                      (pt) => parallaxCategoryFilter === "all" || pt.category === parallaxCategoryFilter
+                    ).map((pt) => (
                       <button
                         key={pt.id}
                         type="button"
                         disabled={isGenerating}
-                        onClick={() => handleToggleParallaxInEditor(true, pt.id)}
+                        onClick={() => void handleToggleParallaxInEditor(true, pt.id)}
                         className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
                           parallaxMode && parallaxThemeId === pt.id
                             ? "bg-neutral-900 border-white text-white"
                             : "bg-[#0a0a0a]/60 border-neutral-800 text-neutral-400 hover:border-neutral-700"
                         }`}
                       >
-                        <div>
-                          <p className="text-xs font-semibold text-white">
-                            {pt.city} — {pt.name}
+                        <div className="min-w-0 pr-2">
+                          <p className="text-xs font-semibold text-white truncate">
+                            {pt.name}
                           </p>
-                          <p className="text-[10px] text-neutral-400 font-mono">{pt.coordinates}</p>
+                          <p className="text-[10px] text-neutral-400 font-mono truncate">
+                            {pt.city} {pt.priceLabel ? `• ${pt.priceLabel}` : ""}
+                          </p>
                         </div>
                         {parallaxMode && parallaxThemeId === pt.id && (
                           <Check className="w-4 h-4 text-white shrink-0" />
@@ -1385,15 +1575,40 @@ function EditorContent({ projectId }: { projectId: string }) {
               </div>
             </div>
 
-            <div className="flex-1 relative overflow-auto bg-black">
+            <div className="flex-1 relative overflow-hidden bg-black">
               {activeView === "preview" && (
-                <div className="w-full h-full">
-                  <iframe
-                    ref={iframeRef}
-                    title="Live Preview Canvas"
-                    srcDoc={`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&f[]=cabinet-grotesk@500,700,800,900&f[]=syne@500,700,800&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><style>body{margin:0;padding:0;background:${activeTheme.bg};color:#fafafa;font-family:${activeFont.bodyCss};}h1,h2,h3,h4,h5,h6{font-family:${activeFont.headingCss};letter-spacing:-0.03em;}.font-display{font-family:'Clash Display','Satoshi',sans-serif;}.font-heading{font-family:${activeFont.headingCss};}.font-sans{font-family:${activeFont.bodyCss};}.font-editorial{font-family:'Cormorant Garamond','Instrument Serif',Georgia,serif;}.font-serif{font-family:'Instrument Serif',Georgia,serif;}.font-brutalist{font-family:'Cabinet Grotesk',sans-serif;}.font-cyber{font-family:'Syne','Space Grotesk',sans-serif;}.font-jakarta{font-family:'Plus Jakarta Sans',sans-serif;}.font-mono{font-family:'IBM Plex Mono',monospace;}</style></head><body class="${activeFont.bodyClass}">${currentHtml}${iframeBridge}</body></html>`}
-                    className="w-full h-full border-none"
-                  />
+                <div className="w-full h-full relative">
+                  {previewSrcDoc ? (
+                    <iframe
+                      ref={iframeRef}
+                      title="Live Preview Canvas"
+                      srcDoc={previewSrcDoc}
+                      className="w-full h-full border-none bg-black"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-300 p-8 text-center space-y-4">
+                      <Loader2 className="w-7 h-7 animate-spin text-white" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-white">
+                          Synthesizing {parallaxMode ? "3D Parallax" : "Live"} Canvas...
+                        </p>
+                        <p className="text-xs font-mono text-zinc-400">
+                          {streamingCharCount > 0
+                            ? `${streamingCharCount.toLocaleString()} bytes compiled cleanly`
+                            : "Preparing 3D planes & studio assets"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {isGenerating && previewSrcDoc && (
+                    <div className="absolute bottom-4 right-4 z-20 px-3.5 py-2 rounded-xl bg-zinc-950/90 border border-zinc-700 backdrop-blur-xl flex items-center gap-2.5 text-xs text-white shadow-2xl">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span className="font-mono text-[11px]">
+                        Updating 3D Canvas ({streamingCharCount.toLocaleString()} bytes)...
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
               {activeView === "code" && (

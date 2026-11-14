@@ -30,8 +30,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
       video
         .play()
         .then(() => setIsPlaying(true))
-        .catch((err) => {
-          console.warn("Video autoplay waiting for interaction:", err);
+        .catch(() => {
           const handleFirstClick = () => {
             video.play().then(() => setIsPlaying(true)).catch(() => {});
             window.removeEventListener("click", handleFirstClick);
@@ -56,7 +55,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
         loop
         muted
         playsInline
-        preload="auto"
+        preload="metadata"
         className="h-full w-full object-cover scale-100 filter saturate-125 contrast-110"
         style={{ opacity }}
       >
