@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
-import { detectParallaxIntent, generateParallaxWebsiteHtml } from "@/lib/parallax";
+import {
+  buildBackgroundParallaxPrompt,
+  buildUniversalParallaxRuntimeScript,
+  detectParallaxIntent,
+  generateParallaxWebsiteHtml,
+  ParallaxGenerationOptions,
+  synthesizeCustomParallaxTheme,
+} from "@/lib/parallax";
+import {
+  buildWebsiteCustomizationPrompt,
+  buildWebsiteEndToEndSupplementalSections,
+  buildWebsiteThemeStyleBlock,
+  generateStandardCustomWebsiteHtml,
+  mergeWebsiteConfig,
+  WebsiteCustomConfig,
+} from "@/lib/customization";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const modelName = process.env.GEMINI_MODEL_NAME || "gemini-4-hydrogen";
@@ -23,10 +38,18 @@ export async function POST(req: NextRequest) {
     const projectId: string = body?.projectId || "";
     const pageName: string = body?.pageName || "Home Page";
     const parallaxMode: boolean = Boolean(body?.parallaxMode);
-    const parallaxThemeId: string | undefined = body?.parallaxThemeId;
-    const parallaxOptions = body?.parallaxOptions && typeof body.parallaxOptions === "object"
-      ? body.parallaxOptions
-      : undefined;
+    const parallaxThemeId: string | undefined =
+      typeof body?.parallaxThemeId === "string" && body.parallaxThemeId.trim().length > 0
+        ? body.parallaxThemeId.trim()
+        : undefined;
+    const parallaxOptions: ParallaxGenerationOptions | undefined =
+      body?.parallaxOptions && typeof body.parallaxOptions === "object"
+        ? (body.parallaxOptions as ParallaxGenerationOptions)
+        : undefined;
+    const websiteConfig: WebsiteCustomConfig | undefined =
+      body?.websiteConfig && typeof body.websiteConfig === "object"
+        ? mergeWebsiteConfig(body.websiteConfig as Partial<WebsiteCustomConfig>)
+        : undefined;
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
@@ -81,22 +104,31 @@ export async function POST(req: NextRequest) {
     );
 
     const systemInstruction = `You are an expert AI front-end engineer, spatial 3D parallax architect, and Shopify Liquid Theme designer.
-Generate a complete, modern, responsive HTML page styled strictly with Tailwind CSS utility classes using the Obsidian Luxury Monochrome Noir Theme.
+Generate a complete, modern, responsive HTML page styled with Tailwind CSS utility classes using Obsidian's dark luxury aesthetic customized with the user's selected color accents, typography, and modular sections.
 
 DESIGN SPECIFICATIONS:
-1. Palette: Strict luxury monochrome noir palette. Deep obsidian background (bg-zinc-950), dark zinc card surfaces (bg-zinc-900/90 border border-zinc-800), high-contrast pure white headings and primary CTA buttons (text-white font-black, bg-white text-zinc-950 hover:bg-zinc-200), silver/frost accents (border-zinc-700, bg-zinc-800/80 text-zinc-200), and muted zinc descriptions (text-zinc-400). Strictly 0 green, emerald, teal, or saturated color accents.
+1. Palette: Deep dark background (bg-zinc-950), crisp card surfaces (bg-zinc-900/90 border border-zinc-800), high-contrast pure white headings, and tasteful colorful accent highlights matching the user's customization tokens.
 2. Typography: Clean modern typography with proper letter-spacing (font-heading, font-sans).
 3. Local Assets Only: Use local high-resolution assets (/images/parallax-tokyo.jpg, /images/parallax-alps.jpg, /images/parallax-nyc.jpg, /images/product-skincare.jpg, /images/product-streetwear.jpg, /images/product-audio.jpg, /images/product-coffee.jpg, /background.mp4, /shopify-bg.mp4). Never use external Unsplash URLs.
 4. Section Annotations: Annotate each section with data-section attributes:
-   - <section data-section="announcement-bar" class="bg-zinc-900/90 border-b border-zinc-800 text-zinc-300 py-2 px-4 text-center text-xs font-mono">
-   - <header data-section="header" class="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-   - <section data-section="hero" id="hero" class="relative py-24 px-6 text-center border-b border-zinc-800 bg-gradient-to-b from-zinc-900/50 to-zinc-950">
-   - <section data-section="products" id="products" class="py-20 px-6 max-w-7xl mx-auto border-b border-zinc-800">
-   - <section data-section="features" id="features" class="py-20 px-6 max-w-7xl mx-auto border-b border-zinc-800">
-   - <section data-section="reviews" id="reviews" class="py-20 px-6 max-w-7xl mx-auto border-b border-zinc-800">
-   - <footer data-section="footer" id="footer" class="py-16 px-6 bg-zinc-950 border-t border-zinc-800 text-zinc-400 text-xs">
-${isParallax ? "5. 3D Parallax Architecture: Include perspective(1200px), preserve-3d, data-parallax-speed and data-parallax-z planes, damped cursor 3D tilt, and viewport-centered requestAnimationFrame scroll physics." : ""}
-Output: Return ONLY pure, valid HTML markup. Zero markdown wrappers, zero meta preambles.`;
+   - <section data-section="announcement-bar">
+   - <header data-section="header">
+   - <section data-section="hero" id="hero">
+   - <section data-section="products" id="products">
+   - <section data-section="features" id="features">
+   - <section data-section="pricing" id="pricing">
+   - <section data-section="testimonials" id="testimonials">
+   - <section data-section="faq" id="faq">
+   - <footer data-section="footer" id="footer">
+${isParallax ? "5. 3D Parallax Architecture: Include perspective(1200px), preserve-3d, [data-tilt-stage], [data-glare-layer], an Apple-style [data-sticky-runway] (min-h-[185vh]) containing a sticky [data-sticky-stage] + [data-explode-left]/[data-explode-right] layers, opposing [data-parallax-x] motion rails, and [data-parallax-speed]/[data-parallax-z] depth planes. Make the content 100% bespoke to the user's concept." : ""}
+Output: Return ONLY pure, valid HTML markup. Zero markdown wrappers, zero meta preambles, and never print prompt-brief labels.`;
+
+    const backgroundParallaxBrief = isParallax
+      ? buildBackgroundParallaxPrompt(prompt, parallaxOptions, parallaxThemeId)
+      : "";
+    const customizedPrompt = websiteConfig
+      ? buildWebsiteCustomizationPrompt(prompt, websiteConfig)
+      : prompt;
 
     try {
       if (!ai) {
@@ -105,23 +137,48 @@ Output: Return ONLY pure, valid HTML markup. Zero markdown wrappers, zero meta p
 
       const result = await ai.models.generateContentStream({
         model: modelName,
-        contents: `User Prompt: ${prompt} for page: ${pageName}. Mode: ${
-          isParallax ? `3D Parallax Website (${detectedParallaxTheme.name}, Category: ${detectedParallaxTheme.category})` : isShopify ? "Shopify Storefront" : "Website"
-        }. Generate obsidian dark theme HTML.`,
+        contents: isParallax
+          ? `${backgroundParallaxBrief}\n\n${customizedPrompt}\n\nTarget Page: ${pageName}. Render ONLY pure Tailwind dark-mode HTML tailored 100% to the USER CONCEPT.`
+          : `User Prompt: ${customizedPrompt} for page: ${pageName}. Mode: ${
+              isShopify ? "Shopify Storefront" : "Website"
+            }. Generate obsidian dark theme HTML.`,
         config: {
           systemInstruction,
         },
       });
 
       const encoder = new TextEncoder();
+      const customThemeProfile = isParallax
+        ? synthesizeCustomParallaxTheme(prompt, parallaxOptions, parallaxThemeId)
+        : detectedParallaxTheme;
+      const depthPreset = parallaxOptions?.depthPreset || "interactive-3d";
+      const depthMult = depthPreset === "subtle" ? 0.65 : depthPreset === "cinematic" ? 1.25 : 1.55;
+      const maxTiltDeg = (parallaxOptions?.enableTiltStage ?? true) ? (depthPreset === "subtle" ? 7 : 15) : 0;
+
       const stream = new ReadableStream({
         async start(controller) {
           try {
+            let accumulatedHtml = "";
+            if (websiteConfig) {
+              const tokenStyles = buildWebsiteThemeStyleBlock(websiteConfig);
+              accumulatedHtml += tokenStyles;
+              controller.enqueue(encoder.encode(tokenStyles));
+            }
             for await (const chunk of result) {
               const text = chunk.text ?? "";
               if (text) {
+                accumulatedHtml += text;
                 controller.enqueue(encoder.encode(text));
               }
+            }
+            if (isParallax && !accumulatedHtml.includes("data-obsidian-parallax-runtime")) {
+              const runtimeScript = buildUniversalParallaxRuntimeScript({
+                depthMultiplier: depthMult,
+                maxTiltDeg,
+                isProduct: customThemeProfile.category === "product",
+                priceLabel: customThemeProfile.priceLabel,
+              });
+              controller.enqueue(encoder.encode(`\n${runtimeScript}`));
             }
             controller.close();
           } catch (err) {
@@ -138,14 +195,32 @@ Output: Return ONLY pure, valid HTML markup. Zero markdown wrappers, zero meta p
         },
       });
     } catch {
-      const fullHtml = isParallax
-        ? generateParallaxWebsiteHtml({
-            prompt,
-            pageName,
-            themeId: detectedParallaxTheme.id,
-            parallaxOptions,
-          })
-        : generateObsidianDarkEcommerceHtml(prompt, pageName, isShopify);
+      let fullHtml = "";
+      if (isParallax) {
+        const parallaxBase = generateParallaxWebsiteHtml({
+          prompt,
+          pageName,
+          themeId: parallaxThemeId,
+          parallaxOptions,
+        });
+        if (websiteConfig && pageName === "Home Page") {
+          const styleBlock = buildWebsiteThemeStyleBlock(websiteConfig);
+          const brandLabel = extractSubjectFromPrompt(prompt) || detectedParallaxTheme.name;
+          const extraSections = buildWebsiteEndToEndSupplementalSections(brandLabel, websiteConfig);
+          fullHtml = `${styleBlock}\n${parallaxBase.replace(
+            '<footer data-section="footer"',
+            `${extraSections}\n<footer data-section="footer"`
+          )}`;
+        } else if (websiteConfig) {
+          fullHtml = `${buildWebsiteThemeStyleBlock(websiteConfig)}\n${parallaxBase}`;
+        } else {
+          fullHtml = parallaxBase;
+        }
+      } else if (websiteConfig) {
+        fullHtml = generateStandardCustomWebsiteHtml(prompt, pageName, isShopify, websiteConfig);
+      } else {
+        fullHtml = generateObsidianDarkEcommerceHtml(prompt, pageName, isShopify);
+      }
 
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
@@ -187,8 +262,8 @@ function generateEnhancedPromptText(subject: string, isShopify: boolean, isParal
   if (isShopify) {
     return `Create an ultra-luxurious high-converting Shopify storefront for "${clean || "a luxury lifestyle boutique"}". Include a top announcement ticker with discount promo codes, sticky glassmorphic navigation header with live cart drawer, dark cinematic hero section with high-contrast pure white call-to-action buttons, 4-product featured collection grid with instant quick-add cards, customer reviews slider with 5-star ratings, trust badges strip with 256-bit SSL and express worldwide shipping, and complete Liquid 2.0 section schema compatibility.`;
   }
-  if (isParallax || clean.toLowerCase().includes("parallax") || clean.toLowerCase().includes("city")) {
-    return `Architect a multi-layer scroll-driven parallax experience for "${clean || "Tokyo Nocturnal Metropolis"}". Include 4 independent GPU-accelerated depth planes (foreground architecture, midground mist, horizon skyline, and spatial telemetry HUD), interactive district explorer cards, embedded 60fps aerial motion video showcase, generated architectural photography, and strict luxury monochrome noir styling.`;
+  if (isParallax || clean.toLowerCase().includes("parallax") || clean.toLowerCase().includes("3d")) {
+    return `Architect a kinetic, scroll-choreographed 3D parallax website tailored specifically for "${clean || "Obsidian Spatial Showcase"}". Feature a perspective(1200px) cursor-tilting centerpiece with specular light glare, an Apple-style pinned sticky scroll runway that zooms and separates exploded specification layers, counter-scrolling horizontal depth rails, studio motion video reel, and strict luxury monochrome noir styling.`;
   }
   return `Design a state-of-the-art, high-converting digital platform for "${clean || "a modern SaaS product"}". Include a sticky glass navbar with glowing white CTA, a dynamic hero banner with value proposition and video modal, interactive 3-column feature grid with hover states, social proof testimonial cards with client avatars, 3-tier pricing matrix with monthly/annual toggle, expandable FAQ accordion, and strict dark luxury monochrome noir aesthetic with pure white and silver highlights.`;
 }

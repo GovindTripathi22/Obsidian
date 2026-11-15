@@ -18,6 +18,8 @@ export interface BuilderDraftTransaction {
   parallaxMode: boolean;
   parallaxThemeId: string;
   presetId?: string;
+  websiteAccentId?: string;
+  shopifyThemeId?: string;
   heroTitle?: string;
   heroSubtitle?: string;
   products?: BuilderDraftProduct[];
@@ -149,6 +151,8 @@ export function saveBuilderDraftTransaction(
       parallaxMode: partial.parallaxMode !== undefined ? partial.parallaxMode : existing?.parallaxMode || false,
       parallaxThemeId: partial.parallaxThemeId || existing?.parallaxThemeId || "tokyo-noir",
       presetId: partial.presetId || existing?.presetId,
+      websiteAccentId: partial.websiteAccentId || existing?.websiteAccentId,
+      shopifyThemeId: partial.shopifyThemeId || existing?.shopifyThemeId,
       heroTitle: partial.heroTitle || existing?.heroTitle,
       heroSubtitle: partial.heroSubtitle || existing?.heroSubtitle,
       products: partial.products || existing?.products,

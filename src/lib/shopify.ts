@@ -17,6 +17,18 @@ export interface ShopifyStoreConfig {
   heroSubheading?: string;
   announcementText?: string;
   currency?: string;
+  cardRadius?: string;
+  freeShippingThreshold?: number;
+  gridColumns?: 3 | 4;
+  showAnnouncement?: boolean;
+  showSearchBar?: boolean;
+  showSaleBadges?: boolean;
+  showColorSwatches?: boolean;
+  showStarRatings?: boolean;
+  showQuickAdd?: boolean;
+  showExpressPay?: boolean;
+  sectionOrder?: string[];
+  enabledSections?: Record<string, boolean>;
   products?: ShopifyProductInput[];
 }
 
@@ -51,7 +63,46 @@ export async function compileShopifyLiquidTheme(
       "⚡ FREE EXPRESS GLOBAL SHIPPING ON ALL ORDERS OVER $100 — USE CODE: OBSIDIAN25"
   );
   const primaryAccent = storeConfig?.accentColor || "#10b981";
+  const currencyCode = storeConfig?.currency || "USD";
+  const shippingThreshold = Math.max(10, storeConfig?.freeShippingThreshold ?? 100);
+  const gridCols = storeConfig?.gridColumns === 3 ? 3 : 4;
+  const showAnnouncement = storeConfig?.showAnnouncement ?? true;
+  const showSearchBar = storeConfig?.showSearchBar ?? true;
+  const showSaleBadges = storeConfig?.showSaleBadges ?? true;
+  const showColorSwatches = storeConfig?.showColorSwatches ?? true;
+  const showStarRatings = storeConfig?.showStarRatings ?? true;
+  const showQuickAdd = storeConfig?.showQuickAdd ?? true;
+  const showExpressPay = storeConfig?.showExpressPay ?? true;
   const products = storeConfig?.products || [];
+
+  // Map UI section keys cleanly into templates/index.json section keys
+  const enabledMap = storeConfig?.enabledSections || {};
+  const defaultBodyOrder = ["hero", "trust-bar", "featured-products", "reviews", "newsletter"];
+  const requestedOrder =
+    storeConfig?.sectionOrder && storeConfig.sectionOrder.length > 0
+      ? storeConfig.sectionOrder
+      : defaultBodyOrder;
+
+  const keyMap: Record<string, string> = {
+    hero: "hero",
+    "trust-bar": "trust_bar",
+    "featured-products": "featured_products",
+    features: "features",
+    reviews: "reviews",
+    newsletter: "newsletter",
+  };
+
+  const activeBodyKeys = requestedOrder
+    .filter((id) => enabledMap[id] !== false)
+    .map((id) => keyMap[id] || id.replace(/-/g, "_"));
+
+  const finalOrder: string[] = [
+    ...(showAnnouncement ? ["announcement_bar"] : []),
+    "header",
+    ...activeBodyKeys,
+    ...(activeBodyKeys.includes("features") ? [] : ["features"]),
+    "footer",
+  ];
 
   // 1. Layout directory: layout/theme.liquid
   const themeLiquid = `<!doctype html>
@@ -68,13 +119,15 @@ export async function compileShopifyLiquidTheme(
     <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&f[]=cabinet-grotesk@500,700,800,900&f[]=syne@500,700,800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     {{ 'theme.css' | asset_url | stylesheet_tag }}
+    <style>:root { --obsidian-accent: ${primaryAccent}; }</style>
   </head>
   <body class="bg-zinc-950 text-zinc-100 font-sans antialiased selection:bg-white/20 selection:text-white">
-    {% section 'announcement-bar' %}
+    ${showAnnouncement ? "{% section 'announcement-bar' %}" : ""}
     {% section 'header' %}
     <main id="MainContent" role="main" tabindex="-1">
       {{ content_for_layout }}
     </main>
+    {% section 'cart-drawer' %}
     {% section 'footer' %}
   </body>
 </html>`;
@@ -86,7 +139,7 @@ export async function compileShopifyLiquidTheme(
       {
         name: "theme_info",
         theme_name: `${storeName} — Obsidian Liquid 2.0`,
-        theme_version: "2.5.0",
+        theme_version: "2.6.0",
         theme_author: "Obsidian AI",
         theme_documentation_url: "https://obsidian.ai/docs",
         theme_support_url: "https://obsidian.ai/support",
@@ -97,6 +150,17 @@ export async function compileShopifyLiquidTheme(
           { type: "color", id: "primary_accent", label: "Primary Accent Color", default: primaryAccent },
           { type: "color", id: "bg_dark", label: "Background Dark", default: "#09090b" },
           { type: "color", id: "card_bg", label: "Card Background", default: "#18181b" },
+        ],
+      },
+      {
+        name: "Storefront Merchandising",
+        settings: [
+          { type: "range", id: "grid_columns", label: "Product Grid Columns", min: 3, max: 4, step: 1, default: gridCols },
+          { type: "number", id: "free_shipping_threshold", label: "Free Shipping Threshold", default: shippingThreshold },
+          { type: "checkbox", id: "show_search_bar", label: "Show Header Search Bar", default: showSearchBar },
+          { type: "checkbox", id: "show_sale_badges", label: "Show Sale & Promo Badges", default: showSaleBadges },
+          { type: "checkbox", id: "show_color_swatches", label: "Show Variant Color Swatches", default: showColorSwatches },
+          { type: "checkbox", id: "show_star_ratings", label: "Show Review Star Ratings", default: showStarRatings },
         ],
       },
       {
@@ -117,6 +181,16 @@ export async function compileShopifyLiquidTheme(
       current: {
         store_name: storeName,
         primary_accent: primaryAccent,
+        currency: currencyCode,
+        card_radius: storeConfig?.cardRadius || "glass-rounded",
+        free_shipping_threshold: shippingThreshold,
+        grid_columns: gridCols,
+        show_search_bar: showSearchBar,
+        show_sale_badges: showSaleBadges,
+        show_color_swatches: showColorSwatches,
+        show_star_ratings: showStarRatings,
+        show_quick_add: showQuickAdd,
+        show_express_pay: showExpressPay,
         bg_dark: "#09090b",
         card_bg: "#18181b",
         catalog_count: products.length,
@@ -132,7 +206,7 @@ export async function compileShopifyLiquidTheme(
     {
       general: {
         cart: "Cart",
-        search: "Search",
+        search: "Search products",
         checkout: "Secure Checkout",
         add_to_cart: "Add to Cart",
         sold_out: "Sold Out",
@@ -151,37 +225,49 @@ export async function compileShopifyLiquidTheme(
   zip.file("locales/en.default.json", localesEn);
 
   // 4. Templates directory: templates/index.json
+  const sectionsMap: Record<string, unknown> = {
+    ...(showAnnouncement
+      ? {
+          announcement_bar: {
+            type: "announcement-bar",
+            settings: { announcement_text: announcementText },
+          },
+        }
+      : {}),
+    header: {
+      type: "header",
+      settings: { show_search: showSearchBar },
+    },
+    hero: {
+      type: "hero",
+      settings: {
+        badge: `${storeName} • 2026 Collection`,
+        heading: heroHeading,
+        subheading: heroSubheading,
+        button_text: "Explore Catalog →",
+      },
+    },
+    trust_bar: {
+      type: "trust-bar",
+      settings: { free_shipping_threshold: shippingThreshold },
+    },
+    featured_products: {
+      type: "featured-products",
+      settings: { columns: gridCols },
+    },
+    features: { type: "features" },
+    reviews: { type: "reviews" },
+    newsletter: { type: "newsletter" },
+    footer: {
+      type: "footer",
+      settings: { show_express_pay: showExpressPay },
+    },
+  };
+
   const indexJson = JSON.stringify(
     {
-      sections: {
-        announcement_bar: {
-          type: "announcement-bar",
-          settings: { announcement_text: announcementText },
-        },
-        header: { type: "header" },
-        hero: {
-          type: "hero",
-          settings: {
-            badge: `${storeName} • 2026 Collection`,
-            heading: heroHeading,
-            subheading: heroSubheading,
-            button_text: "Explore Catalog →",
-          },
-        },
-        featured_products: { type: "featured-products" },
-        features: { type: "features" },
-        reviews: { type: "reviews" },
-        footer: { type: "footer" },
-      },
-      order: [
-        "announcement_bar",
-        "header",
-        "hero",
-        "featured_products",
-        "features",
-        "reviews",
-        "footer",
-      ],
+      sections: sectionsMap,
+      order: finalOrder,
     },
     null,
     2
@@ -191,7 +277,7 @@ export async function compileShopifyLiquidTheme(
   // 5. Sections directory
   const announcementSection = `{% comment %} Shopify Announcement Bar Section {% endcomment %}
 <div class="bg-zinc-900 border-b border-zinc-800 text-zinc-200 py-2 px-4 text-center text-xs font-mono font-medium flex items-center justify-center gap-2">
-  <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+  <span class="w-2 h-2 rounded-full animate-pulse" style="background-color: ${primaryAccent};"></span>
   <span>{{ section.settings.announcement_text | default: '${announcementText}' }}</span>
 </div>
 
@@ -208,10 +294,10 @@ export async function compileShopifyLiquidTheme(
 
   const headerSection = `{% comment %} Shopify Header Section {% endcomment %}
 <header class="bg-zinc-950/90 border-b border-zinc-800/80 py-4 px-6 sticky top-0 z-50 backdrop-blur-xl">
-  <div class="max-w-7xl mx-auto flex items-center justify-between">
+  <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
     <a href="/" class="text-xl font-bold tracking-tight text-white flex items-center gap-2.5">
-      <div class="w-7 h-7 rounded-lg bg-white text-zinc-950 flex items-center justify-center shadow-md">
-        <span class="font-black text-xs">🛍️</span>
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center shadow-md text-white" style="background-color: ${primaryAccent};">
+        <span class="font-black text-xs">${escapeJsonString(storeName.slice(0, 1).toUpperCase() || "S")}</span>
       </div>
       <span>{{ shop.name | default: '${escapeJsonString(storeName)}' }}</span>
     </a>
@@ -220,12 +306,16 @@ export async function compileShopifyLiquidTheme(
       <a href="/collections/all" class="hover:text-white transition-colors">Catalog</a>
       <a href="/pages/lookbook" class="hover:text-white transition-colors">Lookbook</a>
       <a href="/pages/about" class="hover:text-white transition-colors">Brand Story</a>
-      <a href="/pages/contact" class="hover:text-white transition-colors">Contact</a>
     </nav>
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3">
+      {% if section.settings.show_search %}
+      <form action="{{ routes.search_url }}" class="hidden sm:block">
+        <input type="search" name="q" placeholder="{{ 'general.search' | t }}" class="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder:text-zinc-500" />
+      </form>
+      {% endif %}
       <a href="/cart" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-200 hover:border-zinc-500 transition-colors">
         <span>Cart</span>
-        <span class="px-1.5 py-0.2 rounded-full bg-white text-zinc-950 text-[10px] font-bold">{{ cart.item_count | default: 0 }}</span>
+        <span class="px-1.5 py-0.2 rounded-full text-white text-[10px] font-bold" style="background-color: ${primaryAccent};">{{ cart.item_count | default: 0 }}</span>
       </a>
     </div>
   </div>
@@ -234,7 +324,9 @@ export async function compileShopifyLiquidTheme(
 {% schema %}
 {
   "name": "Header",
-  "settings": [],
+  "settings": [
+    { "type": "checkbox", "id": "show_search", "label": "Show Predictive Search", "default": ${showSearchBar} }
+  ],
   "presets": [{ "name": "Header" }]
 }
 {% endschema %}`;
@@ -242,9 +334,8 @@ export async function compileShopifyLiquidTheme(
 
   const heroSection = `{% comment %} Shopify Hero Section {% endcomment %}
 <section class="relative bg-zinc-950 py-24 sm:py-32 px-6 text-center border-b border-zinc-800 overflow-hidden">
-  <div class="absolute inset-0 bg-gradient-radial from-zinc-800/20 via-transparent to-transparent blur-3xl pointer-events-none"></div>
   <div class="max-w-4xl mx-auto space-y-6 relative z-10">
-    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900 border border-zinc-700 text-xs font-semibold text-zinc-200">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900 border text-xs font-semibold text-zinc-200" style="border-color: ${primaryAccent};">
       <span>✨ {{ section.settings.badge | default: 'New Collection 2026' }}</span>
     </div>
     <h1 class="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-tight">
@@ -254,7 +345,7 @@ export async function compileShopifyLiquidTheme(
       {{ section.settings.subheading | default: '${heroSubheading}' }}
     </p>
     <div class="flex items-center justify-center gap-4 pt-4">
-      <a href="{{ section.settings.button_link | default: '/collections/all' }}" class="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold shadow-lg transition-all hover:-translate-y-0.5">
+      <a href="{{ section.settings.button_link | default: '/collections/all' }}" class="inline-flex items-center justify-center px-6 py-3 rounded-xl text-white font-bold shadow-lg transition-all hover:-translate-y-0.5" style="background-color: ${primaryAccent};">
         {{ section.settings.button_text | default: 'Explore Catalog →' }}
       </a>
       <a href="/pages/lookbook" class="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-semibold transition-all">
@@ -279,6 +370,39 @@ export async function compileShopifyLiquidTheme(
 {% endschema %}`;
   zip.file("sections/hero.liquid", heroSection);
 
+  const trustBarSection = `{% comment %} Merchant Trust & Free Shipping Strip {% endcomment %}
+<section class="py-6 px-6 bg-zinc-900/60 border-b border-zinc-800">
+  <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-zinc-300">
+    <div class="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800 flex items-center gap-2.5">
+      <span class="w-2 h-2 rounded-full" style="background:${primaryAccent};"></span>
+      <span>Free Shipping Over $${shippingThreshold}</span>
+    </div>
+    <div class="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800 flex items-center gap-2.5">
+      <span class="w-2 h-2 rounded-full" style="background:${primaryAccent};"></span>
+      <span>30-Day Hassle-Free Returns</span>
+    </div>
+    <div class="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800 flex items-center gap-2.5">
+      <span class="w-2 h-2 rounded-full" style="background:${primaryAccent};"></span>
+      <span>256-Bit SSL Shop Pay Checkout</span>
+    </div>
+    <div class="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800 flex items-center gap-2.5">
+      <span class="w-2 h-2 rounded-full" style="background:${primaryAccent};"></span>
+      <span>Verified Authentic Craftsmanship</span>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Trust Bar",
+  "settings": [
+    { "type": "number", "id": "free_shipping_threshold", "label": "Free Shipping Threshold", "default": ${shippingThreshold} }
+  ],
+  "presets": [{ "name": "Trust Bar" }]
+}
+{% endschema %}`;
+  zip.file("sections/trust-bar.liquid", trustBarSection);
+
   const fallbackProductsMarkup =
     products.length > 0
       ? products
@@ -288,10 +412,14 @@ export async function compileShopifyLiquidTheme(
         <div>
           <div class="aspect-square bg-zinc-950 rounded-xl overflow-hidden mb-4 relative border border-zinc-800">
             <img src="${p.image || "/images/product-skincare.jpg"}" alt="${escapeJsonString(p.title)}" class="w-full h-full object-cover" />
-            <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-white text-zinc-950 font-mono text-[9px] font-bold">${escapeJsonString(p.tag || "FEATURED")}</span>
+            ${
+              showSaleBadges
+                ? `<span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-white font-mono text-[9px] font-bold" style="background-color: ${primaryAccent};">${escapeJsonString(p.tag || "FEATURED")}</span>`
+                : ""
+            }
           </div>
           <h3 class="text-sm font-bold text-white">${escapeJsonString(p.title)}</h3>
-          <p class="text-xs font-mono text-zinc-200 font-bold mt-1.5">$${p.price}.00</p>
+          <p class="text-xs font-mono font-bold mt-1.5" style="color: ${primaryAccent};">$${p.price}.00 ${currencyCode}</p>
         </div>
       </div>`
           )
@@ -315,8 +443,8 @@ export async function compileShopifyLiquidTheme(
       <span>View All Products →</span>
     </a>
   </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-    {% for product in collections.frontpage.products limit: 4 %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${gridCols} gap-6">
+    {% for product in collections.frontpage.products limit: ${gridCols} %}
       {% render 'product-card', product: product %}
     {% else %}
       ${fallbackProductsMarkup}
@@ -327,11 +455,120 @@ export async function compileShopifyLiquidTheme(
 {% schema %}
 {
   "name": "Featured Products",
-  "settings": [],
+  "settings": [
+    { "type": "range", "id": "columns", "label": "Desktop Columns", "min": 3, "max": 4, "step": 1, "default": ${gridCols} }
+  ],
   "presets": [{ "name": "Featured Products" }]
 }
 {% endschema %}`;
   zip.file("sections/featured-products.liquid", featuredProductsSection);
+
+  const featuresSection = `{% comment %} Storefront Craftsmanship & Value Props {% endcomment %}
+<section class="py-16 px-6 max-w-7xl mx-auto border-t border-zinc-800">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+    <div class="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-2">
+      <p class="font-mono uppercase" style="color:${primaryAccent};">01 / Formulation & Spec</p>
+      <h3 class="text-base font-bold text-white">Archival Material Standard</h3>
+      <p class="text-zinc-400 leading-relaxed">Produced in small verified runs with traceable sourcing.</p>
+    </div>
+    <div class="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-2">
+      <p class="font-mono uppercase" style="color:${primaryAccent};">02 / Fulfillment</p>
+      <h3 class="text-base font-bold text-white">Same-Day Global Dispatch</h3>
+      <p class="text-zinc-400 leading-relaxed">Complimentary express shipping above $${shippingThreshold}.</p>
+    </div>
+    <div class="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-2">
+      <p class="font-mono uppercase" style="color:${primaryAccent};">03 / Shop Pay</p>
+      <h3 class="text-base font-bold text-white">1-Click Biometric Checkout</h3>
+      <p class="text-zinc-400 leading-relaxed">Encrypted transactions via Shop Pay, Apple Pay, and cards.</p>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Store Features",
+  "settings": [],
+  "presets": [{ "name": "Store Features" }]
+}
+{% endschema %}`;
+  zip.file("sections/features.liquid", featuresSection);
+
+  const reviewsSection = `{% comment %} Verified Customer Reviews Section {% endcomment %}
+<section class="py-16 px-6 max-w-7xl mx-auto border-t border-zinc-800">
+  <div class="flex items-center justify-between mb-8">
+    <h2 class="text-2xl font-bold text-white">Verified Customer Reviews</h2>
+    <span class="text-xs font-mono text-amber-400">★★★★★ 4.9 / 5.0</span>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+    <div class="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-2">
+      <p class="text-amber-400">★★★★★</p>
+      <p class="text-zinc-200">"Fastest checkout and flagship build quality right out of the box."</p>
+      <p class="text-zinc-400 font-semibold">Sophia L. — Verified Buyer</p>
+    </div>
+    <div class="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-2">
+      <p class="text-amber-400">★★★★★</p>
+      <p class="text-zinc-200">"Packaging and material finish exceeded every expectation."</p>
+      <p class="text-zinc-400 font-semibold">Marcus V. — Verified Buyer</p>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Customer Reviews",
+  "settings": [],
+  "presets": [{ "name": "Customer Reviews" }]
+}
+{% endschema %}`;
+  zip.file("sections/reviews.liquid", reviewsSection);
+
+  const newsletterSection = `{% comment %} VIP Newsletter Capture Section {% endcomment %}
+<section class="py-16 px-6 max-w-4xl mx-auto text-center">
+  <div class="p-8 rounded-3xl bg-zinc-900 border border-zinc-800 space-y-4">
+    <h2 class="text-2xl font-bold text-white">Join Private Release Drops</h2>
+    <p class="text-xs text-zinc-400">Unlock 15% off your first order and early access to limited editions.</p>
+    {% form 'customer' %}
+      <div class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+        <input type="email" name="contact[email]" required placeholder="Enter your email" class="flex-1 px-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white" />
+        <button type="submit" class="px-5 py-2.5 rounded-xl text-white text-xs font-bold" style="background-color:${primaryAccent};">Subscribe</button>
+      </div>
+    {% endform %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Newsletter Signup",
+  "settings": [],
+  "presets": [{ "name": "Newsletter Signup" }]
+}
+{% endschema %}`;
+  zip.file("sections/newsletter.liquid", newsletterSection);
+
+  const cartDrawerSection = `{% comment %} OS 2.0 Slide-Out Cart Drawer with Free Shipping Progress {% endcomment %}
+<aside id="shopify-cart-drawer" class="hidden fixed inset-y-0 right-0 w-full max-w-md bg-zinc-900 border-l border-zinc-800 p-6 z-50">
+  <div class="space-y-4">
+    <h2 class="text-base font-bold text-white">{{ section.settings.drawer_title | default: 'Your Cart' }}</h2>
+    {% assign threshold_cents = ${shippingThreshold * 100} %}
+    <div class="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-xs">
+      <p class="text-zinc-300">Free Express Shipping Threshold: $${shippingThreshold}</p>
+      <div class="w-full h-1.5 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+        <div class="h-full" style="width: 65%; background-color: ${primaryAccent};"></div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+{% schema %}
+{
+  "name": "Cart Drawer",
+  "settings": [
+    { "type": "text", "id": "drawer_title", "label": "Drawer Title", "default": "Your Cart" },
+    { "type": "number", "id": "shipping_threshold", "label": "Free Shipping Threshold", "default": ${shippingThreshold} }
+  ]
+}
+{% endschema %}`;
+  zip.file("sections/cart-drawer.liquid", cartDrawerSection);
 
   const footerSection = `{% comment %} Shopify Footer Section {% endcomment %}
 <footer class="bg-zinc-950 border-t border-zinc-800 py-16 px-6 text-zinc-400 text-xs">
@@ -361,13 +598,16 @@ export async function compileShopifyLiquidTheme(
   </div>
   <div class="max-w-7xl mx-auto border-t border-zinc-900 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-zinc-500">
     <p>&copy; {{ 'now' | date: "%Y" }} {{ shop.name | default: '${escapeJsonString(storeName)}' }}. Built with Obsidian Liquid 2.0 Engine.</p>
-    <div class="flex items-center gap-3">
+    ${
+      showExpressPay
+        ? `<div class="flex items-center gap-3">
       <span class="px-2 py-1 rounded bg-zinc-900 text-zinc-400 font-mono text-[10px]">Visa</span>
       <span class="px-2 py-1 rounded bg-zinc-900 text-zinc-400 font-mono text-[10px]">Mastercard</span>
-      <span class="px-2 py-1 rounded bg-zinc-900 text-zinc-400 font-mono text-[10px]">Amex</span>
       <span class="px-2 py-1 rounded bg-zinc-900 text-zinc-400 font-mono text-[10px]">Apple Pay</span>
-      <span class="px-2 py-1 rounded bg-zinc-900 text-white font-mono text-[10px]">Shopify Pay</span>
-    </div>
+      <span class="px-2 py-1 rounded text-white font-mono text-[10px]" style="background-color:${primaryAccent};">Shop Pay</span>
+    </div>`
+        : ""
+    }
   </div>
 </footer>
 
@@ -385,16 +625,29 @@ export async function compileShopifyLiquidTheme(
   <div>
     <div class="aspect-square bg-zinc-950 rounded-xl overflow-hidden mb-4 relative border border-zinc-800">
       <img src="{{ product.featured_image | image_url: width: 600 }}" alt="{{ product.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-      <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-white text-zinc-950 font-mono text-[9px] font-bold">IN STOCK</span>
+      ${
+        showSaleBadges
+          ? `<span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-white font-mono text-[9px] font-bold" style="background-color:${primaryAccent};">IN STOCK</span>`
+          : ""
+      }
     </div>
     <h3 class="text-sm font-bold text-white group-hover:text-zinc-200 transition-colors line-clamp-1">
       <a href="{{ product.url }}">{{ product.title }}</a>
     </h3>
-    <p class="text-xs font-mono text-zinc-200 font-bold mt-1.5">{{ product.price | money }}</p>
+    ${
+      showStarRatings
+        ? `<p class="text-[10px] text-amber-400 mt-1">★★★★★ <span class="text-zinc-400">(4.9)</span></p>`
+        : ""
+    }
+    <p class="text-xs font-mono font-bold mt-1.5" style="color:${primaryAccent};">{{ product.price | money }}</p>
   </div>
-  <button class="w-full mt-4 py-2 rounded-xl bg-zinc-800 hover:bg-white hover:text-zinc-950 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5">
+  ${
+    showQuickAdd
+      ? `<button class="w-full mt-4 py-2 rounded-xl bg-zinc-800 hover:text-white text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5">
     <span>+ Quick Add</span>
-  </button>
+  </button>`
+      : ""
+  }
 </div>`;
   zip.file("snippets/product-card.liquid", productCardSnippet);
 
@@ -402,6 +655,7 @@ export async function compileShopifyLiquidTheme(
   const compiledCss =
     cssContent ||
     `/* Global Theme CSS compiled by Obsidian Liquid Studio */
+:root { --obsidian-accent: ${primaryAccent}; }
 body { background-color: #09090b; color: #fafafa; font-family: 'Inter', sans-serif; }
 h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; }
 .glass-panel { background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(63, 63, 70, 0.5); }

@@ -23,7 +23,8 @@ export interface ParallaxThemeProfile {
     | "tokyo-noir"
     | "alpine-horizon"
     | "manhattan-vertical"
-    | "spatial-saas";
+    | "spatial-saas"
+    | (string & {});
   category: ParallaxCategory;
   name: string;
   city: string;
@@ -484,6 +485,461 @@ export function getParallaxThemeById(id?: string): ParallaxThemeProfile {
   return PARALLAX_THEMES.find((t) => t.id === id) || PARALLAX_THEMES[0];
 }
 
+function toTitleCase(text: string): string {
+  return text
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function extractCustomTopicName(prompt: string): string {
+  const quoted = prompt.match(/"([^"]{3,45})"/);
+  if (quoted?.[1]) return quoted[1].trim();
+
+  const forMatch = prompt.match(/(?:for|called|named|about|showcase\s+for)\s+(?:a\s+|an\s+|the\s+)?([A-Za-z0-9][A-Za-z0-9\s&-]{2,36})/i);
+  if (forMatch?.[1]) {
+    return toTitleCase(forMatch[1].replace(/[.,!?;:].*$/, "").trim());
+  }
+
+  const stripped = prompt
+    .replace(/^(create|build|design|make|generate|architect)\s+(a|an|the)?\s*/i, "")
+    .replace(/\b(3d|parallax|website|web\s*app|site|page|landing\s*page|storefront|with|featuring|include|interactive)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const words = stripped.split(" ").filter(Boolean).slice(0, 4);
+  if (words.length > 0) {
+    return toTitleCase(words.join(" "));
+  }
+  return "Obsidian Spatial Edition";
+}
+
+function pickLocalAssetsForPrompt(lower: string, category: ParallaxCategory): {
+  heroImage: string;
+  secondaryImage: string;
+  tertiaryImage: string;
+  videoSrc: string;
+} {
+  if (lower.includes("skincare") || lower.includes("serum") || lower.includes("botanical") || lower.includes("beauty") || lower.includes("cosmetic") || lower.includes("perfume") || lower.includes("glass")) {
+    return {
+      heroImage: "/images/product-skincare.jpg",
+      secondaryImage: "/images/parallax-alps.jpg",
+      tertiaryImage: "/images/product-coffee.jpg",
+      videoSrc: "/background.mp4",
+    };
+  }
+  if (lower.includes("streetwear") || lower.includes("hoodie") || lower.includes("apparel") || lower.includes("fashion") || lower.includes("jacket") || lower.includes("sneaker") || lower.includes("shoe")) {
+    return {
+      heroImage: "/images/product-streetwear.jpg",
+      secondaryImage: "/images/product-audio.jpg",
+      tertiaryImage: "/images/product-streetwear.jpg",
+      videoSrc: "/shopify-bg.mp4",
+    };
+  }
+  if (lower.includes("coffee") || lower.includes("espresso") || lower.includes("roast") || lower.includes("tea") || lower.includes("matcha") || lower.includes("cafe")) {
+    return {
+      heroImage: "/images/product-coffee.jpg",
+      secondaryImage: "/images/parallax-alps.jpg",
+      tertiaryImage: "/images/product-skincare.jpg",
+      videoSrc: "/background.mp4",
+    };
+  }
+  if (lower.includes("alpine") || lower.includes("mountain") || lower.includes("swiss") || lower.includes("nature") || lower.includes("resort") || lower.includes("cabin")) {
+    return {
+      heroImage: "/images/parallax-alps.jpg",
+      secondaryImage: "/images/parallax-tokyo.jpg",
+      tertiaryImage: "/images/product-coffee.jpg",
+      videoSrc: "/background.mp4",
+    };
+  }
+  if (lower.includes("manhattan") || lower.includes("new york") || lower.includes("nyc") || lower.includes("architecture") || lower.includes("real estate") || lower.includes("tower")) {
+    return {
+      heroImage: "/images/parallax-nyc.jpg",
+      secondaryImage: "/images/parallax-tokyo.jpg",
+      tertiaryImage: "/images/parallax-alps.jpg",
+      videoSrc: "/shopify-bg.mp4",
+    };
+  }
+  if (category === "city" || lower.includes("city") || lower.includes("tokyo") || lower.includes("cyber") || lower.includes("night")) {
+    return {
+      heroImage: "/images/parallax-tokyo.jpg",
+      secondaryImage: "/images/parallax-nyc.jpg",
+      tertiaryImage: "/images/parallax-alps.jpg",
+      videoSrc: "/background.mp4",
+    };
+  }
+  return {
+    heroImage: "/images/product-audio.jpg",
+    secondaryImage: "/images/product-streetwear.jpg",
+    tertiaryImage: "/images/product-skincare.jpg",
+    videoSrc: "/background.mp4",
+  };
+}
+
+export function synthesizeCustomParallaxTheme(
+  prompt: string,
+  options?: ParallaxGenerationOptions,
+  preferredThemeId?: string
+): ParallaxThemeProfile {
+  if (preferredThemeId) {
+    const exact = PARALLAX_THEMES.find((t) => t.id === preferredThemeId);
+    if (exact) return exact;
+  }
+
+  const lower = (prompt || "").toLowerCase();
+
+  // Only match preset templates directly when the prompt explicitly asks for that named theme
+  const exactPreset = PARALLAX_THEMES.find(
+    (t) =>
+      lower.includes(t.name.toLowerCase()) ||
+      t.defaultPrompt.toLowerCase() === lower.trim()
+  );
+  if (exactPreset) return exactPreset;
+
+  const isCityCue =
+    options?.category === "city" ||
+    /\b(city|skyline|metropolis|tokyo|manhattan|nyc|alpine|mountain|architect|real estate|district|museum|gallery|tower)\b/i.test(lower);
+  const isSaasCue =
+    options?.category === "saas" ||
+    /\b(saas|platform|dashboard|software|api|cloud|operating system|ai tool|workspace|analytics)\b/i.test(lower);
+  const resolvedCategory: ParallaxCategory = isCityCue
+    ? "city"
+    : isSaasCue
+    ? "saas"
+    : options?.category || "product";
+
+  const topicName = extractCustomTopicName(prompt);
+  const assets = pickLocalAssetsForPrompt(lower, resolvedCategory);
+
+  const isProduct = resolvedCategory === "product";
+  const isSaas = resolvedCategory === "saas";
+
+  return {
+    id: `custom-${resolvedCategory}`,
+    category: resolvedCategory,
+    name: topicName,
+    city: isProduct
+      ? "Bespoke 3D Product Flagship"
+      : isSaas
+      ? "Spatial Interactive Platform"
+      : `${topicName} • 3D Spatial Architecture`,
+    tagline: `Scroll-choreographed 3D showcase crafted for "${prompt.trim()}". Features a pinned perspective runway, multi-plane Z-depth explosion, cursor glare tilt, and opposing motion rails.`,
+    badge: isProduct
+      ? "CUSTOM 3D PRODUCT STAGE"
+      : isSaas
+      ? "CUSTOM SPATIAL OS"
+      : "CUSTOM 3D PARALLAX WORLD",
+    heroImage: assets.heroImage,
+    secondaryImage: assets.secondaryImage,
+    tertiaryImage: assets.tertiaryImage,
+    videoSrc: assets.videoSrc,
+    accentGlow: "rgba(255, 255, 255, 0.22)",
+    horizonGradient: "from-neutral-900/80 via-black to-zinc-950",
+    gridColor: "rgba(255, 255, 255, 0.08)",
+    coordinates: isProduct ? "PERSPECTIVE: 1200MM" : "GRID: 3D SPATIAL",
+    elevation: isProduct ? "Z-Axis Exploded" : "60FPS Scroll Lock",
+    priceLabel: isProduct ? "$290.00" : undefined,
+    variants: isProduct ? ["Obsidian Matte", "Brushed Titanium", "Founder Edition"] : undefined,
+    defaultPrompt: prompt,
+    landmarks: isProduct
+      ? [
+          {
+            name: `${topicName} Core Monolith`,
+            district: "Layer 01 • Primary Silhouette",
+            metric: "Z +65PX",
+            description: `Suspended central geometry for ${topicName} responding dynamically to cursor tilt and scroll progress.`,
+            depthSpeed: 0.34,
+            zDepth: 52,
+            image: assets.heroImage,
+          },
+          {
+            name: "Precision Chassis & Trim",
+            district: "Layer 02 • Structural Shell",
+            metric: "Z +32PX",
+            description: `Layered aerospace monochrome surface framing ${topicName} with calibrated specular highlights.`,
+            depthSpeed: 0.52,
+            zDepth: 34,
+            image: assets.secondaryImage,
+          },
+          {
+            name: "Interactive Tactile Finish",
+            district: "Layer 03 • Surface Detail",
+            metric: "Z +78PX",
+            description: `Foreground specification callout layer engineered to separate cleanly during the sticky 3D scroll sequence.`,
+            depthSpeed: 0.22,
+            zDepth: 64,
+            image: assets.tertiaryImage,
+          },
+        ]
+      : [
+          {
+            name: `${topicName} Horizon Plane`,
+            district: "Plane 01 • Deep Backdrop",
+            metric: "-90PX Z",
+            description: `Atmospheric depth stage built specifically for ${topicName} moving cleanly behind the foreground HUD.`,
+            depthSpeed: 0.38,
+            zDepth: 44,
+            image: assets.heroImage,
+          },
+          {
+            name: "Kinetic Midground Architecture",
+            district: "Plane 02 • Structural Axis",
+            metric: "+30PX Z",
+            description: `Perspective grid and floating structural cards for ${topicName} with damped scroll inertia.`,
+            depthSpeed: 0.56,
+            zDepth: 32,
+            image: assets.secondaryImage,
+          },
+          {
+            name: "Foreground Telemetry Stage",
+            district: "Plane 03 • Interactive HUD",
+            metric: "+72PX Z",
+            description: `Cursor-reactive floating perspective cards anchored around ${topicName} scroll milestones.`,
+            depthSpeed: 0.26,
+            zDepth: 60,
+            image: assets.tertiaryImage,
+          },
+        ],
+  };
+}
+
+export function buildBackgroundParallaxPrompt(
+  userPrompt: string,
+  options?: ParallaxGenerationOptions,
+  themeId?: string
+): string {
+  const depthPreset = options?.depthPreset || "interactive-3d";
+  const enableTiltStage = options?.enableTiltStage ?? true;
+  const enableExplodedSpecs = options?.enableExplodedSpecs ?? true;
+  const enableVideoLayer = options?.enableVideoLayer ?? true;
+  const cat = options?.category || "product";
+
+  const activeTheme = synthesizeCustomParallaxTheme(userPrompt, options, themeId);
+
+  return [
+    `USER CONCEPT: "${userPrompt.trim()}"`,
+    `BACKGROUND 3D PARALLAX ARCHITECTURE SPECIFICATION (render a bespoke website purely about the USER CONCEPT):`,
+    `- Focus Domain: ${activeTheme.name} (${cat.toUpperCase()})`,
+    `- Depth Intensity: ${depthPreset.toUpperCase()} — create unmistakable multi-plane 3D motion on both scroll and pointer movement.`,
+    `- Hero Stage: Full-bleed perspective(1200px) multi-layer hero with slow-moving deep backdrop (data-parallax-z="-90"), orthogonal grid layer, and ${enableTiltStage ? "an interactive 3D cursor-tilting centerpiece ([data-tilt-stage]) with specular light glare" : "a high-contrast monolith display"}.`,
+    `- Apple-Style Sticky Scroll Runway: Include a tall [data-sticky-runway] section (min-h-[185vh]) containing a sticky 3D stage ([data-sticky-stage]) that zooms, rotates in 3D (rotateX/rotateY), and separates floating callout cards outward ([data-explode-left], [data-explode-right]) as the user scrolls from 0% to 100%.`,
+    `- Opposing Horizontal Depth Rails: Include counter-scrolling [data-parallax-x] feature strips that glide horizontally in opposite directions while scrolling.`,
+    enableExplodedSpecs ? `- Exploded Layer Grid: Render a 3-column [data-section="products"] exploded anatomy grid tailored to the USER CONCEPT with elevated Z-depth telemetry badges.` : "",
+    enableVideoLayer ? `- Motion Reel: Include an embedded 60fps atmospheric <video autoplay loop muted playsinline> showcase matching the USER CONCEPT.` : "",
+    `- Styling: Strict Obsidian Luxury Monochrome Noir (bg-zinc-950, zinc-900 glass surfaces, crisp white typography, zero emerald/green tokens).`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function buildUniversalParallaxRuntimeScript(config: {
+  depthMultiplier: number;
+  maxTiltDeg: number;
+  isProduct: boolean;
+  priceLabel?: string;
+}): string {
+  const { depthMultiplier, maxTiltDeg, isProduct, priceLabel } = config;
+  return `
+<script data-obsidian-parallax-runtime="true">
+  (function() {
+    if (window.__obsidianParallaxActive) return;
+    window.__obsidianParallaxActive = true;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    // Auto-upgrade any AI-generated sections lacking explicit parallax attributes
+    var heroEl = document.querySelector('[data-section="hero"], #hero');
+    if (heroEl && !heroEl.querySelector('[data-tilt-stage]')) {
+      var heroImg = heroEl.querySelector('img');
+      if (heroImg && !heroImg.hasAttribute('data-parallax-speed')) {
+        heroImg.setAttribute('data-parallax-speed', '0.45');
+        heroImg.setAttribute('data-parallax-z', '-50');
+      }
+      var heroCard = heroEl.querySelector('.rounded-3xl, .rounded-2xl');
+      if (heroCard) heroCard.setAttribute('data-tilt-stage', 'true');
+    }
+    var productCards = document.querySelectorAll('[data-section="products"] .grid > div');
+    for (var pc = 0; pc < productCards.length; pc++) {
+      if (!productCards[pc].hasAttribute('data-parallax-speed')) {
+        productCards[pc].setAttribute('data-parallax-speed', String(0.28 + (pc % 3) * 0.14));
+        productCards[pc].setAttribute('data-parallax-z', '0');
+        productCards[pc].setAttribute('data-parallax-tilt', '0.45');
+      }
+    }
+
+    var planes = document.querySelectorAll('[data-parallax-speed], [data-parallax-z]');
+    var horizRails = document.querySelectorAll('[data-parallax-x]');
+    var tiltStages = document.querySelectorAll('[data-tilt-stage]');
+    var glareLayers = document.querySelectorAll('[data-glare-layer]');
+    var stickyRunways = document.querySelectorAll('[data-sticky-runway]');
+    var readout = document.getElementById('parallax-altitude-readout');
+
+    var depthMult = ${depthMultiplier};
+    var maxTilt = ${maxTiltDeg};
+
+    var targetMx = 0, targetMy = 0;
+    var curMx = 0, curMy = 0;
+    var pointerMoved = false;
+    var targetScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
+    var curScroll = targetScroll;
+
+    window.addEventListener('pointermove', function(e) {
+      pointerMoved = true;
+      var w = window.innerWidth || 1280;
+      var h = window.innerHeight || 720;
+      targetMx = ((e.clientX / w) - 0.5) * 2;
+      targetMy = ((e.clientY / h) - 0.5) * 2;
+    }, { passive: true });
+
+    window.addEventListener('scroll', function() {
+      targetScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
+    }, { passive: true });
+
+    // Interactive Finish Variant Switcher
+    var variantButtons = document.querySelectorAll('[data-variant-btn]');
+    var variantReadout = document.getElementById('obsidian-selected-variant-readout');
+    for (var b = 0; b < variantButtons.length; b++) {
+      variantButtons[b].addEventListener('click', function() {
+        var chosen = this.getAttribute('data-variant-name');
+        for (var j = 0; j < variantButtons.length; j++) {
+          variantButtons[j].className = 'px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer bg-zinc-900/90 text-zinc-300 border-zinc-800 hover:border-zinc-500 hover:text-white';
+        }
+        this.className = 'px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer bg-white text-zinc-950 border-white shadow-md';
+        if (variantReadout) {
+          variantReadout.innerHTML = 'Active Finish: <span class="text-white">' + chosen + '</span> • ${priceLabel || "$249.00"}';
+        }
+      });
+    }
+
+    var reserveBtn = document.getElementById('obsidian-quick-reserve-btn');
+    if (reserveBtn) {
+      reserveBtn.addEventListener('click', function() {
+        this.textContent = '✓ Reserved in Bag';
+        var btn = this;
+        setTimeout(function() { btn.textContent = 'Reserve • ${priceLabel || "$249.00"}'; }, 2400);
+      });
+    }
+
+    function frame(now) {
+      var t = (now || 0) * 0.0012;
+      // Gentle orbital float when pointer is idle so 3D depth is visibly alive immediately
+      var idleMx = pointerMoved ? targetMx : Math.sin(t) * 0.28;
+      var idleMy = pointerMoved ? targetMy : Math.cos(t * 0.85) * 0.22;
+
+      curMx += (idleMx - curMx) * 0.1;
+      curMy += (idleMy - curMy) * 0.1;
+      curScroll += (targetScroll - curScroll) * 0.14;
+
+      var vh = window.innerHeight || 720;
+
+      // 1. Hero & Standalone 3D Tilting Stages + Specular Light Glare
+      for (var ts = 0; ts < tiltStages.length; ts++) {
+        if (maxTilt > 0) {
+          var scrollTiltBoost = Math.min(8, curScroll * 0.015);
+          var rx = (-curMy * maxTilt + scrollTiltBoost * 0.35).toFixed(2);
+          var ry = (curMx * maxTilt).toFixed(2);
+          var tz = Math.round(Math.max(-30, Math.min(40, curScroll * -0.04)));
+          tiltStages[ts].style.transform =
+            'perspective(1200px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg) translateZ(' + tz + 'px)';
+        }
+      }
+
+      for (var gl = 0; gl < glareLayers.length; gl++) {
+        var gx = 50 + curMx * 38;
+        var gy = 50 + curMy * 38;
+        glareLayers[gl].style.background =
+          'radial-gradient(circle at ' + gx.toFixed(1) + '% ' + gy.toFixed(1) + '%, rgba(255,255,255,0.22), transparent 60%)';
+      }
+
+      // 2. Multi-Plane Z-Depth & Scroll-Speed Motion
+      for (var i = 0; i < planes.length; i++) {
+        var el = planes[i];
+        var speed = parseFloat(el.getAttribute('data-parallax-speed') || '0.2');
+        var z = parseFloat(el.getAttribute('data-parallax-z') || '0');
+        var tiltFactor = parseFloat(el.getAttribute('data-parallax-tilt') || '0.35');
+
+        var rect = el.getBoundingClientRect();
+        var centerDelta = (rect.top + rect.height * 0.5) - (vh * 0.5);
+        var normProgress = Math.max(-1.4, Math.min(1.4, centerDelta / vh));
+
+        var translateY = Math.round(normProgress * speed * -165 * depthMult);
+        var translateX = Math.round(curMx * (Math.abs(z) * 0.38 + 10) * tiltFactor);
+        var planeRotY = (curMx * 6.5 * tiltFactor).toFixed(2);
+        var planeRotX = (-curMy * 6.5 * tiltFactor + normProgress * -4.5 * tiltFactor).toFixed(2);
+        var scaleVal = z < 0 ? (1.14 + Math.min(0.16, Math.abs(normProgress) * 0.08)).toFixed(3) : '1';
+
+        el.style.transform =
+          'perspective(1200px) rotateX(' + planeRotX + 'deg) rotateY(' + planeRotY + 'deg) translate3d(' +
+          translateX + 'px, ' + translateY + 'px, ' + z + 'px) scale(' + scaleVal + ')';
+      }
+
+      // 3. Opposite-Direction Horizontal Parallax Rails
+      for (var hIdx = 0; hIdx < horizRails.length; hIdx++) {
+        var rail = horizRails[hIdx];
+        var hx = parseFloat(rail.getAttribute('data-parallax-x') || '120');
+        var rRect = rail.getBoundingClientRect();
+        var rNorm = Math.max(-1, Math.min(1, ((rRect.top + rRect.height * 0.5) - vh * 0.5) / vh));
+        var shiftX = Math.round(rNorm * hx * depthMult);
+        rail.style.transform = 'translate3d(' + shiftX + 'px, 0, 0)';
+      }
+
+      // 4. Apple-Style Sticky 3D Scroll Choreography Runway
+      for (var sr = 0; sr < stickyRunways.length; sr++) {
+        var runway = stickyRunways[sr];
+        var rwRect = runway.getBoundingClientRect();
+        var travel = Math.max(1, rwRect.height - vh);
+        var prog = Math.max(0, Math.min(1, -rwRect.top / travel));
+
+        var stage = runway.querySelector('[data-sticky-stage]');
+        var leftExplode = runway.querySelector('[data-explode-left]');
+        var rightExplode = runway.querySelector('[data-explode-right]');
+        var progBar = runway.querySelector('[data-sticky-progress-bar]');
+        var progPct = runway.querySelector('[data-sticky-progress-pct]');
+
+        if (stage) {
+          var sRotY = (-12 + prog * 24 + curMx * 5).toFixed(2);
+          var sRotX = (8 - prog * 14 - curMy * 4).toFixed(2);
+          var sScale = (0.9 + Math.sin(prog * Math.PI) * 0.1 + prog * 0.04).toFixed(3);
+          stage.style.transform =
+            'perspective(1200px) rotateX(' + sRotX + 'deg) rotateY(' + sRotY + 'deg) scale(' + sScale + ')';
+        }
+        if (leftExplode) {
+          var lx = Math.round(-prog * 10 * depthMult);
+          var lz = Math.round(prog * 56);
+          leftExplode.style.transform =
+            'perspective(1000px) translate3d(' + lx + 'px, ' + Math.round(-prog * 24) + 'px, ' + lz + 'px) rotateY(' + (prog * 10).toFixed(1) + 'deg)';
+        }
+        if (rightExplode) {
+          var rxShift = Math.round(prog * 10 * depthMult);
+          var rz = Math.round(prog * 56);
+          rightExplode.style.transform =
+            'perspective(1000px) translate3d(' + rxShift + 'px, ' + Math.round(prog * 24) + 'px, ' + rz + 'px) rotateY(' + (-prog * 10).toFixed(1) + 'deg)';
+        }
+        if (progBar) {
+          progBar.style.width = Math.round(prog * 100) + '%';
+        }
+        if (progPct) {
+          progPct.textContent = Math.round(prog * 100) + '% DEPTH SCRUB';
+        }
+      }
+
+      if (readout) {
+        var scrollRatio = Math.min(1, curScroll / 1600);
+        if (${isProduct ? "true" : "false"}) {
+          readout.textContent = (1200 - Math.round(scrollRatio * 420)) + 'mm Z-Focus';
+        } else {
+          readout.textContent = Math.max(45, 450 - Math.round(scrollRatio * 340)) + 'm Sky Deck';
+        }
+      }
+
+      window.requestAnimationFrame(frame);
+    }
+
+    window.requestAnimationFrame(frame);
+  })();
+</script>`;
+}
+
 export function detectParallaxIntent(
   prompt: string,
   explicitParallax: boolean = false,
@@ -512,7 +968,7 @@ export function detectParallaxIntent(
     }
   }
 
-  // Product-dedicated detection
+  // Product-dedicated detection for well-known categories, otherwise dynamic topic synthesis
   if (lower.includes("skincare") || lower.includes("serum") || lower.includes("botanical") || lower.includes("cosmetic") || lower.includes("perfume")) {
     return { isParallax: hasParallaxKeyword, theme: getParallaxThemeById("product-botanical") };
   }
@@ -522,16 +978,12 @@ export function detectParallaxIntent(
   if (lower.includes("coffee") || lower.includes("espresso") || lower.includes("roast") || lower.includes("carafe")) {
     return { isParallax: hasParallaxKeyword, theme: getParallaxThemeById("product-roastery") };
   }
-  if (lower.includes("product") || lower.includes("hardware") || lower.includes("headphone") || lower.includes("audio") || lower.includes("kinetic") || lower.includes("flagship")) {
+  if (lower.includes("headphone") || lower.includes("audio") || lower.includes("obsidian acoustic")) {
     return { isParallax: hasParallaxKeyword, theme: getParallaxThemeById("obsidian-kinetic") };
   }
-
-  // Spatial SaaS detection
   if (lower.includes("saas") || lower.includes("platform") || lower.includes("dashboard") || lower.includes("software") || lower.includes("api")) {
     return { isParallax: hasParallaxKeyword, theme: getParallaxThemeById("spatial-saas") };
   }
-
-  // City detection
   if (lower.includes("alpine") || lower.includes("swiss") || lower.includes("mountain") || lower.includes("zermatt") || lower.includes("vals")) {
     return { isParallax: hasParallaxKeyword, theme: getParallaxThemeById("alpine-horizon") };
   }
@@ -542,7 +994,10 @@ export function detectParallaxIntent(
     return { isParallax: hasParallaxKeyword, theme: getParallaxThemeById("tokyo-noir") };
   }
 
-  return { isParallax: hasParallaxKeyword, theme: getParallaxThemeById("tokyo-noir") };
+  return {
+    isParallax: hasParallaxKeyword,
+    theme: synthesizeCustomParallaxTheme(prompt),
+  };
 }
 
 export interface GenerateParallaxHtmlOptions {
@@ -563,7 +1018,7 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
     customVideoUrl,
     parallaxOptions,
   } = options;
-  const { theme } = detectParallaxIntent(prompt, true, themeId);
+  const theme = synthesizeCustomParallaxTheme(prompt, parallaxOptions, themeId);
 
   const depthPreset: ParallaxDepthPreset = parallaxOptions?.depthPreset || "interactive-3d";
   const enableTiltStage = parallaxOptions?.enableTiltStage ?? true;
@@ -583,13 +1038,13 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
     return generateParallaxAccessSubpageHtml(cleanTitle, theme, isProduct);
   }
 
-  const depthMultiplier = depthPreset === "subtle" ? 0.55 : depthPreset === "cinematic" ? 1.1 : 1.35;
-  const maxTiltDeg = enableTiltStage ? (depthPreset === "subtle" ? 6 : 13) : 0;
+  const depthMultiplier = depthPreset === "subtle" ? 0.65 : depthPreset === "cinematic" ? 1.25 : 1.55;
+  const maxTiltDeg = enableTiltStage ? (depthPreset === "subtle" ? 7 : 15) : 0;
 
   return `
 <style>
   html, body {
-    overflow-x: hidden;
+    overflow-x: clip;
     scroll-behavior: smooth;
   }
   .parallax-3d-viewport {
@@ -606,15 +1061,15 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
   }
   .parallax-grid-bg {
     background-image:
-      linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+      linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
     background-size: 48px 48px;
   }
   .spec-pin-card {
-    box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255,255,255,0.12);
+    box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255,255,255,0.14);
   }
   @media (prefers-reduced-motion: reduce) {
-    .parallax-3d-stage, .parallax-3d-plane { transform: none !important; transition: none !important; }
+    .parallax-3d-stage, .parallax-3d-plane, [data-sticky-stage], [data-parallax-x] { transform: none !important; transition: none !important; }
   }
 </style>
 
@@ -644,38 +1099,38 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
   </div>
   <nav class="hidden md:flex items-center gap-7 text-xs font-medium text-zinc-300">
     <a href="#hero" class="hover:text-white transition-colors">${isProduct ? "3D Showcase" : "Skyline"}</a>
+    <a href="#scroll-choreography" class="hover:text-white transition-colors">Scroll 3D</a>
     <a href="#districts" class="hover:text-white transition-colors">${isProduct ? "Exploded Specs" : "Districts"}</a>
-    <a href="#vista" class="hover:text-white transition-colors">${isProduct ? "Editions" : "Depth Vista"}</a>
     <a href="#media-reel" class="hover:text-white transition-colors">Motion Reel</a>
   </nav>
   <div class="flex items-center gap-2.5">
     ${
       isProduct && theme.priceLabel
         ? `<button type="button" id="obsidian-quick-reserve-btn" class="px-4 py-2 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-bold transition-all cursor-pointer">Reserve • ${theme.priceLabel}</button>`
-        : `<a href="#vista" class="px-4 py-2 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-bold transition-all">Explore Depth ↓</a>`
+        : `<a href="#scroll-choreography" class="px-4 py-2 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-bold transition-all">Scrub 3D Depth ↓</a>`
     }
   </div>
 </header>
 
 <!-- True 3D Perspective Parallax Hero & Interactive Stage -->
-<section data-section="hero" id="hero" data-parallax-stage class="relative min-h-[76vh] flex items-center justify-center px-6 py-12 overflow-hidden border-b border-zinc-800 bg-zinc-950 parallax-3d-viewport">
-  <!-- Layer 0: Deep Horizon Background Plate (translateZ -60px) -->
-  <div class="absolute inset-0 z-0 parallax-3d-plane" data-parallax-speed="0.18" data-parallax-z="-60" data-parallax-tilt="0.35">
-    <img src="${heroImg}" alt="${theme.name}" class="w-full h-full object-cover object-center opacity-35 scale-110 filter contrast-125" />
-    <div class="absolute inset-0 bg-gradient-to-b from-zinc-950/75 via-zinc-950/60 to-zinc-950"></div>
+<section data-section="hero" id="hero" data-parallax-stage class="relative min-h-[78vh] flex items-center justify-center px-6 py-12 overflow-hidden border-b border-zinc-800 bg-zinc-950 parallax-3d-viewport">
+  <!-- Layer 0: Deep Horizon Background Plate (translateZ -90px, faster parallax shift) -->
+  <div class="absolute inset-0 z-0 parallax-3d-plane" data-parallax-speed="0.52" data-parallax-z="-90" data-parallax-tilt="0.45">
+    <img src="${heroImg}" alt="${theme.name}" class="w-full h-full object-cover object-center opacity-40 scale-115 filter contrast-125" />
+    <div class="absolute inset-0 bg-gradient-to-b from-zinc-950/75 via-zinc-950/55 to-zinc-950"></div>
   </div>
 
   <!-- Layer 1: 3D Perspective Architectural Floor/Backdrop Grid -->
-  <div class="absolute inset-0 z-0 parallax-grid-bg opacity-35 pointer-events-none parallax-3d-plane" data-parallax-speed="0.1" data-parallax-z="-30" data-parallax-tilt="0.5"></div>
+  <div class="absolute inset-0 z-0 parallax-grid-bg opacity-45 pointer-events-none parallax-3d-plane" data-parallax-speed="0.28" data-parallax-z="-45" data-parallax-tilt="0.65"></div>
 
   <!-- Layer 2: Interactive 3D Centerpiece Split Layout -->
   <div class="relative z-20 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-    <div class="md:col-span-6 space-y-5 parallax-3d-plane" data-parallax-speed="-0.08" data-parallax-z="24" data-parallax-tilt="0.3">
+    <div class="md:col-span-6 space-y-5 parallax-3d-plane" data-parallax-speed="-0.16" data-parallax-z="22" data-parallax-tilt="0.28">
       <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900/90 border border-zinc-700/80 text-zinc-200 text-[10px] font-mono backdrop-blur-xl">
         <span>${isProduct ? "PRODUCT DEDICATED 3D MONOLITH" : "INTERACTIVE 3D DEPTH ENGINE"}</span>
       </div>
 
-      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.06] font-heading">
+      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-normal leading-[1.06] font-heading">
         ${cleanTitle}
       </h1>
 
@@ -705,8 +1160,8 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
       }
 
       <div class="flex flex-wrap items-center gap-3 pt-1">
-        <a href="#districts" class="px-5 py-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-xs transition-all shadow-2xl shadow-white/10">
-          ${isProduct ? "Inspect 3D Exploded Layers →" : "Enter Interactive Cityscape →"}
+        <a href="#scroll-choreography" class="px-5 py-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-xs transition-all shadow-2xl shadow-white/10">
+          ${isProduct ? "Scrub 3D Exploded Stage ↓" : "Enter Interactive 3D World ↓"}
         </a>
         <a href="#media-reel" class="px-5 py-3 rounded-xl border border-zinc-700 bg-zinc-900/80 hover:bg-zinc-800 text-white font-semibold text-xs backdrop-blur-xl transition-all">
           ${isProduct ? "Studio Motion Reel" : "Watch Aerial Reel"}
@@ -721,7 +1176,7 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
         </div>
         <div class="p-3 rounded-2xl bg-zinc-900/85 border border-zinc-800 backdrop-blur-xl">
           <p class="text-[9px] font-mono uppercase text-zinc-400">Depth Engine</p>
-          <p class="text-[11px] font-bold text-white font-mono mt-1 truncate">3D Z-Axis + Tilt</p>
+          <p class="text-[11px] font-bold text-white font-mono mt-1 truncate">Sticky + 3D Tilt</p>
         </div>
         <div class="p-3 rounded-2xl bg-zinc-900/85 border border-zinc-800 backdrop-blur-xl">
           <p class="text-[9px] font-mono uppercase text-zinc-400">${isProduct ? "Precision" : "Elevation"}</p>
@@ -730,16 +1185,17 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
       </div>
     </div>
 
-    <!-- Interactive 3D Floating Monolith Stage (Rotates in 3D space with pointer & scroll) -->
+    <!-- Interactive 3D Floating Monolith Stage (Cursor Tilt + Specular Light Glare + Ambient 3D Orbit) -->
     <div class="md:col-span-6 parallax-3d-viewport">
       <div id="obsidian-hero-3d-card" class="parallax-3d-stage relative rounded-3xl border border-zinc-700/80 bg-zinc-900/80 p-3 shadow-[0_35px_90px_-15px_rgba(0,0,0,0.95)]" data-tilt-stage>
-        <!-- Back Glow Plane (Z: -20px) -->
-        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800" style="transform: translateZ(12px);">
+        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800" style="transform: translateZ(16px);">
           <img src="${heroImg}" alt="${cleanTitle} 3D Stage" class="w-full h-full object-cover scale-105" />
           <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent"></div>
+          <!-- Dynamic Specular Glare Tracking Cursor -->
+          <div data-glare-layer class="absolute inset-0 pointer-events-none mix-blend-screen opacity-80"></div>
 
-          <!-- Top HUD Chip (Z: 40px) -->
-          <div class="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none" style="transform: translateZ(36px);">
+          <!-- Top HUD Chip (Z: 48px) -->
+          <div class="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none" style="transform: translateZ(48px);">
             <span class="px-2.5 py-1 rounded-lg bg-zinc-950/90 border border-zinc-700 text-[9px] font-mono text-white backdrop-blur-md">
               3D TILT ACTIVE • MOVE CURSOR
             </span>
@@ -751,8 +1207,8 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
           ${
             enableExplodedSpecs
               ? `
-          <!-- Floating Exploded Layer Pin 1 (Z: 55px) -->
-          <div class="absolute bottom-3 left-3 right-3 grid grid-cols-2 gap-2" style="transform: translateZ(54px);">
+          <!-- Floating Exploded Layer Pins (Z: 68px) -->
+          <div class="absolute bottom-3 left-3 right-3 grid grid-cols-2 gap-2" style="transform: translateZ(68px);">
             ${theme.landmarks
               .slice(0, 2)
               .map(
@@ -773,11 +1229,93 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
   </div>
 </section>
 
+<!-- Apple-Style Sticky 3D Scroll Choreography Runway (Pins to Viewport while Scrolling 0% -> 100%) -->
+<section data-section="sticky-3d-runway" id="scroll-choreography" data-sticky-runway class="relative min-h-[175vh] border-b border-zinc-800 bg-zinc-950">
+  <div class="sticky top-16 h-[80vh] flex items-center justify-center px-8 sm:px-12 overflow-x-clip parallax-3d-viewport">
+    <div class="max-w-5xl w-full mx-auto relative">
+      <div class="flex items-center justify-between mb-4 text-xs font-mono">
+        <span class="text-zinc-400 uppercase tracking-widest">01 / SCROLL-DRIVEN 3D CHOREOGRAPHY</span>
+        <span data-sticky-progress-pct class="text-white bg-zinc-900 border border-zinc-700 px-2.5 py-1 rounded-lg">0% DEPTH SCRUB</span>
+      </div>
+
+      <!-- Progress Rail -->
+      <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden mb-6 border border-zinc-800">
+        <div data-sticky-progress-bar class="h-full bg-white transition-none" style="width: 0%;"></div>
+      </div>
+
+      <!-- Centerpiece Sticky 3D Rotating + Zooming Showcase Stage -->
+      <div class="relative grid grid-cols-1 md:grid-cols-12 gap-5 items-center parallax-3d-viewport">
+        <!-- Left Exploding Callout Card -->
+        <div data-explode-left class="md:col-span-3 space-y-3 parallax-3d-plane" style="will-change: transform;">
+          <div class="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-700/80 backdrop-blur-xl shadow-2xl">
+            <p class="text-[10px] font-mono uppercase text-zinc-400">${theme.landmarks[0].district}</p>
+            <h3 class="text-sm font-bold text-white mt-1">${theme.landmarks[0].name}</h3>
+            <p class="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">${theme.landmarks[0].description}</p>
+            <span class="inline-block mt-2 px-2 py-0.5 rounded bg-white text-zinc-950 font-mono text-[10px] font-bold">${theme.landmarks[0].metric}</span>
+          </div>
+        </div>
+
+        <!-- Center 3D Scrubbing Viewport -->
+        <div class="md:col-span-6 parallax-3d-viewport">
+          <div data-sticky-stage class="relative rounded-3xl border border-zinc-700 bg-zinc-900/90 p-3 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.95)]" style="transform-style: preserve-3d; will-change: transform;">
+            <div class="relative aspect-[16/10] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950">
+              <img src="${theme.secondaryImage}" alt="${cleanTitle} Sticky 3D View" class="w-full h-full object-cover" />
+              <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-zinc-950/30"></div>
+              <div data-glare-layer class="absolute inset-0 pointer-events-none mix-blend-screen opacity-75"></div>
+              <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between" style="transform: translateZ(42px);">
+                <div>
+                  <p class="text-[10px] font-mono uppercase text-zinc-300">Pinned Z-Axis Scrub</p>
+                  <p class="text-base font-bold text-white">${cleanTitle}</p>
+                </div>
+                <span class="px-2.5 py-1 rounded-lg bg-white text-zinc-950 font-mono text-[10px] font-bold">3D ROTATE + ZOOM</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Exploding Callout Card -->
+        <div data-explode-right class="md:col-span-3 space-y-3 parallax-3d-plane" style="will-change: transform;">
+          <div class="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-700/80 backdrop-blur-xl shadow-2xl">
+            <p class="text-[10px] font-mono uppercase text-zinc-400">${theme.landmarks[2].district}</p>
+            <h3 class="text-sm font-bold text-white mt-1">${theme.landmarks[2].name}</h3>
+            <p class="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">${theme.landmarks[2].description}</p>
+            <span class="inline-block mt-2 px-2 py-0.5 rounded bg-zinc-800 border border-zinc-600 text-white font-mono text-[10px] font-bold">${theme.landmarks[2].metric}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Opposing Horizontal 3D Parallax Kinetic Typography Rails -->
+<section data-section="kinetic-rails" class="py-10 border-b border-zinc-800 bg-zinc-950/95 overflow-hidden space-y-3">
+  <div data-parallax-x="-140" class="flex items-center gap-6 whitespace-nowrap text-xl sm:text-3xl font-black uppercase tracking-wider text-zinc-700 font-heading" style="will-change: transform;">
+    <span>${cleanTitle}</span>
+    <span class="text-white">•</span>
+    <span>3D PERSPECTIVE DEPTH</span>
+    <span class="text-white">•</span>
+    <span>${theme.coordinates}</span>
+    <span class="text-white">•</span>
+    <span>Z-AXIS CHOREOGRAPHY</span>
+    <span class="text-white">•</span>
+    <span>${cleanTitle}</span>
+  </div>
+  <div data-parallax-x="140" class="flex items-center gap-6 whitespace-nowrap text-lg sm:text-2xl font-mono uppercase tracking-widest text-zinc-500" style="will-change: transform;">
+    <span>${theme.badge}</span>
+    <span>//</span>
+    <span class="text-zinc-300">60FPS GPU TRANSFORM</span>
+    <span>//</span>
+    <span>${theme.elevation}</span>
+    <span>//</span>
+    <span>INTERACTIVE CURSOR TILT</span>
+  </div>
+</section>
+
 <!-- Multi-Plane 3D Exploded Depth Cards -->
 <section data-section="products" id="districts" data-parallax-stage class="py-20 px-6 max-w-7xl mx-auto border-b border-zinc-800 relative parallax-3d-viewport">
   <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
     <div>
-      <p class="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-2">01 / ${isProduct ? "EXPLODED ARCHITECTURE & MATERIALS" : "SPATIAL DISTRICTS & SECTORS"}</p>
+      <p class="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-2">02 / ${isProduct ? "EXPLODED ARCHITECTURE & MATERIALS" : "SPATIAL DISTRICTS & SECTORS"}</p>
       <h2 class="text-2xl sm:text-4xl font-bold text-white tracking-normal font-heading">${isProduct ? "Multi-Layer Hardware & Form" : "Layered Architectural Zones"}</h2>
     </div>
     <p class="text-xs sm:text-sm text-zinc-400 max-w-md leading-relaxed">
@@ -789,12 +1327,12 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
     ${theme.landmarks
       .map(
         (landmark, idx) => `
-    <div class="group rounded-3xl border border-zinc-800 bg-zinc-900/80 overflow-hidden hover:border-zinc-500 transition-colors duration-300 flex flex-col justify-between parallax-3d-plane shadow-2xl" data-parallax-speed="${landmark.depthSpeed}" data-parallax-z="0" data-parallax-tilt="0.35">
+    <div class="group rounded-3xl border border-zinc-800 bg-zinc-900/80 overflow-hidden hover:border-zinc-500 transition-colors duration-300 flex flex-col justify-between parallax-3d-plane shadow-2xl" data-parallax-speed="${landmark.depthSpeed}" data-parallax-z="0" data-parallax-tilt="0.4">
       <div>
         <div class="aspect-[16/10] bg-zinc-950 relative overflow-hidden border-b border-zinc-800 parallax-3d-viewport">
           <img src="${landmark.image}" alt="${landmark.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
           <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-80"></div>
-          <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-zinc-950/90 border border-zinc-700 text-white font-mono text-[10px] font-semibold parallax-3d-plane" data-parallax-speed="${landmark.depthSpeed}" data-parallax-z="${landmark.zDepth}" data-parallax-tilt="0.5">
+          <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-zinc-950/90 border border-zinc-700 text-white font-mono text-[10px] font-semibold parallax-3d-plane" data-parallax-speed="${landmark.depthSpeed}" data-parallax-z="${landmark.zDepth}" data-parallax-tilt="0.55">
             Z +${landmark.zDepth}PX • ${landmark.metric}
           </span>
         </div>
@@ -817,36 +1355,37 @@ export function generateParallaxWebsiteHtml(options: GenerateParallaxHtmlOptions
 <!-- Full-Bleed Split 3D Depth Vista / Edition Configurator -->
 <section data-section="features" id="vista" data-parallax-stage class="relative py-20 px-6 border-b border-zinc-800 overflow-hidden bg-zinc-950 parallax-3d-viewport">
   <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-center relative z-10">
-    <div class="md:col-span-5 space-y-5 parallax-3d-plane" data-parallax-speed="-0.08" data-parallax-z="20">
+    <div class="md:col-span-5 space-y-5 parallax-3d-plane" data-parallax-speed="-0.14" data-parallax-z="20">
       <span class="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[11px] font-mono text-zinc-300">
-        02 / ${isProduct ? "EDITION & SPECIFICATION MATRIX" : "HORIZON 3D PARALLAX WINDOW"}
+        03 / ${isProduct ? "EDITION & SPECIFICATION MATRIX" : "HORIZON 3D PARALLAX WINDOW"}
       </span>
-      <h2 class="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+      <h2 class="text-2xl sm:text-4xl font-bold text-white tracking-normal leading-tight">
         ${isProduct ? "Calibrated for Tactile Precision & Zero-Latency Commerce." : "Engineered for Optical Depth & Zero-Drift Precision."}
       </h2>
       <p class="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-        Viewport-centered <code class="text-zinc-200 bg-zinc-900 px-1.5 py-0.5 rounded">translate3d + perspective</code> physics keep every element cleanly aligned when focused while projecting authentic 3D depth across scroll and cursor tilt.
+        Viewport-centered <code class="text-zinc-200 bg-zinc-900 px-1.5 py-0.5 rounded">translate3d + perspective</code> physics keep every element cleanly aligned while projecting authentic 3D depth across scroll and cursor tilt.
       </p>
       <div class="space-y-2.5 pt-1">
         <div class="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-between">
           <span class="text-xs font-semibold text-white">Foreground Spec Plane</span>
-          <span class="text-xs font-mono text-zinc-300">+54px Z • Interactive Tilt</span>
+          <span class="text-xs font-mono text-zinc-300">+68px Z • Interactive Tilt</span>
         </div>
         <div class="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-between">
-          <span class="text-xs font-semibold text-white">Midground Subject Stage</span>
-          <span class="text-xs font-mono text-zinc-300">+12px Z • 1200px Perspective</span>
+          <span class="text-xs font-semibold text-white">Sticky Scrub Runway</span>
+          <span class="text-xs font-mono text-zinc-300">185vh • Rotate & Zoom</span>
         </div>
         <div class="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-between">
           <span class="text-xs font-semibold text-white">Deep Atmospheric Backdrop</span>
-          <span class="text-xs font-mono text-zinc-300">-60px Z • Damped Scroll Lerp</span>
+          <span class="text-xs font-mono text-zinc-300">-90px Z • Damped Scroll Lerp</span>
         </div>
       </div>
     </div>
 
     <div class="md:col-span-7 relative parallax-3d-viewport">
-      <div class="rounded-3xl border border-zinc-800 overflow-hidden bg-zinc-900 shadow-2xl relative aspect-[16/10] parallax-3d-plane" data-parallax-speed="0.16" data-parallax-z="30" data-parallax-tilt="0.45">
+      <div class="rounded-3xl border border-zinc-800 overflow-hidden bg-zinc-900 shadow-2xl relative aspect-[16/10] parallax-3d-plane" data-parallax-speed="0.28" data-parallax-z="30" data-parallax-tilt="0.55">
         <img src="${theme.secondaryImage}" alt="3D Depth Perspective" class="w-full h-full object-cover" />
         <div class="absolute inset-0 bg-gradient-to-tr from-zinc-950/85 via-transparent to-transparent"></div>
+        <div data-glare-layer class="absolute inset-0 pointer-events-none mix-blend-screen opacity-60"></div>
         <div class="absolute bottom-5 left-5 right-5 p-4 rounded-2xl bg-zinc-950/90 border border-zinc-800 backdrop-blur-xl flex items-center justify-between">
           <div>
             <p class="text-[10px] font-mono text-zinc-400 uppercase">${theme.city}</p>
@@ -866,8 +1405,8 @@ ${
 <section data-section="reviews" id="media-reel" class="py-20 px-6 max-w-7xl mx-auto border-b border-zinc-800">
   <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
     <div>
-      <p class="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-2">03 / CINEMATIC MOTION & STUDIO IMAGERY</p>
-      <h2 class="text-2xl sm:text-4xl font-black text-white tracking-tight">${isProduct ? "360° Product Motion & Material Stills" : "Atmospheric Video & Generated Stills"}</h2>
+      <p class="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-2">04 / CINEMATIC MOTION & STUDIO IMAGERY</p>
+      <h2 class="text-2xl sm:text-4xl font-bold text-white tracking-normal">${isProduct ? "360° Product Motion & Material Stills" : "Atmospheric Video & Generated Stills"}</h2>
     </div>
     <span class="text-xs font-mono text-zinc-400">AUTOPLAY LOOP • 60FPS STREAM</span>
   </div>
@@ -887,9 +1426,9 @@ ${
       </div>
     </div>
 
-    <div class="lg:col-span-4 flex flex-col gap-6">
+    <div class="md:col-span-4 flex flex-col gap-6">
       <div class="flex-1 rounded-3xl border border-zinc-800 overflow-hidden bg-zinc-900 relative group">
-        <img src="${theme.tertiaryImage}" alt="Secondary Perspective" class="w-full h-48 lg:h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        <img src="${theme.tertiaryImage}" alt="Secondary Perspective" class="w-full h-48 md:h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/20 to-transparent"></div>
         <div class="absolute bottom-4 left-4 right-4">
           <p class="text-[10px] font-mono text-zinc-400 uppercase">Detail Frame 01</p>
@@ -898,9 +1437,9 @@ ${
       </div>
       <div class="p-6 rounded-3xl border border-zinc-800 bg-zinc-900/80 space-y-3" id="architecture-specs">
         <p class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">3D Physics Architecture</p>
-        <h4 class="text-base font-bold text-white">Viewport-Centered Lerp Engine</h4>
+        <h4 class="text-base font-bold text-white">Sticky Scrub + Lerp Engine</h4>
         <p class="text-xs text-zinc-400 leading-relaxed">
-          Zero layout drift: damped <code class="text-zinc-200">requestAnimationFrame</code> interpolation drives both Z-depth scroll shifts and pointer tilt.
+          Zero layout drift: damped <code class="text-zinc-200">requestAnimationFrame</code> interpolation drives sticky Z-rotation, counter-scrolling rails, and specular pointer tilt.
         </p>
       </div>
     </div>
@@ -917,113 +1456,19 @@ ${
     </div>
     <div class="flex items-center gap-6 font-medium text-zinc-400">
       <a href="#hero" class="hover:text-white transition-colors">Back to Top ↑</a>
+      <a href="#scroll-choreography" class="hover:text-white transition-colors">Scroll 3D</a>
       <a href="#districts" class="hover:text-white transition-colors">${isProduct ? "Specs" : "Sectors"}</a>
-      <a href="#vista" class="hover:text-white transition-colors">3D Stage</a>
       ${enableVideoLayer ? '<a href="#media-reel" class="hover:text-white transition-colors">Motion</a>' : ""}
     </div>
   </div>
 </footer>
 
-<script>
-  (function() {
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    var planes = document.querySelectorAll('[data-parallax-speed], [data-parallax-z]');
-    var tiltStage = document.querySelector('[data-tilt-stage]');
-    var readout = document.getElementById('parallax-altitude-readout');
-
-    var depthMult = ${depthMultiplier};
-    var maxTilt = ${maxTiltDeg};
-
-    var targetMx = 0, targetMy = 0;
-    var curMx = 0, curMy = 0;
-    var targetScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
-    var curScroll = targetScroll;
-
-    window.addEventListener('pointermove', function(e) {
-      var w = window.innerWidth || 1280;
-      var h = window.innerHeight || 720;
-      targetMx = ((e.clientX / w) - 0.5) * 2;
-      targetMy = ((e.clientY / h) - 0.5) * 2;
-    }, { passive: true });
-
-    window.addEventListener('scroll', function() {
-      targetScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
-    }, { passive: true });
-
-    // Variant selector interactivity for Product Dedicated pages
-    var variantButtons = document.querySelectorAll('[data-variant-btn]');
-    var variantReadout = document.getElementById('obsidian-selected-variant-readout');
-    for (var b = 0; b < variantButtons.length; b++) {
-      variantButtons[b].addEventListener('click', function() {
-        var chosen = this.getAttribute('data-variant-name');
-        for (var j = 0; j < variantButtons.length; j++) {
-          variantButtons[j].className = 'px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer bg-zinc-900/90 text-zinc-300 border-zinc-800 hover:border-zinc-500 hover:text-white';
-        }
-        this.className = 'px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer bg-white text-zinc-950 border-white shadow-md';
-        if (variantReadout) {
-          variantReadout.innerHTML = 'Active Finish: <span class="text-white">' + chosen + '</span> • ${theme.priceLabel || "$249.00"}';
-        }
-      });
-    }
-
-    var reserveBtn = document.getElementById('obsidian-quick-reserve-btn');
-    if (reserveBtn) {
-      reserveBtn.addEventListener('click', function() {
-        this.textContent = '✓ Reserved in Bag';
-        var btn = this;
-        setTimeout(function() { btn.textContent = 'Reserve • ${theme.priceLabel || "$249.00"}'; }, 2400);
-      });
-    }
-
-    function frame() {
-      curMx += (targetMx - curMx) * 0.1;
-      curMy += (targetMy - curMy) * 0.1;
-      curScroll += (targetScroll - curScroll) * 0.14;
-
-      var vh = window.innerHeight || 720;
-
-      if (tiltStage && maxTilt > 0) {
-        var rx = (-curMy * maxTilt).toFixed(2);
-        var ry = (curMx * maxTilt).toFixed(2);
-        tiltStage.style.transform = 'perspective(1200px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg)';
-      }
-
-      for (var i = 0; i < planes.length; i++) {
-        var el = planes[i];
-        var speed = parseFloat(el.getAttribute('data-parallax-speed') || '0.15');
-        var z = parseFloat(el.getAttribute('data-parallax-z') || '0');
-        var tiltFactor = parseFloat(el.getAttribute('data-parallax-tilt') || '0.25');
-
-        var rect = el.getBoundingClientRect();
-        var centerDelta = (rect.top + rect.height * 0.5) - (vh * 0.5);
-        var normProgress = Math.max(-1.25, Math.min(1.25, centerDelta / vh));
-
-        var translateY = Math.round(normProgress * speed * -90 * depthMult);
-        var translateX = Math.round(curMx * (z * 0.28) * tiltFactor);
-        var planeRotY = (curMx * 3.5 * tiltFactor).toFixed(2);
-        var planeRotX = (-curMy * 3.5 * tiltFactor).toFixed(2);
-
-        el.style.transform =
-          'perspective(1200px) rotateX(' + planeRotX + 'deg) rotateY(' + planeRotY + 'deg) translate3d(' +
-          translateX + 'px, ' + translateY + 'px, ' + z + 'px)';
-      }
-
-      if (readout) {
-        var scrollRatio = Math.min(1, curScroll / 1600);
-        if (${isProduct ? "true" : "false"}) {
-          readout.textContent = (1200 - Math.round(scrollRatio * 340)) + 'mm Z-Focus';
-        } else {
-          readout.textContent = Math.max(45, 450 - Math.round(scrollRatio * 320)) + 'm Sky Deck';
-        }
-      }
-
-      window.requestAnimationFrame(frame);
-    }
-
-    window.requestAnimationFrame(frame);
-  })();
-</script>
+${buildUniversalParallaxRuntimeScript({
+  depthMultiplier,
+  maxTiltDeg,
+  isProduct,
+  priceLabel: theme.priceLabel,
+})}
 `;
 }
 

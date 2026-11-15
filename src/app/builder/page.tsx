@@ -29,6 +29,12 @@ import {
   CreditCard,
   Truck,
   Eye,
+  Search,
+  Star,
+  ArrowUp,
+  ArrowDown,
+  Palette,
+  Mail,
 } from "lucide-react";
 import { VideoBackground } from "@/components/ui/VideoBackground";
 import {
@@ -37,6 +43,20 @@ import {
   suggestShopifyPresetFromPrompt,
   convertShopifyToWebsitePrompt,
 } from "@/lib/builder-bridge";
+import {
+  ShopifyCustomConfig,
+  ShopifyCurrencyCode,
+  ShopifyCardRadiusStyle,
+  ShopifySectionKey,
+  ShopifyThemeId,
+  DEFAULT_SHOPIFY_CUSTOM_CONFIG,
+  SHOPIFY_COLOR_THEMES,
+  SHOPIFY_SECTION_DEFS,
+  CURRENCY_CONFIG,
+  getShopifyTheme,
+  mapWebsiteAccentToShopifyTheme,
+  reorderShopifySection,
+} from "@/lib/customization";
 
 /* ── Official Shopify SVG Brand Icon ── */
 const ShopifyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -273,6 +293,14 @@ export default function BuilderPage() {
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   const [syncedFromWebsite, setSyncedFromWebsite] = useState<string | null>(null);
 
+  // Shopify OS 2.0 Customization & Merchandising State
+  const [shopifyConfig, setShopifyConfig] = useState<ShopifyCustomConfig>(DEFAULT_SHOPIFY_CUSTOM_CONFIG);
+  const activeShopifyTheme = getShopifyTheme(shopifyConfig.themeId);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [productVariantChoice, setProductVariantChoice] = useState<Record<string, number>>({});
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
+
   // Add Product Form State inside Customizer
   const [newProdTitle, setNewProdTitle] = useState("");
   const [newProdPrice, setNewProdPrice] = useState("85");
@@ -315,11 +343,18 @@ export default function BuilderPage() {
     const fromSource = params.get("from");
     const urlPrompt = params.get("prompt");
     const urlBrand = params.get("brand");
+    const urlAccent = params.get("accent");
 
     const timer = window.setTimeout(() => {
       const draft = loadBuilderDraftTransaction();
       const effectivePrompt = urlPrompt || draft?.prompt || "";
       const effectiveBrand = urlBrand || draft?.brandName || "";
+      const incomingThemeId =
+        draft?.shopifyThemeId || (urlAccent ? mapWebsiteAccentToShopifyTheme(urlAccent) : undefined);
+
+      if (incomingThemeId && SHOPIFY_COLOR_THEMES.some((t) => t.id === incomingThemeId)) {
+        setShopifyConfig((prev) => ({ ...prev, themeId: incomingThemeId as ShopifyThemeId }));
+      }
 
       if ((fromSource === "website" || draft?.source === "website") && effectivePrompt) {
         const suggestedId = suggestShopifyPresetFromPrompt(effectivePrompt);
@@ -340,12 +375,13 @@ export default function BuilderPage() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  const syncDraftToBridge = (nextPrompt: string, nextBrand: string) => {
+  const syncDraftToBridge = (nextPrompt: string, nextBrand: string, nextThemeId?: ShopifyThemeId) => {
     saveBuilderDraftTransaction({
       source: "shopify",
       prompt: nextPrompt,
       brandName: nextBrand,
       presetId: activePreset.id,
+      shopifyThemeId: nextThemeId || shopifyConfig.themeId,
     });
   };
 
@@ -448,6 +484,43 @@ export default function BuilderPage() {
     }
   };
 
+  const handleUpdateProductField = (id: string, field: "price" | "tag", value: string) => {
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              ...(field === "price"
+                ? { price: Math.max(1, Number(value) || p.price) }
+                : { tag: value.toUpperCase() }),
+            }
+          : p
+      )
+    );
+  };
+
+  const handleSelectShopifyTheme = (themeId: ShopifyThemeId) => {
+    setShopifyConfig((prev) => ({ ...prev, themeId }));
+    syncDraftToBridge(promptText, storeName, themeId);
+  };
+
+  const handleToggleShopifySection = (sectionId: ShopifySectionKey) => {
+    setShopifyConfig((prev) => ({
+      ...prev,
+      enabledSections: {
+        ...prev.enabledSections,
+        [sectionId]: !prev.enabledSections[sectionId],
+      },
+    }));
+  };
+
+  const handleMoveShopifySection = (sectionId: ShopifySectionKey, dir: "up" | "down") => {
+    setShopifyConfig((prev) => ({
+      ...prev,
+      sectionOrder: reorderShopifySection(prev.sectionOrder, sectionId, dir),
+    }));
+  };
+
   const handleTransitionToWebsite = (enableParallax: boolean) => {
     const brand = storeName.trim() || activePreset.name;
     const converted = convertShopifyToWebsitePrompt(promptText || heroSubtitle, brand, enableParallax);
@@ -548,6 +621,20 @@ export default function BuilderPage() {
           heroHeading: heroTitle,
           heroSubheading: heroSubtitle,
           announcementText,
+          accentColor: activeShopifyTheme.primary,
+          currency: shopifyConfig.currency,
+          cardRadius: shopifyConfig.cardRadius,
+          gridColumns: shopifyConfig.gridColumns,
+          freeShippingThreshold: shopifyConfig.freeShippingThreshold,
+          showAnnouncement: shopifyConfig.showAnnouncement,
+          showSearchBar: shopifyConfig.showSearchBar,
+          showSaleBadges: shopifyConfig.showSaleBadges,
+          showColorSwatches: shopifyConfig.showColorSwatches,
+          showStarRatings: shopifyConfig.showStarRatings,
+          showQuickAdd: shopifyConfig.showQuickAdd,
+          showExpressPay: shopifyConfig.showExpressPay,
+          sectionOrder: shopifyConfig.sectionOrder,
+          enabledSections: shopifyConfig.enabledSections,
           products: products.map((p) => ({
             id: p.id,
             title: p.title,
@@ -572,8 +659,33 @@ export default function BuilderPage() {
     }
   };
 
+  const formatMoney = (usdAmount: number) => {
+    const cfg = CURRENCY_CONFIG[shopifyConfig.currency];
+    const converted = Math.round(usdAmount * cfg.rate);
+    return `${cfg.symbol}${converted}.00`;
+  };
+
+  const cardRadiusClass =
+    shopifyConfig.cardRadius === "sharp-editorial"
+      ? "rounded-none"
+      : shopifyConfig.cardRadius === "soft-boutique"
+      ? "rounded-3xl"
+      : "rounded-2xl";
+
+  const filteredProducts = products.filter(
+    (p) =>
+      !catalogSearch.trim() ||
+      p.title.toLowerCase().includes(catalogSearch.trim().toLowerCase()) ||
+      p.tag.toLowerCase().includes(catalogSearch.trim().toLowerCase())
+  );
+
   const cartSubtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const cartTotal = Math.max(0, Math.round(cartSubtotal * (1 - discountPercent / 100)));
+  const shippingProgressPct = Math.min(
+    100,
+    Math.round((cartSubtotal / Math.max(1, shopifyConfig.freeShippingThreshold)) * 100)
+  );
+  const remainingForFreeShipping = Math.max(0, shopifyConfig.freeShippingThreshold - cartSubtotal);
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-emerald-900 selection:text-white relative overflow-x-hidden font-sans">
@@ -843,11 +955,107 @@ export default function BuilderPage() {
                     setCheckoutStep("cart");
                     setIsCartOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white transition-colors cursor-pointer shadow-md"
+                  style={{
+                    backgroundColor: activeShopifyTheme.primary,
+                    color: activeShopifyTheme.onPrimary,
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-opacity hover:opacity-90 cursor-pointer shadow-md"
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
                   <span>Cart ({cart.reduce((acc, i) => acc + i.quantity, 0)})</span>
                 </button>
+              </div>
+            </div>
+
+            {/* ── Shopify Colorful Theme Palette, Currency & Corner Style Quick Bar ── */}
+            <div className="px-4 py-2.5 rounded-2xl bg-neutral-900/80 border border-neutral-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 flex items-center gap-1">
+                  <Palette className="w-3 h-3" />
+                  <span>Store Palette:</span>
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {SHOPIFY_COLOR_THEMES.map((theme) => {
+                    const selected = shopifyConfig.themeId === theme.id;
+                    return (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        data-testid={`shopify-theme-${theme.id}`}
+                        onClick={() => handleSelectShopifyTheme(theme.id)}
+                        title={theme.name}
+                        aria-label={`Select ${theme.name} theme`}
+                        className={`w-6 h-6 rounded-full border transition-transform cursor-pointer flex items-center justify-center ${
+                          selected
+                            ? "scale-110 border-white ring-2 ring-white/30"
+                            : "border-neutral-700 hover:scale-105 opacity-85 hover:opacity-100"
+                        }`}
+                        style={{
+                          background: `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})`,
+                        }}
+                      >
+                        {selected && (
+                          <Check className="w-3 h-3" style={{ color: theme.onPrimary }} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <span
+                  className="text-[10px] font-mono px-2 py-0.5 rounded-full border"
+                  style={{
+                    backgroundColor: activeShopifyTheme.softBg,
+                    borderColor: activeShopifyTheme.borderTint,
+                    color: activeShopifyTheme.secondary,
+                  }}
+                >
+                  {activeShopifyTheme.name}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Currency Switcher */}
+                <div className="flex items-center bg-neutral-950 p-0.5 rounded-lg border border-neutral-800">
+                  {(["USD", "EUR", "GBP", "CAD"] as ShopifyCurrencyCode[]).map((curr) => (
+                    <button
+                      key={curr}
+                      type="button"
+                      data-testid={`currency-${curr}`}
+                      onClick={() => setShopifyConfig((prev) => ({ ...prev, currency: curr }))}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-mono cursor-pointer transition-colors ${
+                        shopifyConfig.currency === curr
+                          ? "bg-white text-black font-bold"
+                          : "text-neutral-400 hover:text-white"
+                      }`}
+                    >
+                      {curr}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Card Radius Quick Switcher */}
+                <div className="flex items-center bg-neutral-950 p-0.5 rounded-lg border border-neutral-800">
+                  {(
+                    [
+                      { id: "glass-rounded", label: "Rounded" },
+                      { id: "sharp-editorial", label: "Sharp" },
+                      { id: "soft-boutique", label: "Boutique" },
+                    ] as Array<{ id: ShopifyCardRadiusStyle; label: string }>
+                  ).map((cr) => (
+                    <button
+                      key={cr.id}
+                      type="button"
+                      onClick={() => setShopifyConfig((prev) => ({ ...prev, cardRadius: cr.id }))}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-medium cursor-pointer transition-colors ${
+                        shopifyConfig.cardRadius === cr.id
+                          ? "bg-neutral-800 text-white"
+                          : "text-neutral-400 hover:text-white"
+                      }`}
+                    >
+                      {cr.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -858,14 +1066,33 @@ export default function BuilderPage() {
               }`}
             >
               {/* Announcement Ticker */}
-              <div className="bg-neutral-950 border-b border-neutral-800 py-2 px-4 text-center text-[11px] font-mono text-emerald-400 tracking-wider uppercase">
-                ⚡ {announcementText}
-              </div>
+              {shopifyConfig.showAnnouncement && (
+                <div
+                  data-testid="shopify-announcement-bar"
+                  className="bg-neutral-950 border-b border-neutral-800 py-2 px-4 text-center text-[11px] font-mono tracking-wider uppercase flex items-center justify-center gap-2"
+                  style={{ color: activeShopifyTheme.secondary }}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{
+                      backgroundColor: activeShopifyTheme.primary,
+                      boxShadow: `0 0 8px ${activeShopifyTheme.primary}`,
+                    }}
+                  />
+                  <span>{announcementText}</span>
+                </div>
+              )}
 
               {/* Store Header */}
-              <div className="p-4 sm:p-5 bg-neutral-900/80 border-b border-neutral-800 flex items-center justify-between">
+              <div className="p-4 sm:p-5 bg-neutral-900/80 border-b border-neutral-800 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-xs text-white font-bold">
+                  <div
+                    style={{
+                      backgroundColor: activeShopifyTheme.primary,
+                      color: activeShopifyTheme.onPrimary,
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shadow-md"
+                  >
                     {(storeName || activePreset.name).slice(0, 1).toUpperCase()}
                   </div>
                   <div>
@@ -882,134 +1109,462 @@ export default function BuilderPage() {
                   </div>
                 </div>
 
-                <div className="hidden md:flex items-center gap-6 text-xs text-neutral-300 font-medium">
+                {/* Live Collection Search Input */}
+                {shopifyConfig.showSearchBar && storefrontTab === "home" && (
+                  <div className="relative w-full sm:w-56 order-last sm:order-none">
+                    <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={catalogSearch}
+                      onChange={(e) => setCatalogSearch(e.target.value)}
+                      placeholder="Search collection..."
+                      aria-label="Search store products"
+                      className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-neutral-600"
+                    />
+                  </div>
+                )}
+
+                <div className="hidden lg:flex items-center gap-5 text-xs text-neutral-300 font-medium">
                   <button
                     type="button"
                     onClick={() => setStorefrontTab("home")}
-                    className={storefrontTab === "home" ? "text-emerald-400 font-semibold" : "hover:text-white"}
+                    style={storefrontTab === "home" ? { color: activeShopifyTheme.secondary } : undefined}
+                    className={storefrontTab === "home" ? "font-semibold" : "hover:text-white"}
                   >
                     Collection
                   </button>
                   <button
                     type="button"
                     onClick={() => setStorefrontTab("product")}
-                    className={storefrontTab === "product" ? "text-emerald-400 font-semibold" : "hover:text-white"}
+                    style={storefrontTab === "product" ? { color: activeShopifyTheme.secondary } : undefined}
+                    className={storefrontTab === "product" ? "font-semibold" : "hover:text-white"}
                   >
                     Flagship Product
                   </button>
                   <button
                     type="button"
                     onClick={() => setStorefrontTab("customize")}
-                    className={storefrontTab === "customize" ? "text-emerald-400 font-semibold" : "hover:text-white"}
+                    style={storefrontTab === "customize" ? { color: activeShopifyTheme.secondary } : undefined}
+                    className={storefrontTab === "customize" ? "font-semibold" : "hover:text-white"}
                   >
                     Catalog Manager
                   </button>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 border border-neutral-700 hidden sm:inline-block">
-                    {activePreset.fontPairing}
-                  </span>
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                    OS 2.0 Ready
+                  <span
+                    className="text-[11px] px-2.5 py-0.5 rounded-full border font-medium"
+                    style={{
+                      backgroundColor: activeShopifyTheme.softBg,
+                      borderColor: activeShopifyTheme.borderTint,
+                      color: activeShopifyTheme.secondary,
+                    }}
+                  >
+                    {shopifyConfig.currency} • OS 2.0
                   </span>
                 </div>
               </div>
 
-              {/* TAB 1: STOREFRONT HOME */}
+              {/* TAB 1: STOREFRONT HOME (Modular Dynamic Section Order) */}
               {storefrontTab === "home" && (
                 <div>
-                  {/* Store Hero */}
-                  <div className="py-12 px-6 text-center bg-gradient-to-b from-neutral-900/40 to-[#0a0a0a] border-b border-neutral-800/80 space-y-4">
-                    <h2
-                      className={`text-2xl sm:text-4xl font-semibold text-white tracking-tight max-w-2xl mx-auto ${
-                        activePreset.headingFontClass || "font-heading"
-                      }`}
-                    >
-                      {heroTitle}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-neutral-400 max-w-xl mx-auto leading-relaxed">
-                      {heroSubtitle}
-                    </p>
-                    <div className="flex items-center justify-center gap-3 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => handleAddToCart(products[0])}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors cursor-pointer"
-                      >
-                        Quick Buy {products[0]?.title} — ${products[0]?.price}.00
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStorefrontTab("customize")}
-                        className="px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 text-xs font-medium transition-colors cursor-pointer"
-                      >
-                        Customize Store & Catalog
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Product Grid */}
-                  <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    {products.map((p) => (
-                      <div
-                        key={p.id}
-                        className="p-3.5 rounded-2xl bg-neutral-900/70 border border-neutral-800 flex flex-col justify-between space-y-3 group hover:border-emerald-500/40 transition-all"
-                      >
-                        <div>
+                  {shopifyConfig.sectionOrder
+                    .filter((secKey) => shopifyConfig.enabledSections[secKey])
+                    .map((secKey) => {
+                      if (secKey === "hero") {
+                        return (
                           <div
-                            onClick={() => {
-                              setSelectedProduct(p);
-                              setStorefrontTab("product");
-                            }}
-                            className="aspect-square rounded-xl overflow-hidden mb-2.5 relative border border-neutral-800 bg-black cursor-pointer"
+                            key="hero"
+                            data-testid="shopify-section-hero"
+                            className="relative py-12 px-6 text-center bg-gradient-to-b from-neutral-900/40 to-[#0a0a0a] border-b border-neutral-800/80 space-y-4 overflow-hidden"
                           >
-                            <img
-                              src={p.image}
-                              alt={p.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            <div
+                              className="absolute inset-0 pointer-events-none"
+                              style={{
+                                background: `radial-gradient(circle at 50% 15%, ${activeShopifyTheme.glow}, transparent 60%)`,
+                              }}
                             />
-                            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-semibold">
-                              {p.tag}
-                            </span>
+                            <div className="relative z-10 space-y-4">
+                              <span
+                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-mono uppercase"
+                                style={{
+                                  backgroundColor: activeShopifyTheme.softBg,
+                                  borderColor: activeShopifyTheme.borderTint,
+                                  color: activeShopifyTheme.secondary,
+                                }}
+                              >
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ backgroundColor: activeShopifyTheme.primary }}
+                                />
+                                <span>{activeShopifyTheme.name} Storefront</span>
+                              </span>
+                              <h2
+                                className={`text-2xl sm:text-4xl font-semibold text-white tracking-tight max-w-2xl mx-auto ${
+                                  activePreset.headingFontClass || "font-heading"
+                                }`}
+                              >
+                                {heroTitle}
+                              </h2>
+                              <p className="text-xs sm:text-sm text-neutral-400 max-w-xl mx-auto leading-relaxed">
+                                {heroSubtitle}
+                              </p>
+                              <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddToCart(products[0])}
+                                  style={{
+                                    backgroundColor: activeShopifyTheme.primary,
+                                    color: activeShopifyTheme.onPrimary,
+                                  }}
+                                  className="px-5 py-2.5 rounded-xl text-xs font-semibold transition-opacity hover:opacity-90 cursor-pointer shadow-lg"
+                                >
+                                  Quick Buy {products[0]?.title} — {formatMoney(products[0]?.price || 68)}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setStorefrontTab("customize")}
+                                  className="px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 text-xs font-medium transition-colors cursor-pointer"
+                                >
+                                  Customize Store & Catalog
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                          <h4
-                            onClick={() => {
-                              setSelectedProduct(p);
-                              setStorefrontTab("product");
-                            }}
-                            className="text-xs font-semibold text-white line-clamp-1 cursor-pointer hover:text-emerald-400"
+                        );
+                      }
+
+                      if (secKey === "trust-bar") {
+                        return (
+                          <div
+                            key="trust-bar"
+                            data-testid="shopify-section-trust-bar"
+                            className="px-6 py-4 bg-neutral-950 border-b border-neutral-800/80 grid grid-cols-2 md:grid-cols-4 gap-3"
                           >
-                            {p.title}
-                          </h4>
-                          <p className="text-xs text-emerald-400 font-semibold mt-1">${p.price}.00 USD</p>
-                        </div>
-                        <div className="flex gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleAddToCart(p)}
-                            className="flex-1 py-2 rounded-xl bg-neutral-800 hover:bg-emerald-600 text-white text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            {[
+                              { title: "24h Express Dispatch", sub: `Free over ${formatMoney(shopifyConfig.freeShippingThreshold)}`, dot: "#10b981" },
+                              { title: "30-Day Returns", sub: "Pre-paid global courier", dot: "#06b6d4" },
+                              { title: "Shop Pay & Passkey", sub: "256-Bit encrypted checkout", dot: "#6366f1" },
+                              { title: "OS 2.0 Certified", sub: "Clean Liquid sections", dot: "#f59e0b" },
+                            ].map((item, idx) => (
+                              <div
+                                key={idx}
+                                className="p-3 rounded-xl bg-neutral-900/60 border border-neutral-800/90 flex items-center gap-2.5"
+                              >
+                                <span
+                                  className="w-2 h-2 rounded-full shrink-0"
+                                  style={{ backgroundColor: item.dot, boxShadow: `0 0 8px ${item.dot}` }}
+                                />
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-semibold text-white truncate">{item.title}</p>
+                                  <p className="text-[10px] text-neutral-400 truncate">{item.sub}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+
+                      if (secKey === "featured-products") {
+                        return (
+                          <div
+                            key="featured-products"
+                            data-testid="shopify-section-featured-products"
+                            className={`p-6 grid grid-cols-1 sm:grid-cols-2 ${
+                              shopifyConfig.gridColumns === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"
+                            } gap-4 border-b border-neutral-800/80`}
                           >
-                            <Plus className="w-3 h-3" />
-                            <span>Add to Cart</span>
-                          </button>
-                        </div>
+                            {filteredProducts.length === 0 ? (
+                              <div className="col-span-full py-10 text-center text-xs text-neutral-400">
+                                No catalog items match &ldquo;{catalogSearch}&rdquo;.{" "}
+                                <button
+                                  type="button"
+                                  onClick={() => setCatalogSearch("")}
+                                  className="text-white underline cursor-pointer"
+                                >
+                                  Clear search
+                                </button>
+                              </div>
+                            ) : (
+                              filteredProducts.map((p) => {
+                                const selectedSwatchIdx = productVariantChoice[p.id] ?? 0;
+                                const swatchColors = ["#18181b", "#d4d4d8", activeShopifyTheme.primary, "#f59e0b"];
+                                const compareAt = Math.round(p.price * 1.25);
+
+                                return (
+                                  <div
+                                    key={p.id}
+                                    className={`p-3.5 ${cardRadiusClass} bg-neutral-900/70 border border-neutral-800 flex flex-col justify-between space-y-3 group transition-all`}
+                                  >
+                                    <div>
+                                      <div
+                                        onClick={() => {
+                                          setSelectedProduct(p);
+                                          setStorefrontTab("product");
+                                        }}
+                                        className={`aspect-square ${cardRadiusClass} overflow-hidden mb-2.5 relative border border-neutral-800 bg-black cursor-pointer`}
+                                      >
+                                        <img
+                                          src={p.image}
+                                          alt={p.title}
+                                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                        <span
+                                          style={{
+                                            backgroundColor: activeShopifyTheme.primary,
+                                            color: activeShopifyTheme.onPrimary,
+                                          }}
+                                          className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-semibold"
+                                        >
+                                          {p.tag}
+                                        </span>
+                                        {shopifyConfig.showSaleBadges && (
+                                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-bold">
+                                            SAVE 20%
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center justify-between gap-2">
+                                        {shopifyConfig.showStarRatings ? (
+                                          <span className="inline-flex items-center gap-0.5 text-[10px] font-mono text-amber-400">
+                                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                            <span>4.9</span>
+                                          </span>
+                                        ) : (
+                                          <span />
+                                        )}
+
+                                        {shopifyConfig.showColorSwatches && (
+                                          <div className="flex items-center gap-1" title="Select finish swatch">
+                                            {swatchColors.map((hex, idx) => (
+                                              <button
+                                                key={idx}
+                                                type="button"
+                                                aria-label={`Select swatch ${idx + 1} for ${p.title}`}
+                                                onClick={() =>
+                                                  setProductVariantChoice((prev) => ({
+                                                    ...prev,
+                                                    [p.id]: idx,
+                                                  }))
+                                                }
+                                                className={`w-3 h-3 rounded-full border cursor-pointer transition-transform ${
+                                                  selectedSwatchIdx === idx
+                                                    ? "scale-125 border-white ring-1 ring-white/40"
+                                                    : "border-neutral-600 opacity-80 hover:opacity-100"
+                                                }`}
+                                                style={{ backgroundColor: hex }}
+                                              />
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <h4
+                                        onClick={() => {
+                                          setSelectedProduct(p);
+                                          setStorefrontTab("product");
+                                        }}
+                                        className="text-xs font-semibold text-white line-clamp-1 cursor-pointer mt-1.5 hover:underline"
+                                      >
+                                        {p.title}
+                                      </h4>
+                                      <div className="flex items-center gap-2 mt-1 tabular-nums">
+                                        <p
+                                          style={{ color: activeShopifyTheme.secondary }}
+                                          className="text-xs font-semibold"
+                                        >
+                                          {formatMoney(p.price)} {shopifyConfig.currency}
+                                        </p>
+                                        {shopifyConfig.showSaleBadges && (
+                                          <span className="text-[10px] text-neutral-500 line-through">
+                                            {formatMoney(compareAt)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {shopifyConfig.showQuickAdd && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddToCart(p)}
+                                        className="w-full py-2 rounded-xl bg-neutral-800 hover:bg-white hover:text-black text-white text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                        <span>Add to Cart</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        );
+                      }
+
+                      if (secKey === "reviews") {
+                        return (
+                          <div
+                            key="reviews"
+                            data-testid="shopify-section-reviews"
+                            className="p-6 border-b border-neutral-800/80 space-y-4"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span
+                                  style={{ color: activeShopifyTheme.secondary }}
+                                  className="text-[10px] font-mono uppercase tracking-wider"
+                                >
+                                  Verified Merchant Social Proof
+                                </span>
+                                <h3 className="text-base font-bold text-white">Customer Reviews (4.9/5)</h3>
+                              </div>
+                              <span className="text-xs font-mono text-amber-400">★★★★★ 1,420 Verified</span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {[
+                                {
+                                  name: "Elena R.",
+                                  city: "New York, US",
+                                  quote: `Arrived in 48 hours and the packaging for ${products[0]?.title || "the collection"} feels museum-grade.`,
+                                  dot: "#10b981",
+                                },
+                                {
+                                  name: "Marcus K.",
+                                  city: "London, UK",
+                                  quote: "Instant Shop Pay checkout and clean finish details right out of the box.",
+                                  dot: "#6366f1",
+                                },
+                                {
+                                  name: "Sora T.",
+                                  city: "Tokyo, JP",
+                                  quote: "Already ordered a second unit as a gift—zero friction experience.",
+                                  dot: "#f59e0b",
+                                },
+                              ].map((rev, i) => (
+                                <div
+                                  key={i}
+                                  className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800 space-y-2"
+                                >
+                                  <div className="flex items-center justify-between text-[10px]">
+                                    <span className="text-amber-400">★★★★★</span>
+                                    <span className="inline-flex items-center gap-1 text-neutral-400 font-mono">
+                                      <span
+                                        className="w-1.5 h-1.5 rounded-full"
+                                        style={{ backgroundColor: rev.dot }}
+                                      />
+                                      Verified Buyer
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-neutral-300 leading-relaxed">&ldquo;{rev.quote}&rdquo;</p>
+                                  <p className="text-[10px] font-semibold text-white">
+                                    {rev.name} <span className="text-neutral-500 font-normal">• {rev.city}</span>
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (secKey === "newsletter") {
+                        return (
+                          <div
+                            key="newsletter"
+                            data-testid="shopify-section-newsletter"
+                            className="p-6 sm:p-8 bg-neutral-950/80 border-b border-neutral-800/80 text-center space-y-3"
+                          >
+                            <div className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase text-neutral-400">
+                              <Mail className="w-3.5 h-3.5" style={{ color: activeShopifyTheme.secondary }} />
+                              <span>VIP Early Drop & 15% Welcome Credit</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-white">
+                              Join {storeName || activePreset.name} Insider List
+                            </h3>
+                            {newsletterSubscribed ? (
+                              <p
+                                className="text-xs font-mono py-2"
+                                style={{ color: activeShopifyTheme.secondary }}
+                              >
+                                ✓ Subscribed ({newsletterEmail}) — Unlock code OBSIDIAN25 at checkout.
+                              </p>
+                            ) : (
+                              <form
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  if (newsletterEmail.trim()) setNewsletterSubscribed(true);
+                                }}
+                                className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto pt-1"
+                              >
+                                <input
+                                  type="email"
+                                  required
+                                  value={newsletterEmail}
+                                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                                  placeholder="Enter your email for early access..."
+                                  className="flex-1 px-3.5 py-2 rounded-xl bg-neutral-900 border border-neutral-800 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-neutral-600"
+                                />
+                                <button
+                                  type="submit"
+                                  style={{
+                                    backgroundColor: activeShopifyTheme.primary,
+                                    color: activeShopifyTheme.onPrimary,
+                                  }}
+                                  className="px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:opacity-90"
+                                >
+                                  Unlock VIP →
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return null;
+                    })}
+
+                  {/* Storefront Payment Footer Strip */}
+                  {shopifyConfig.showExpressPay && (
+                    <div className="px-6 py-4 bg-neutral-950 flex flex-wrap items-center justify-between gap-3 text-[11px] text-neutral-400">
+                      <span>© {new Date().getFullYear()} {storeName || activePreset.name} • Powered by OS 2.0</span>
+                      <div className="flex items-center gap-1.5 flex-wrap font-mono text-[10px]">
+                        {[
+                          { label: "Shop Pay", bg: "#5a31f4", color: "#ffffff" },
+                          { label: "Apple Pay", bg: "#18181b", color: "#ffffff" },
+                          { label: "Google Pay", bg: "#18181b", color: "#e4e4e7" },
+                          { label: "VISA", bg: "#1e3a8a", color: "#ffffff" },
+                          { label: "Mastercard", bg: "#7c2d12", color: "#fde68a" },
+                        ].map((pm) => (
+                          <span
+                            key={pm.label}
+                            style={{ backgroundColor: pm.bg, color: pm.color }}
+                            className="px-2 py-0.5 rounded border border-white/10 font-semibold"
+                          >
+                            {pm.label}
+                          </span>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* TAB 2: PRODUCT DETAIL PAGE */}
               {storefrontTab === "product" && selectedProduct && (
                 <div className="p-6 sm:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  <div className="aspect-square rounded-2xl overflow-hidden border border-neutral-800 bg-black relative">
+                  <div className={`aspect-square ${cardRadiusClass} overflow-hidden border border-neutral-800 bg-black relative`}>
                     <img
                       src={selectedProduct.image}
                       alt={selectedProduct.title}
                       className="w-full h-full object-cover"
                     />
-                    <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-emerald-600 text-white text-xs font-semibold">
+                    <span
+                      style={{
+                        backgroundColor: activeShopifyTheme.primary,
+                        color: activeShopifyTheme.onPrimary,
+                      }}
+                      className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-semibold"
+                    >
                       {selectedProduct.tag}
                     </span>
                   </div>
@@ -1017,17 +1572,23 @@ export default function BuilderPage() {
                     <button
                       type="button"
                       onClick={() => setStorefrontTab("home")}
-                      className="text-xs text-neutral-400 hover:text-white"
+                      className="text-xs text-neutral-400 hover:text-white cursor-pointer"
                     >
                       ← Back to Collection
                     </button>
                     <div className="space-y-2">
-                      <span className="text-xs font-mono text-emerald-400 uppercase">
+                      <span
+                        style={{ color: activeShopifyTheme.secondary }}
+                        className="text-xs font-mono uppercase"
+                      >
                         {storeName || activePreset.name} • Verified OS 2.0 Template
                       </span>
                       <h2 className="text-2xl sm:text-3xl font-bold text-white">{selectedProduct.title}</h2>
-                      <p className="text-2xl font-mono font-bold text-emerald-400">
-                        ${selectedProduct.price}.00 USD
+                      <p
+                        style={{ color: activeShopifyTheme.secondary }}
+                        className="text-2xl font-mono font-bold tabular-nums"
+                      >
+                        {formatMoney(selectedProduct.price)} {shopifyConfig.currency}
                       </p>
                     </div>
                     <p className="text-sm text-neutral-300 leading-relaxed">
@@ -1038,9 +1599,13 @@ export default function BuilderPage() {
                       <button
                         type="button"
                         onClick={() => handleAddToCart(selectedProduct)}
-                        className="flex-1 py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                        style={{
+                          backgroundColor: activeShopifyTheme.primary,
+                          color: activeShopifyTheme.onPrimary,
+                        }}
+                        className="flex-1 py-3 px-6 rounded-xl text-xs font-bold uppercase tracking-wider transition-opacity hover:opacity-90 cursor-pointer"
                       >
-                        Add to Cart — ${selectedProduct.price}.00
+                        Add to Cart — {formatMoney(selectedProduct.price)}
                       </button>
                       <button
                         type="button"
@@ -1071,10 +1636,10 @@ export default function BuilderPage() {
               {/* TAB 3: STORE CUSTOMIZER & PRODUCT MANAGER */}
               {storefrontTab === "customize" && (
                 <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Left: Brand & Hero Settings */}
-                  <div className="space-y-4">
+                  {/* Left: Brand Copy + Merchandising Elements & Inline Catalog */}
+                  <div className="space-y-5">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-white border-b border-neutral-800 pb-2">
-                      1. Live Storefront Copy & Branding
+                      1. Store Branding, Merchandising & Colors
                     </h3>
                     <div className="space-y-3">
                       <div>
@@ -1111,32 +1676,139 @@ export default function BuilderPage() {
                       </div>
                     </div>
 
+                    {/* Shopify Grid Columns, Free Shipping Meter & Colorful CRO Elements */}
+                    <div className="p-4 rounded-2xl bg-neutral-900/60 border border-neutral-800 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-white">Layout & Free Shipping Meter</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setShopifyConfig((p) => ({ ...p, gridColumns: 3 }))}
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono border cursor-pointer ${
+                              shopifyConfig.gridColumns === 3
+                                ? "bg-white text-black border-white font-bold"
+                                : "bg-neutral-950 text-neutral-400 border-neutral-800"
+                            }`}
+                          >
+                            3-Col Grid
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShopifyConfig((p) => ({ ...p, gridColumns: 4 }))}
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono border cursor-pointer ${
+                              shopifyConfig.gridColumns === 4
+                                ? "bg-white text-black border-white font-bold"
+                                : "bg-neutral-950 text-neutral-400 border-neutral-800"
+                            }`}
+                          >
+                            4-Col Grid
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="text-neutral-400">Free Shipping Threshold:</span>
+                        <div className="flex items-center gap-1">
+                          {[50, 75, 100, 150].map((amt) => (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() =>
+                                setShopifyConfig((p) => ({ ...p, freeShippingThreshold: amt }))
+                              }
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono border cursor-pointer ${
+                                shopifyConfig.freeShippingThreshold === amt
+                                  ? "bg-white text-black border-white font-bold"
+                                  : "bg-neutral-950 text-neutral-400 border-neutral-800"
+                              }`}
+                            >
+                              ${amt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-neutral-800">
+                        {(
+                          [
+                            { key: "showAnnouncement", label: "Announcement Bar", dot: "#10b981" },
+                            { key: "showSearchBar", label: "Predictive Search", dot: "#06b6d4" },
+                            { key: "showSaleBadges", label: "Sale Compare Badges", dot: "#f43f5e" },
+                            { key: "showColorSwatches", label: "Variant Color Dots", dot: "#8b5cf6" },
+                            { key: "showStarRatings", label: "Amber 5★ Ratings", dot: "#f59e0b" },
+                            { key: "showExpressPay", label: "Shop Pay Badges Footer", dot: "#6366f1" },
+                          ] as const
+                        ).map((tog) => {
+                          const active = shopifyConfig[tog.key];
+                          return (
+                            <button
+                              key={tog.key}
+                              type="button"
+                              data-testid={`shopify-toggle-${tog.key}`}
+                              onClick={() =>
+                                setShopifyConfig((p) => ({ ...p, [tog.key]: !p[tog.key] }))
+                              }
+                              className={`px-2.5 py-1.5 rounded-xl border text-[11px] flex items-center justify-between cursor-pointer transition-colors ${
+                                active
+                                  ? "bg-neutral-950 border-neutral-600 text-white"
+                                  : "bg-neutral-950/40 border-neutral-800 text-neutral-500"
+                              }`}
+                            >
+                              <span className="flex items-center gap-1.5 truncate">
+                                <span
+                                  className="w-2 h-2 rounded-full shrink-0"
+                                  style={{ backgroundColor: active ? tog.dot : "#3f3f46" }}
+                                />
+                                <span className="truncate">{tog.label}</span>
+                              </span>
+                              <span className="text-[10px] font-mono">{active ? "ON" : "OFF"}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     <div className="pt-3 border-t border-neutral-800">
                       <p className="text-xs font-semibold text-neutral-300 mb-2">
-                        Active Products ({products.length})
+                        Active Catalog ({products.length}) — Inline Price & Badge Editor
                       </p>
-                      <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                         {products.map((prod) => (
                           <div
                             key={prod.id}
                             className="p-2.5 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-between gap-2 text-xs"
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
                               <img
                                 src={prod.image}
                                 alt={prod.title}
-                                className="w-9 h-9 rounded-lg object-cover border border-neutral-700"
+                                className="w-9 h-9 rounded-lg object-cover border border-neutral-700 shrink-0"
                               />
-                              <div className="truncate">
+                              <div className="min-w-0 flex-1">
                                 <p className="font-semibold text-white truncate">{prod.title}</p>
-                                <p className="text-[11px] text-emerald-400">${prod.price}.00 • {prod.tag}</p>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <input
+                                    type="number"
+                                    aria-label={`Price for ${prod.title}`}
+                                    value={prod.price}
+                                    onChange={(e) => handleUpdateProductField(prod.id, "price", e.target.value)}
+                                    className="w-16 px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-700 text-[11px] font-mono text-white"
+                                  />
+                                  <input
+                                    type="text"
+                                    aria-label={`Badge for ${prod.title}`}
+                                    value={prod.tag}
+                                    onChange={(e) => handleUpdateProductField(prod.id, "tag", e.target.value)}
+                                    className="w-24 px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-700 text-[10px] font-mono text-neutral-200 uppercase"
+                                  />
+                                </div>
                               </div>
                             </div>
                             {products.length > 1 && (
                               <button
                                 type="button"
                                 onClick={() => handleDeleteProduct(prod.id)}
-                                className="p-1.5 text-neutral-400 hover:text-red-400 rounded-lg"
+                                className="p-1.5 text-neutral-400 hover:text-red-400 rounded-lg cursor-pointer"
                                 title="Delete product"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1241,47 +1913,141 @@ export default function BuilderPage() {
                 </div>
               )}
 
-              {/* TAB 4: LIQUID 2.0 SCHEMA & FILES */}
+              {/* TAB 4: LIQUID 2.0 SCHEMA, SECTION REORDERING & FILES */}
               {storefrontTab === "liquid" && (
-                <div className="p-6 sm:p-8 space-y-4">
-                  <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                <div className="p-6 sm:p-8 space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 pb-3">
                     <div>
                       <h3 className="text-sm font-bold text-white">
-                        Compiled Shopify Online Store 2.0 Bundle Structure
+                        Interactive Shopify Online Store 2.0 Section Order & Bundle
                       </h3>
                       <p className="text-xs text-neutral-400">
-                        All customizations and products above are compiled directly into these Liquid files upon ZIP export.
+                        Toggle or reorder Liquid sections below — changes update both the Live Storefront Canvas and templates/index.json inside your ZIP.
                       </p>
                     </div>
                     <Button
                       size="sm"
                       onClick={handleDownloadThemeZip}
                       isLoading={isExporting}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                      style={{
+                        backgroundColor: activeShopifyTheme.primary,
+                        color: activeShopifyTheme.onPrimary,
+                      }}
+                      className="text-xs font-semibold"
                     >
                       Download OS 2.0 ZIP
                     </Button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
-                    {[
-                      { path: "layout/theme.liquid", desc: "Master OS 2.0 layout with Tailwind & CSS variables" },
-                      { path: "templates/index.json", desc: `Dynamic section order for ${storeName || activePreset.name}` },
-                      { path: "sections/hero.liquid", desc: `Headline: "${heroTitle.slice(0, 38)}..."` },
-                      { path: "sections/featured-products.liquid", desc: `${products.length} products bound to schema` },
-                      { path: "sections/main-cart.liquid", desc: "Slide-out cart & Shop Pay checkout form" },
-                      { path: "config/settings_data.json", desc: "Brand colors, typography, and store settings" },
-                    ].map((file) => (
-                      <div
-                        key={file.path}
-                        className="p-3.5 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-between"
-                      >
-                        <div>
-                          <p className="text-emerald-400 font-semibold">{file.path}</p>
-                          <p className="text-neutral-400 text-[11px] font-sans mt-0.5">{file.desc}</p>
+
+                  {/* Interactive OS 2.0 Section Reorderer */}
+                  <div className="space-y-2">
+                    {shopifyConfig.sectionOrder.map((secId, idx) => {
+                      const meta = SHOPIFY_SECTION_DEFS.find((d) => d.id === secId);
+                      const enabled = shopifyConfig.enabledSections[secId];
+                      return (
+                        <div
+                          key={secId}
+                          data-testid={`liquid-section-row-${secId}`}
+                          className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-colors ${
+                            enabled
+                              ? "bg-neutral-900 border-neutral-700"
+                              : "bg-neutral-950/50 border-neutral-800/70 opacity-60"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={enabled}
+                              onChange={() => handleToggleShopifySection(secId)}
+                              aria-label={`Toggle ${meta?.label || secId}`}
+                              className="w-4 h-4 rounded accent-white cursor-pointer"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-white">{meta?.label}</span>
+                                <span
+                                  style={{ color: activeShopifyTheme.secondary }}
+                                  className="text-[10px] font-mono"
+                                >
+                                  {meta?.liquidFile}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-neutral-400 truncate">{meta?.description}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              data-testid={`move-up-${secId}`}
+                              onClick={() => handleMoveShopifySection(secId, "up")}
+                              className="p-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-white disabled:opacity-30 cursor-pointer"
+                              title="Move section up"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === shopifyConfig.sectionOrder.length - 1}
+                              data-testid={`move-down-${secId}`}
+                              onClick={() => handleMoveShopifySection(secId, "down")}
+                              className="p-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-white disabled:opacity-30 cursor-pointer"
+                              title="Move section down"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      </div>
-                    ))}
+                      );
+                    })}
+                  </div>
+
+                  {/* Live Compiled File Tree & index.json Preview */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2 border-t border-neutral-800">
+                    <div className="grid grid-cols-1 gap-2 text-xs font-mono">
+                      {[
+                        { path: "layout/theme.liquid", desc: `CSS Tokens + ${activeShopifyTheme.name}` },
+                        { path: "config/settings_data.json", desc: `Currency: ${shopifyConfig.currency} | Free Ship: $${shopifyConfig.freeShippingThreshold}` },
+                        { path: "sections/cart-drawer.liquid", desc: "Free shipping progress bar + Shop Pay drawer" },
+                        { path: "sections/trust-bar.liquid", desc: "Merchant trust & courier guarantees" },
+                        { path: "sections/newsletter.liquid", desc: "VIP customer email signup form" },
+                      ].map((file) => (
+                        <div
+                          key={file.path}
+                          className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-between"
+                        >
+                          <div>
+                            <p style={{ color: activeShopifyTheme.secondary }} className="font-semibold">
+                              {file.path}
+                            </p>
+                            <p className="text-neutral-400 text-[11px] font-sans mt-0.5">{file.desc}</p>
+                          </div>
+                          <CheckCircle2 style={{ color: activeShopifyTheme.secondary }} className="w-4 h-4 shrink-0" />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-neutral-950 border border-neutral-800 font-mono text-[11px] text-neutral-300 overflow-x-auto">
+                      <p className="text-[10px] uppercase text-neutral-500 mb-2">
+                        Live templates/index.json Order
+                      </p>
+                      <pre className="m-0">
+                        {JSON.stringify(
+                          {
+                            order: shopifyConfig.sectionOrder.filter(
+                              (k) => shopifyConfig.enabledSections[k]
+                            ),
+                            theme: activeShopifyTheme.name,
+                            accent: activeShopifyTheme.primary,
+                            currency: shopifyConfig.currency,
+                            free_shipping_threshold: shopifyConfig.freeShippingThreshold,
+                          },
+                          null,
+                          2
+                        )}
+                      </pre>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1296,7 +2062,7 @@ export default function BuilderPage() {
                   {/* Drawer Header */}
                   <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
                     <div className="flex items-center gap-2">
-                      <ShoppingBag className="w-5 h-5 text-emerald-400" />
+                      <ShoppingBag className="w-5 h-5" style={{ color: activeShopifyTheme.secondary }} />
                       <h3 className="font-semibold text-base text-white">
                         {checkoutStep === "cart" && "Live Store Cart"}
                         {checkoutStep === "shipping" && "Shopify Express Checkout • Step 1/2"}
@@ -1316,7 +2082,32 @@ export default function BuilderPage() {
                   {/* STEP 1: CART ITEMS */}
                   {checkoutStep === "cart" && (
                     <>
-                      <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+                      {/* Dynamic Free Shipping Progress Meter */}
+                      <div
+                        data-testid="free-shipping-meter"
+                        className="p-3 rounded-xl bg-[#0a0a0a] border border-neutral-800 space-y-2"
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="flex items-center gap-1.5 text-neutral-200 font-medium">
+                            <Truck className="w-3.5 h-3.5" style={{ color: activeShopifyTheme.secondary }} />
+                            {remainingForFreeShipping === 0
+                              ? "✓ Free Global Express Shipping Unlocked!"
+                              : `Add ${formatMoney(remainingForFreeShipping)} more for Free Express Shipping`}
+                          </span>
+                          <span className="font-mono text-neutral-400">{shippingProgressPct}%</span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-neutral-800 overflow-hidden">
+                          <div
+                            className="h-full transition-all duration-300"
+                            style={{
+                              width: `${shippingProgressPct}%`,
+                              backgroundColor: activeShopifyTheme.primary,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                         {cart.length === 0 ? (
                           <p className="text-xs text-neutral-500 py-8 text-center">
                             Your cart is empty. Click any product card to add items.
@@ -1334,7 +2125,9 @@ export default function BuilderPage() {
                               />
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-white truncate">{item.title}</p>
-                                <p className="text-xs text-emerald-400 font-semibold mt-0.5">${item.price}.00</p>
+                                <p className="text-xs font-semibold mt-0.5 tabular-nums" style={{ color: activeShopifyTheme.secondary }}>
+                                  {formatMoney(item.price)}
+                                </p>
                               </div>
                               <div className="flex items-center gap-1.5 bg-neutral-900 px-2 py-1 rounded-lg border border-neutral-800">
                                 <button
@@ -1458,13 +2251,13 @@ export default function BuilderPage() {
                           Thank You! Order #{orderNumber}
                         </h4>
                         <p className="text-xs text-neutral-400">
-                          Confirmation dispatched to {customerEmail} for ${cartTotal}.00 USD.
+                          Confirmation dispatched to {customerEmail} for {formatMoney(cartTotal)} {shopifyConfig.currency}.
                         </p>
                       </div>
                       <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 text-left text-xs space-y-1">
                         <p className="text-neutral-400">Storefront: <strong className="text-white">{storeName || activePreset.name}</strong></p>
                         <p className="text-neutral-400">Items: <strong className="text-white">{cart.reduce((a, i) => a + i.quantity, 0)} products</strong></p>
-                        <p className="text-neutral-400">Total Charged: <strong className="text-emerald-400">${cartTotal}.00 USD</strong></p>
+                        <p className="text-neutral-400">Total Charged: <strong style={{ color: activeShopifyTheme.secondary }}>{formatMoney(cartTotal)} {shopifyConfig.currency}</strong></p>
                       </div>
                     </div>
                   )}
@@ -1472,9 +2265,11 @@ export default function BuilderPage() {
 
                 {/* Drawer Footer Actions */}
                 <div className="space-y-3 pt-4 border-t border-neutral-800">
-                  <div className="flex justify-between text-sm font-semibold text-white">
+                  <div className="flex justify-between text-sm font-semibold text-white tabular-nums">
                     <span>Estimated Total:</span>
-                    <span className="text-emerald-400 font-semibold">${cartTotal}.00 USD</span>
+                    <span style={{ color: activeShopifyTheme.secondary }} className="font-semibold">
+                      {formatMoney(cartTotal)} {shopifyConfig.currency}
+                    </span>
                   </div>
 
                   {checkoutStep === "cart" && (

@@ -48,9 +48,11 @@ import {
   duplicateSectionInHtml,
   deleteSectionInHtml,
   updateSectionTextInHtml,
+  updateElementStyleInHtml,
   updateSectionImageInHtml,
   buildIframeBridgeScript,
   extractSelectedElementFromMessage,
+  extractInlineCommitFromMessage,
 } from "@/lib/editor-dom";
 import {
   convertWebsitePromptToShopifyPrompt,
@@ -58,6 +60,18 @@ import {
   extractBrandFromPrompt,
   saveBuilderDraftTransaction,
 } from "@/lib/builder-bridge";
+import {
+  WebsiteCustomConfig,
+  WebsiteSectionsConfig,
+  WebsiteColorfulElementsConfig,
+  DEFAULT_WEBSITE_CUSTOM_CONFIG,
+  WEBSITE_ACCENT_PALETTES,
+  WEBSITE_SURFACE_THEMES,
+  getWebsiteAccent,
+  mergeWebsiteConfig,
+  buildWebsiteThemeStyleBlock,
+  mapWebsiteAccentToShopifyTheme,
+} from "@/lib/customization";
 import JSZip from "jszip";
 import * as htmlToImage from "html-to-image";
 
@@ -172,21 +186,73 @@ function EditorContent({ projectId }: { projectId: string }) {
 
   const urlParallax = searchParams?.get("parallax") === "true";
   const urlParallaxTheme = searchParams?.get("parallaxTheme") || "";
+  const urlCategoryParam = searchParams?.get("parallaxCategory");
+  const urlParallaxCategory: ParallaxCategory | undefined =
+    urlCategoryParam === "product" || urlCategoryParam === "city" || urlCategoryParam === "saas"
+      ? urlCategoryParam
+      : undefined;
   const urlDepthPreset = (searchParams?.get("depthPreset") as ParallaxDepthPreset) || "interactive-3d";
   const urlTiltStage = searchParams?.get("tiltStage") !== "false";
   const urlExplodedSpecs = searchParams?.get("explodedSpecs") !== "false";
   const urlVideoLayer = searchParams?.get("videoLayer") !== "false";
   const detectedIntent = detectParallaxIntent(initialPrompt);
 
+  const initialWebsiteConfig = useMemo<WebsiteCustomConfig>(() => {
+    const urlAccent = searchParams?.get("accent") as WebsiteCustomConfig["accentId"] | null;
+    const urlSurface = searchParams?.get("surface") as WebsiteCustomConfig["surfaceId"] | null;
+    const urlFont = searchParams?.get("font") as WebsiteCustomConfig["typographyId"] | null;
+    const urlHeader = searchParams?.get("headerStyle") as WebsiteCustomConfig["headerStyle"] | null;
+    const urlHero = searchParams?.get("heroLayout") as WebsiteCustomConfig["heroLayout"] | null;
+    const urlSections = searchParams?.get("sections");
+    const urlElements = searchParams?.get("elements");
+
+    let parsedSections: Partial<WebsiteSectionsConfig> | undefined;
+    if (urlSections !== null) {
+      const set = new Set(urlSections.split(",").filter(Boolean));
+      parsedSections = {
+        announcementBar: set.has("announcementBar"),
+        trustMetrics: set.has("trustMetrics"),
+        featuresBento: set.has("featuresBento"),
+        pricingMatrix: set.has("pricingMatrix"),
+        testimonials: set.has("testimonials"),
+        faqAccordion: set.has("faqAccordion"),
+        leadCapture: set.has("leadCapture"),
+        seoSchema: set.has("seoSchema"),
+      };
+    }
+
+    let parsedElements: Partial<WebsiteColorfulElementsConfig> | undefined;
+    if (urlElements !== null) {
+      const set = new Set(urlElements.split(",").filter(Boolean));
+      parsedElements = {
+        gradientGlowCta: set.has("gradientGlowCta"),
+        colorfulStatusDots: set.has("colorfulStatusDots"),
+        tintedBadges: set.has("tintedBadges"),
+        ratingStars: set.has("ratingStars"),
+        accentBorders: set.has("accentBorders"),
+      };
+    }
+
+    return mergeWebsiteConfig({
+      accentId: urlAccent || DEFAULT_WEBSITE_CUSTOM_CONFIG.accentId,
+      surfaceId: urlSurface || DEFAULT_WEBSITE_CUSTOM_CONFIG.surfaceId,
+      typographyId: urlFont || DEFAULT_WEBSITE_CUSTOM_CONFIG.typographyId,
+      headerStyle: urlHeader || DEFAULT_WEBSITE_CUSTOM_CONFIG.headerStyle,
+      heroLayout: urlHero || DEFAULT_WEBSITE_CUSTOM_CONFIG.heroLayout,
+      sections: parsedSections as WebsiteSectionsConfig | undefined,
+      elements: parsedElements as WebsiteColorfulElementsConfig | undefined,
+    });
+  }, [searchParams]);
+
   const { user } = useAuth();
   const [viewport, setViewport] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [parallaxMode, setParallaxMode] = useState<boolean>(
     !isShopify && (urlParallax || detectedIntent.isParallax)
   );
-  const [parallaxThemeId, setParallaxThemeId] = useState<string>(
-    urlParallaxTheme || detectedIntent.theme.id || "obsidian-kinetic"
+  const [parallaxThemeId, setParallaxThemeId] = useState<string>(urlParallaxTheme);
+  const [parallaxCategoryFilter, setParallaxCategoryFilter] = useState<"all" | ParallaxCategory>(
+    urlParallaxCategory || "all"
   );
-  const [parallaxCategoryFilter, setParallaxCategoryFilter] = useState<"all" | ParallaxCategory>("all");
   const [depthPreset, setDepthPreset] = useState<ParallaxDepthPreset>(urlDepthPreset);
   const [enableTiltStage, setEnableTiltStage] = useState<boolean>(urlTiltStage);
   const [enableExplodedSpecs, setEnableExplodedSpecs] = useState<boolean>(urlExplodedSpecs);
@@ -207,8 +273,12 @@ function EditorContent({ projectId }: { projectId: string }) {
 
   // Left Panel Sub-tab: 'chat' | 'blocks' | 'theme' | 'actions'
   const [sidebarTab, setSidebarTab] = useState<"chat" | "blocks" | "theme" | "actions">("chat");
+  const [websiteConfig, setWebsiteConfig] = useState<WebsiteCustomConfig>(initialWebsiteConfig);
   const [activeTheme, setActiveTheme] = useState(COLOR_THEMES[0]);
-  const [activeFont, setActiveFont] = useState(AESTHETIC_FONT_PAIRINGS[0]);
+  const [activeFont, setActiveFont] = useState(
+    () => AESTHETIC_FONT_PAIRINGS.find((f) => f.id === initialWebsiteConfig.typographyId) || AESTHETIC_FONT_PAIRINGS[0]
+  );
+  const activeEditorAccent = useMemo(() => getWebsiteAccent(websiteConfig.accentId), [websiteConfig.accentId]);
 
   const [chatMessages, setChatMessages] = useState<
     Array<{ role: "user" | "assistant" | "system"; content: string; time?: string }>
@@ -238,6 +308,8 @@ function EditorContent({ projectId }: { projectId: string }) {
 
   const [pageCodes, setPageCodes] = useState<Record<string, { html: string; css: string }>>({});
   const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
+  const [inlineEditMode, setInlineEditMode] = useState(true);
+  const [undoHistory, setUndoHistory] = useState<string[]>([]);
 
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportStep, setExportStep] = useState(0);
@@ -258,7 +330,8 @@ function EditorContent({ projectId }: { projectId: string }) {
       overrideDepthPreset?: ParallaxDepthPreset,
       overrideTiltStage?: boolean,
       overrideExplodedSpecs?: boolean,
-      overrideVideoLayer?: boolean
+      overrideVideoLayer?: boolean,
+      overrideWebsiteConfig?: WebsiteCustomConfig
     ) => {
       setIsGenerating(true);
       setStreamingCharCount(0);
@@ -268,6 +341,7 @@ function EditorContent({ projectId }: { projectId: string }) {
       const effectiveTilt = overrideTiltStage ?? enableTiltStage;
       const effectiveExploded = overrideExplodedSpecs ?? enableExplodedSpecs;
       const effectiveVideo = overrideVideoLayer ?? enableVideoLayer;
+      const effectiveWebsiteConfig = overrideWebsiteConfig ?? websiteConfig;
 
       try {
         const res = await fetch("/api/generate", {
@@ -278,13 +352,15 @@ function EditorContent({ projectId }: { projectId: string }) {
             projectId,
             pageName,
             parallaxMode: effectiveParallax,
-            parallaxThemeId: effectiveThemeId,
+            parallaxThemeId: effectiveThemeId || undefined,
             parallaxOptions: {
+              category: urlParallaxCategory,
               depthPreset: effectiveDepth,
               enableTiltStage: effectiveTilt,
               enableExplodedSpecs: effectiveExploded,
               enableVideoLayer: effectiveVideo,
             },
+            websiteConfig: effectiveWebsiteConfig,
           }),
         });
 
@@ -336,13 +412,14 @@ function EditorContent({ projectId }: { projectId: string }) {
       parallaxMode,
       parallaxThemeId,
       projectId,
+      urlParallaxCategory,
+      websiteConfig,
     ]
   );
 
-  // Load saved project or generate initial code ONCE per projectId
+  // Load saved project or generate initial code ONCE per projectId (StrictMode-safe)
   useEffect(() => {
     if (initializedProjectRef.current === projectId) return;
-    initializedProjectRef.current = projectId;
 
     const existing = getProjectById(projectId);
     if (existing?.data?.pages && Object.keys(existing.data.pages).length > 0) {
@@ -352,17 +429,27 @@ function EditorContent({ projectId }: { projectId: string }) {
       const savedParallax = existing.data.parallaxMode;
       const savedThemeId = existing.data.parallaxThemeId;
       const savedDepth = existing.data.depthPreset as ParallaxDepthPreset | undefined;
+      const savedWebsiteConfig = existing.data.websiteConfig as Partial<WebsiteCustomConfig> | undefined;
       const timer = window.setTimeout(() => {
+        initializedProjectRef.current = projectId;
         setPageCodes(savedPages);
         if (savedTabs?.length) setPageTabs(savedTabs);
         if (savedChat?.length) setChatMessages(savedChat);
         if (typeof savedParallax === "boolean") setParallaxMode(savedParallax);
         if (savedThemeId) setParallaxThemeId(savedThemeId);
         if (savedDepth) setDepthPreset(savedDepth);
+        if (savedWebsiteConfig) {
+          const mergedSaved = mergeWebsiteConfig(savedWebsiteConfig);
+          setWebsiteConfig(mergedSaved);
+          const matchedFont = AESTHETIC_FONT_PAIRINGS.find((f) => f.id === mergedSaved.typographyId);
+          if (matchedFont) setActiveFont(matchedFont);
+        }
       }, 0);
       return () => window.clearTimeout(timer);
     }
     const timer = window.setTimeout(() => {
+      if (initializedProjectRef.current === projectId) return;
+      initializedProjectRef.current = projectId;
       void generateInitialCode(initialPrompt, "Home Page");
     }, 0);
     return () => window.clearTimeout(timer);
@@ -401,6 +488,7 @@ function EditorContent({ projectId }: { projectId: string }) {
         enableTiltStage,
         enableExplodedSpecs,
         enableVideoLayer,
+        websiteConfig,
       },
     });
   }, [
@@ -415,13 +503,14 @@ function EditorContent({ projectId }: { projectId: string }) {
     enableTiltStage,
     enableExplodedSpecs,
     enableVideoLayer,
+    websiteConfig,
     projectId,
     user?.id,
     initialPrompt,
     isShopify,
   ]);
 
-  // Listen for iframe element selection & postMessage events (FIXED nested element extraction)
+  // Listen for iframe element selection & direct inline contentEditable text commits
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data === "openChat") {
@@ -431,11 +520,40 @@ function EditorContent({ projectId }: { projectId: string }) {
       const selected = extractSelectedElementFromMessage(event.data);
       if (selected) {
         setSelectedElement(selected);
+        return;
+      }
+      const commit = extractInlineCommitFromMessage(event.data);
+      if (commit && commit.newText) {
+        setPageCodes((prev) => {
+          const existingHtml = prev[activePageTab]?.html || "";
+          if (!existingHtml) return prev;
+          setUndoHistory((hist) => [...hist.slice(-14), existingHtml]);
+          const updatedHtml = updateSectionTextInHtml(
+            existingHtml,
+            commit.sectionId,
+            commit.oldText,
+            commit.newText,
+            commit.nodeIndex,
+            commit.tagName,
+            commit.sectionIndex
+          );
+          return {
+            ...prev,
+            [activePageTab]: { ...prev[activePageTab], html: updatedHtml },
+          };
+        });
+        setSelectedElement((prev) =>
+          prev && prev.sectionId === commit.sectionId && prev.tagName === commit.tagName
+            ? { ...prev, textContent: commit.newText }
+            : prev
+        );
+        setStatusNotice("✓ Inline canvas text saved");
+        window.setTimeout(() => setStatusNotice(null), 2200);
       }
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [activePageTab]);
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -585,10 +703,12 @@ function EditorContent({ projectId }: { projectId: string }) {
         brandName: converted.brandName,
         parallaxMode: true,
         parallaxThemeId: "tokyo-noir",
+        websiteAccentId: websiteConfig.accentId,
       });
       router.push(`/?from=shopify&parallax=true&prompt=${encodeURIComponent(converted.websitePrompt)}`);
     } else {
       const converted = convertWebsitePromptToShopifyPrompt(initialPrompt, brand);
+      const mappedShopifyTheme = mapWebsiteAccentToShopifyTheme(websiteConfig.accentId);
       saveBuilderDraftTransaction({
         source: "website",
         prompt: converted.shopifyPrompt,
@@ -596,11 +716,13 @@ function EditorContent({ projectId }: { projectId: string }) {
         parallaxMode,
         parallaxThemeId,
         presetId: converted.suggestedPresetId,
+        websiteAccentId: websiteConfig.accentId,
+        shopifyThemeId: mappedShopifyTheme,
       });
       router.push(
         `/builder?from=website&prompt=${encodeURIComponent(converted.shopifyPrompt)}&brand=${encodeURIComponent(
           converted.storeName
-        )}`
+        )}&accent=${encodeURIComponent(websiteConfig.accentId)}`
       );
     }
   };
@@ -762,6 +884,7 @@ function EditorContent({ projectId }: { projectId: string }) {
         storeName: brand,
         heroHeading: `${brand} — Official Collection`,
         heroSubheading: initialPrompt.slice(0, 120),
+        accentColor: activeEditorAccent.primary,
       });
 
       const url = URL.createObjectURL(zipBlob);
@@ -834,13 +957,37 @@ function EditorContent({ projectId }: { projectId: string }) {
       ];
 
   const currentHtml = pageCodes[activePageTab]?.html || "";
-  const iframeBridge = useMemo(() => buildIframeBridgeScript(), []);
+  const iframeBridge = useMemo(() => buildIframeBridgeScript(inlineEditMode), [inlineEditMode]);
+  const pushUndoSnapshot = (htmlToSave: string) => {
+    setUndoHistory((prev) => [...prev.slice(-14), htmlToSave]);
+  };
+  const handleUndoInlineEdit = () => {
+    setUndoHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const lastHtml = prev[prev.length - 1];
+      setPageCodes((pages) => ({
+        ...pages,
+        [activePageTab]: { ...pages[activePageTab], html: lastHtml },
+      }));
+      setStatusNotice("✓ Reverted last inline edit");
+      window.setTimeout(() => setStatusNotice(null), 2200);
+      return prev.slice(0, -1);
+    });
+  };
+  const customTokenStyleBlock = useMemo(
+    () =>
+      buildWebsiteThemeStyleBlock({
+        ...websiteConfig,
+        typographyId: activeFont.id as WebsiteCustomConfig["typographyId"],
+      }),
+    [websiteConfig, activeFont.id]
+  );
 
   // Memoize srcDoc so typing in the left panel or toggling modals NEVER causes iframe flicker or script teardown
   const previewSrcDoc = useMemo(() => {
     if (!currentHtml.trim()) return "";
-    return `<!DOCTYPE html><html lang="en" class="dark"><head><meta charset="UTF-8"><meta name="color-scheme" content="dark"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&f[]=cabinet-grotesk@500,700,800,900&f[]=syne@500,700,800&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><style>html,body{margin:0;padding:0;background:${activeTheme.bg};color:#fafafa;font-family:${activeFont.bodyCss};overflow-x:hidden;}h1,h2,h3,h4,h5,h6{font-family:${activeFont.headingCss};letter-spacing:0.005em;}.font-display{font-family:'Clash Display','Satoshi',sans-serif;}.font-heading{font-family:${activeFont.headingCss};}.font-sans{font-family:${activeFont.bodyCss};}.font-editorial{font-family:'Cormorant Garamond','Instrument Serif',Georgia,serif;}.font-serif{font-family:'Instrument Serif',Georgia,serif;}.font-brutalist{font-family:'Cabinet Grotesk',sans-serif;}.font-cyber{font-family:'Syne','Space Grotesk',sans-serif;}.font-jakarta{font-family:'Plus Jakarta Sans',sans-serif;}.font-mono{font-family:'IBM Plex Mono',monospace;}</style></head><body class="${activeFont.bodyClass}">${currentHtml}${iframeBridge}</body></html>`;
-  }, [currentHtml, activeTheme.bg, activeFont.bodyCss, activeFont.headingCss, activeFont.bodyClass, iframeBridge]);
+    return `<!DOCTYPE html><html lang="en" class="dark"><head><meta charset="UTF-8"><meta name="color-scheme" content="dark"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&f[]=cabinet-grotesk@500,700,800,900&f[]=syne@500,700,800&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><style>html,body{margin:0;padding:0;background:${activeTheme.bg};color:#fafafa;font-family:${activeFont.bodyCss};overflow-x:clip;}h1,h2,h3,h4,h5,h6{font-family:${activeFont.headingCss};letter-spacing:0.005em;}.font-display{font-family:'Clash Display','Satoshi',sans-serif;}.font-heading{font-family:${activeFont.headingCss};}.font-sans{font-family:${activeFont.bodyCss};}.font-editorial{font-family:'Cormorant Garamond','Instrument Serif',Georgia,serif;}.font-serif{font-family:'Instrument Serif',Georgia,serif;}.font-brutalist{font-family:'Cabinet Grotesk',sans-serif;}.font-cyber{font-family:'Syne','Space Grotesk',sans-serif;}.font-jakarta{font-family:'Plus Jakarta Sans',sans-serif;}.font-mono{font-family:'IBM Plex Mono',monospace;}</style>${customTokenStyleBlock}</head><body class="${activeFont.bodyClass}">${currentHtml}${iframeBridge}</body></html>`;
+  }, [currentHtml, activeTheme.bg, activeFont.bodyCss, activeFont.headingCss, activeFont.bodyClass, customTokenStyleBlock, iframeBridge]);
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] text-neutral-100 flex flex-col z-50 overflow-hidden font-sans">
@@ -1374,6 +1521,142 @@ function EditorContent({ projectId }: { projectId: string }) {
                 </div>
               )}
 
+              <div className="space-y-3 pb-4 border-b border-neutral-800">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-300 font-semibold">
+                    Accent Palette & Elements
+                  </p>
+                  <span
+                    className="text-[10px] font-mono px-2 py-0.5 rounded-full border"
+                    style={{
+                      backgroundColor: activeEditorAccent.softBg,
+                      borderColor: activeEditorAccent.borderTint,
+                      color: activeEditorAccent.secondary,
+                    }}
+                  >
+                    {activeEditorAccent.name}
+                  </span>
+                </div>
+
+                {/* Circular Colorful Accent Swatches */}
+                <div className="flex flex-wrap gap-2 px-1">
+                  {WEBSITE_ACCENT_PALETTES.map((pal) => {
+                    const selected = websiteConfig.accentId === pal.id;
+                    return (
+                      <button
+                        key={pal.id}
+                        type="button"
+                        data-testid={`editor-accent-${pal.id}`}
+                        title={pal.name}
+                        onClick={() =>
+                          setWebsiteConfig((prev) => ({ ...prev, accentId: pal.id }))
+                        }
+                        className={`w-7 h-7 rounded-full border transition-transform cursor-pointer flex items-center justify-center ${
+                          selected
+                            ? "scale-110 border-white ring-2 ring-white/30"
+                            : "border-zinc-700 hover:scale-105"
+                        }`}
+                        style={{
+                          background: `linear-gradient(135deg, ${pal.primary}, ${pal.secondary})`,
+                        }}
+                      >
+                        {selected && <Check className="w-3.5 h-3.5" style={{ color: pal.onPrimary }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Surface Theme Pills */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  {WEBSITE_SURFACE_THEMES.map((surf) => (
+                    <button
+                      key={surf.id}
+                      type="button"
+                      onClick={() =>
+                        setWebsiteConfig((prev) => ({ ...prev, surfaceId: surf.id }))
+                      }
+                      className={`py-1.5 px-2 rounded-lg text-[10px] font-medium border flex items-center justify-center gap-1.5 cursor-pointer ${
+                        websiteConfig.surfaceId === surf.id
+                          ? "bg-zinc-800 border-white text-white"
+                          : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full border border-zinc-600"
+                        style={{ backgroundColor: surf.bg }}
+                      />
+                      <span>{surf.name.split(" ")[0]}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* End-to-End Sections Recompile Strip */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono uppercase text-zinc-400">
+                      End-to-End Sections
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isGenerating}
+                      onClick={() =>
+                        void generateInitialCode(
+                          initialPrompt,
+                          activePageTab,
+                          parallaxMode,
+                          parallaxThemeId,
+                          depthPreset,
+                          enableTiltStage,
+                          enableExplodedSpecs,
+                          enableVideoLayer,
+                          websiteConfig
+                        )
+                      }
+                      className="text-[10px] font-mono px-2 py-0.5 rounded bg-white text-black hover:bg-zinc-200 cursor-pointer font-semibold disabled:opacity-40"
+                    >
+                      Recompile Sections
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {(
+                      [
+                        { key: "trustMetrics", label: "Trust Metrics" },
+                        { key: "pricingMatrix", label: "Pricing Table" },
+                        { key: "testimonials", label: "Testimonials" },
+                        { key: "faqAccordion", label: "FAQ Accordion" },
+                        { key: "leadCapture", label: "Lead Capture" },
+                        { key: "seoSchema", label: "SEO JSON-LD" },
+                      ] as Array<{ key: keyof WebsiteSectionsConfig; label: string }>
+                    ).map((s) => {
+                      const active = websiteConfig.sections[s.key];
+                      return (
+                        <button
+                          key={s.key}
+                          type="button"
+                          onClick={() =>
+                            setWebsiteConfig((prev) => ({
+                              ...prev,
+                              sections: { ...prev.sections, [s.key]: !prev.sections[s.key] },
+                            }))
+                          }
+                          className={`px-2 py-1 rounded-lg text-[10px] font-mono border flex items-center justify-between cursor-pointer ${
+                            active
+                              ? "bg-zinc-900 border-zinc-600 text-white"
+                              : "bg-zinc-950 border-zinc-800 text-zinc-500"
+                          }`}
+                        >
+                          <span className="truncate">{s.label}</span>
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: active ? activeEditorAccent.primary : "#3f3f46" }}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium px-1">
                   Color Themes
@@ -1418,7 +1701,13 @@ function EditorContent({ projectId }: { projectId: string }) {
                   <button
                     key={font.id}
                     disabled={isGenerating}
-                    onClick={() => setActiveFont(font)}
+                    onClick={() => {
+                      setActiveFont(font);
+                      setWebsiteConfig((prev) => ({
+                        ...prev,
+                        typographyId: font.id as WebsiteCustomConfig["typographyId"],
+                      }));
+                    }}
                     className={`w-full p-3 rounded-xl border text-left transition-all space-y-1.5 group cursor-pointer ${
                       activeFont.id === font.id
                         ? "bg-neutral-900 border-white ring-1 ring-white/20 shadow-md"
@@ -1510,39 +1799,73 @@ function EditorContent({ projectId }: { projectId: string }) {
 
         {/* ── Right Panel: Live Canvas & Code Inspector (68% Width) ── */}
         <div className="flex-1 bg-neutral-900/40 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-          {/* Multi-View Inspector Tabs */}
-          <div className="flex bg-neutral-900 p-1 rounded-xl border border-neutral-800 mb-4 self-center shadow-lg">
-            <button
-              onClick={() => setActiveView("preview")}
-              className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
-                activeView === "preview"
-                  ? "bg-neutral-800 text-white shadow-xs font-medium"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              🖥️ Live Canvas (Click Any Section to Edit)
-            </button>
-            <button
-              onClick={() => setActiveView("code")}
-              className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
-                activeView === "code"
-                  ? "bg-neutral-800 text-white shadow-xs font-medium"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              📄 {isShopify ? "Liquid Code" : "HTML Code"}
-            </button>
-            {isShopify && (
+          {/* Multi-View Inspector Tabs + Inline Edit / Browse Mode Toggle */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-4 self-center">
+            <div className="flex bg-neutral-900 p-1 rounded-xl border border-neutral-800 shadow-lg">
               <button
-                onClick={() => setActiveView("schema")}
+                onClick={() => setActiveView("preview")}
                 className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
-                  activeView === "schema"
+                  activeView === "preview"
                     ? "bg-neutral-800 text-white shadow-xs font-medium"
                     : "text-neutral-400 hover:text-neutral-200"
                 }`}
               >
-                ⚙️ Liquid Schema
+                🖥️ Live Canvas ({inlineEditMode ? "Click Any Element to Edit" : "Browse Links"})
               </button>
+              <button
+                onClick={() => setActiveView("code")}
+                className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                  activeView === "code"
+                    ? "bg-neutral-800 text-white shadow-xs font-medium"
+                    : "text-neutral-400 hover:text-neutral-200"
+                }`}
+              >
+                📄 {isShopify ? "Liquid Code" : "HTML Code"}
+              </button>
+              {isShopify && (
+                <button
+                  onClick={() => setActiveView("schema")}
+                  className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                    activeView === "schema"
+                      ? "bg-neutral-800 text-white shadow-xs font-medium"
+                      : "text-neutral-400 hover:text-neutral-200"
+                  }`}
+                >
+                  ⚙️ Liquid Schema
+                </button>
+              )}
+            </div>
+
+            {activeView === "preview" && (
+              <div className="flex items-center gap-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800 shadow-lg text-[11px]">
+                <button
+                  type="button"
+                  data-testid="canvas-mode-edit"
+                  onClick={() => setInlineEditMode(true)}
+                  className={`px-2.5 py-1 rounded-lg font-medium cursor-pointer transition-colors ${
+                    inlineEditMode
+                      ? "bg-white text-black font-semibold"
+                      : "text-neutral-400 hover:text-white"
+                  }`}
+                >
+                  Edit Mode
+                </button>
+                <button
+                  type="button"
+                  data-testid="canvas-mode-browse"
+                  onClick={() => {
+                    setInlineEditMode(false);
+                    setSelectedElement(null);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg font-medium cursor-pointer transition-colors ${
+                    !inlineEditMode
+                      ? "bg-white text-black font-semibold"
+                      : "text-neutral-400 hover:text-white"
+                  }`}
+                >
+                  Browse Mode
+                </button>
+              </div>
             )}
           </div>
 
@@ -1640,46 +1963,97 @@ function EditorContent({ projectId }: { projectId: string }) {
 
           {selectedElement && activeView === "preview" && (
             <InlineCustomizer
+              key={`${selectedElement.sectionId}-${selectedElement.tagName}-${selectedElement.nodeIndex ?? 0}`}
               element={selectedElement}
+              canUndo={undoHistory.length > 0}
+              onUndo={handleUndoInlineEdit}
               onClose={() => setSelectedElement(null)}
-              onUpdateText={(newText) => {
-                const updatedHtml = updateSectionTextInHtml(
+              onLivePatch={({ text, styles }) => {
+                iframeRef.current?.contentWindow?.postMessage(
+                  {
+                    type: "OBSIDIAN_LIVE_PATCH",
+                    sectionId: selectedElement.sectionId,
+                    sectionIndex: selectedElement.sectionIndex,
+                    tagName: selectedElement.tagName,
+                    nodeIndex: selectedElement.nodeIndex ?? 0,
+                    text,
+                    styles,
+                  },
+                  "*"
+                );
+              }}
+              onUpdateText={(newText, href) => {
+                pushUndoSnapshot(currentHtml);
+                let updatedHtml = updateSectionTextInHtml(
                   currentHtml,
                   selectedElement.sectionId,
                   selectedElement.textContent,
-                  newText
+                  newText,
+                  selectedElement.nodeIndex,
+                  selectedElement.tagName,
+                  selectedElement.sectionIndex
+                );
+                if (typeof href === "string" && href !== selectedElement.href) {
+                  updatedHtml = updateElementStyleInHtml(
+                    updatedHtml,
+                    selectedElement.sectionId,
+                    selectedElement.tagName,
+                    selectedElement.nodeIndex ?? 0,
+                    {},
+                    href,
+                    selectedElement.sectionIndex
+                  );
+                }
+                setPageCodes((prev) => ({
+                  ...prev,
+                  [activePageTab]: { ...prev[activePageTab], html: updatedHtml },
+                }));
+                setSelectedElement((prev) =>
+                  prev ? { ...prev, textContent: newText, href: href ?? prev.href } : prev
+                );
+              }}
+              onUpdateStyle={(styles, href) => {
+                pushUndoSnapshot(currentHtml);
+                const updatedHtml = updateElementStyleInHtml(
+                  currentHtml,
+                  selectedElement.sectionId,
+                  selectedElement.tagName,
+                  selectedElement.nodeIndex ?? 0,
+                  styles,
+                  href,
+                  selectedElement.sectionIndex
                 );
                 setPageCodes((prev) => ({
                   ...prev,
                   [activePageTab]: { ...prev[activePageTab], html: updatedHtml },
                 }));
-                setSelectedElement(null);
               }}
               onMoveUp={() => {
+                pushUndoSnapshot(currentHtml);
                 const updatedHtml = moveSectionInHtml(currentHtml, selectedElement.sectionId, "up");
                 setPageCodes((prev) => ({
                   ...prev,
                   [activePageTab]: { ...prev[activePageTab], html: updatedHtml },
                 }));
-                setSelectedElement(null);
               }}
               onMoveDown={() => {
+                pushUndoSnapshot(currentHtml);
                 const updatedHtml = moveSectionInHtml(currentHtml, selectedElement.sectionId, "down");
                 setPageCodes((prev) => ({
                   ...prev,
                   [activePageTab]: { ...prev[activePageTab], html: updatedHtml },
                 }));
-                setSelectedElement(null);
               }}
               onDuplicate={() => {
+                pushUndoSnapshot(currentHtml);
                 const updatedHtml = duplicateSectionInHtml(currentHtml, selectedElement.sectionId);
                 setPageCodes((prev) => ({
                   ...prev,
                   [activePageTab]: { ...prev[activePageTab], html: updatedHtml },
                 }));
-                setSelectedElement(null);
               }}
               onDelete={() => {
+                pushUndoSnapshot(currentHtml);
                 const updatedHtml = deleteSectionInHtml(currentHtml, selectedElement.sectionId);
                 setPageCodes((prev) => ({
                   ...prev,
@@ -1688,6 +2062,7 @@ function EditorContent({ projectId }: { projectId: string }) {
                 setSelectedElement(null);
               }}
               onAIRefine={async (inst) => {
+                pushUndoSnapshot(currentHtml);
                 await generateInitialCode(
                   `${initialPrompt}. Refine section ${selectedElement.sectionId}: ${inst}`,
                   activePageTab
@@ -1696,19 +2071,23 @@ function EditorContent({ projectId }: { projectId: string }) {
               }}
               onImageTransform={(trans, newSrc) => {
                 if (newSrc || trans) {
+                  pushUndoSnapshot(currentHtml);
                   const updatedHtml = updateSectionImageInHtml(
                     currentHtml,
                     selectedElement.sectionId,
                     newSrc,
                     trans,
-                    selectedElement.imgSrc
+                    selectedElement.imgSrc,
+                    selectedElement.sectionIndex
                   );
                   setPageCodes((prev) => ({
                     ...prev,
                     [activePageTab]: { ...prev[activePageTab], html: updatedHtml },
                   }));
+                  if (newSrc) {
+                    setSelectedElement((prev) => (prev ? { ...prev, imgSrc: newSrc } : prev));
+                  }
                 }
-                setSelectedElement(null);
               }}
             />
           )}

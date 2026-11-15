@@ -2,9 +2,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   PARALLAX_THEMES,
+  buildBackgroundParallaxPrompt,
   detectParallaxIntent,
   generateParallaxWebsiteHtml,
   getParallaxThemeById,
+  synthesizeCustomParallaxTheme,
 } from "../parallax";
 import {
   parseTopLevelSections,
@@ -12,8 +14,11 @@ import {
   duplicateSectionInHtml,
   deleteSectionInHtml,
   updateSectionTextInHtml,
+  updateElementStyleInHtml,
   updateSectionImageInHtml,
   extractSelectedElementFromMessage,
+  extractInlineCommitFromMessage,
+  buildIframeBridgeScript,
 } from "../editor-dom";
 import {
   extractBrandFromPrompt,
@@ -22,6 +27,16 @@ import {
   suggestShopifyPresetFromPrompt,
 } from "../builder-bridge";
 import { compileShopifyLiquidTheme } from "../shopify";
+import {
+  WEBSITE_ACCENT_PALETTES,
+  SHOPIFY_COLOR_THEMES,
+  mergeWebsiteConfig,
+  buildWebsiteThemeStyleBlock,
+  buildWebsiteCustomizationPrompt,
+  generateStandardCustomWebsiteHtml,
+  reorderShopifySection,
+  mapWebsiteAccentToShopifyTheme,
+} from "../customization";
 
 describe("3D Parallax & Product Dedicated Engine (src/lib/parallax.ts)", () => {
   it("detects parallax, city, and product-dedicated intent accurately across themes", () => {
@@ -113,6 +128,42 @@ describe("3D Parallax & Product Dedicated Engine (src/lib/parallax.ts)", () => {
     assert.equal(getParallaxThemeById("alpine-horizon").city, "Zermatt & Vals, Switzerland");
     assert.ok(PARALLAX_THEMES.length >= 8);
     assert.equal(PARALLAX_THEMES.filter((t) => t.category === "product").length, 4);
+  });
+
+  it("synthesizes bespoke custom topics for short prompts without preset lock-in", () => {
+    const custom = synthesizeCustomParallaxTheme("luxury titanium mechanical watch");
+    assert.equal(custom.name, "Luxury Titanium Mechanical Watch");
+    assert.equal(custom.category, "product");
+    assert.ok(!custom.name.includes("Obsidian Acoustic"));
+
+    const brief = buildBackgroundParallaxPrompt("luxury titanium watch", {
+      category: "product",
+      depthPreset: "cinematic",
+      enableTiltStage: true,
+      enableExplodedSpecs: true,
+    });
+    assert.ok(brief.includes("Luxury Titanium Watch"));
+    assert.ok(brief.includes("CINEMATIC"));
+    assert.ok(brief.includes("[data-sticky-runway]"));
+
+    const customHtml = generateParallaxWebsiteHtml({
+      prompt: "luxury titanium watch",
+      pageName: "Home Page",
+      parallaxOptions: {
+        category: "product",
+        depthPreset: "cinematic",
+        enableTiltStage: true,
+        enableExplodedSpecs: true,
+      },
+    });
+    assert.ok(customHtml.includes("Luxury Titanium Watch"));
+    assert.ok(!customHtml.includes("50mm Planar Magnetic Driver"));
+    assert.ok(customHtml.includes("overflow-x: clip"));
+    assert.ok(customHtml.includes("data-sticky-runway"));
+    assert.ok(customHtml.includes("data-sticky-stage"));
+    assert.ok(customHtml.includes("data-parallax-x"));
+    assert.ok(customHtml.includes("data-glare-layer"));
+    assert.ok(customHtml.includes("data-obsidian-parallax-runtime"));
   });
 });
 
@@ -230,5 +281,212 @@ describe("Shopify Liquid 2.0 Theme Compiler (src/lib/shopify.ts)", () => {
 
     assert.ok(result.fileName.endsWith("-shopify-liquid-theme.zip"));
     assert.ok(result.zipBlob.size > 1000);
+  });
+
+  it("writes dynamic section order, freeShippingThreshold, and merchandising flags into OS 2.0 ZIP", async () => {
+    const JSZip = (await import("jszip")).default;
+    const result = await compileShopifyLiquidTheme(
+      "indigo-atelier",
+      "<section><h1>Indigo Drop</h1></section>",
+      "",
+      {
+        storeName: "Indigo Atelier",
+        accentColor: "#6366f1",
+        currency: "EUR",
+        freeShippingThreshold: 125,
+        gridColumns: 3,
+        showAnnouncement: false,
+        showSearchBar: true,
+        showSaleBadges: true,
+        showColorSwatches: true,
+        showStarRatings: true,
+        showExpressPay: true,
+        sectionOrder: ["hero", "featured-products", "trust-bar", "reviews", "newsletter"],
+        enabledSections: {
+          hero: true,
+          "featured-products": true,
+          "trust-bar": true,
+          reviews: false,
+          newsletter: true,
+        },
+      }
+    );
+
+    const buf = await result.zipBlob.arrayBuffer();
+    const loaded = await JSZip.loadAsync(buf);
+    const indexJsonText = await loaded.file("templates/index.json")?.async("string");
+    assert.ok(indexJsonText);
+    const indexParsed = JSON.parse(indexJsonText);
+    assert.ok(!indexParsed.order.includes("announcement_bar"));
+    assert.ok(!indexParsed.order.includes("reviews"));
+    assert.ok(indexParsed.order.indexOf("featured_products") < indexParsed.order.indexOf("trust_bar"));
+
+    const settingsDataText = await loaded.file("config/settings_data.json")?.async("string");
+    assert.ok(settingsDataText?.includes('"free_shipping_threshold": 125'));
+    assert.ok(settingsDataText?.includes('"primary_accent": "#6366f1"'));
+    assert.ok(settingsDataText?.includes('"currency": "EUR"'));
+  });
+});
+
+describe("Precision Inline Editing & Balanced DOM Parser (src/lib/editor-dom.ts)", () => {
+  const nestedDoc = `
+<style>.keep { color: white; }</style>
+<header data-section="header"><nav><a href="#hero">Home</a><a href="#pricing">Plans</a></nav></header>
+<section data-section="hero" id="hero">
+  <h1>Hero Title</h1>
+  <section data-nested="true"><p>Nested detail</p></section>
+  <p>Subtitle Copy</p>
+  <a href="#features">Explore Now</a>
+</section>
+<section data-section="features" id="features"><h2>Capabilities</h2><p>Feature Text</p></section>
+<script>window.__keepMe = true;</script>
+  `.trim();
+
+  it("preserves nested sections, styles, and scripts when parsing or moving sections", () => {
+    const parsed = parseTopLevelSections(nestedDoc);
+    assert.equal(parsed.sections.length, 3);
+    assert.deepEqual(
+      parsed.sections.map((s) => s.id),
+      ["header", "hero", "features"]
+    );
+    assert.ok(parsed.prefix.includes("<style>.keep"));
+    assert.ok(parsed.suffix.includes("window.__keepMe"));
+
+    const moved = moveSectionInHtml(nestedDoc, "features", "up");
+    const afterMove = parseTopLevelSections(moved);
+    assert.deepEqual(
+      afterMove.sections.map((s) => s.id),
+      ["header", "features", "hero"]
+    );
+    assert.ok(moved.includes("window.__keepMe = true"));
+  });
+
+  it("updates exact element by nodeIndex without touching hero h1 or sibling sections", () => {
+    const updatedP = updateSectionTextInHtml(
+      nestedDoc,
+      "hero",
+      "Subtitle Copy",
+      "Precision Inline Subheading",
+      1,
+      "p",
+      1
+    );
+    assert.ok(updatedP.includes("<h1>Hero Title</h1>"));
+    assert.ok(updatedP.includes("<p>Nested detail</p>"));
+    assert.ok(updatedP.includes("<p>Precision Inline Subheading</p>"));
+  });
+
+  it("updates inline styles and anchor href on the targeted element cleanly", () => {
+    const styled = updateElementStyleInHtml(
+      nestedDoc,
+      "hero",
+      "a",
+      0,
+      { color: "#22d3ee", "font-size": "1.125rem" },
+      "#pricing",
+      1
+    );
+    assert.ok(styled.includes('href="#pricing"'));
+    assert.ok(styled.includes("color: #22d3ee"));
+    assert.ok(styled.includes("font-size: 1.125rem"));
+
+    const reset = updateElementStyleInHtml(styled, "hero", "a", 0, { color: "", "font-size": "" }, undefined, 1);
+    assert.ok(!reset.includes('style=""'));
+  });
+
+  it("inserts editorial image onto text-only sections and supports fx + reset", () => {
+    const inserted = updateSectionImageInHtml(nestedDoc, "features", "/images/parallax-nyc.jpg", "tr:drop-shadow");
+    assert.ok(inserted.includes("/images/parallax-nyc.jpg"));
+    assert.ok(inserted.includes("drop-shadow-"));
+
+    const reset = updateSectionImageInHtml(inserted, "features", undefined, "tr:reset");
+    assert.ok(!reset.includes("drop-shadow-"));
+  });
+
+  it("extracts OBSIDIAN_INLINE_COMMIT payloads and embeds editMode state in bridge script", () => {
+    const commit = extractInlineCommitFromMessage({
+      type: "OBSIDIAN_INLINE_COMMIT",
+      payload: {
+        sectionId: "features",
+        sectionIndex: 2,
+        tagName: "p",
+        nodeIndex: 0,
+        oldText: "Feature Text",
+        newText: "Updated Inline Text",
+      },
+    });
+    assert.deepEqual(commit, {
+      sectionId: "features",
+      sectionIndex: 2,
+      tagName: "p",
+      nodeIndex: 0,
+      oldText: "Feature Text",
+      newText: "Updated Inline Text",
+    });
+
+    assert.ok(buildIframeBridgeScript(true).includes("var editMode = true;"));
+    assert.ok(buildIframeBridgeScript(false).includes("var editMode = false;"));
+  });
+});
+
+describe("End-to-End Website & Shopify Customization Engine (src/lib/customization.ts)", () => {
+  it("provides colorful accent palettes, Shopify themes, and deterministic config merging", () => {
+    assert.ok(WEBSITE_ACCENT_PALETTES.length >= 7);
+    assert.ok(SHOPIFY_COLOR_THEMES.length >= 6);
+    assert.equal(mapWebsiteAccentToShopifyTheme("cyber-cyan"), "cyan-hardware");
+    assert.equal(mapWebsiteAccentToShopifyTheme("electric-violet"), "indigo-luxe");
+
+    const merged = mergeWebsiteConfig({
+      accentId: "cyber-cyan",
+      sections: { pricingMatrix: false } as never,
+    });
+    assert.equal(merged.accentId, "cyber-cyan");
+    assert.equal(merged.sections.pricingMatrix, false);
+    assert.equal(merged.sections.faqAccordion, true);
+  });
+
+  it("renders CSS tokens, customization prompts, and modular end-to-end HTML sections", () => {
+    const styleBlock = buildWebsiteThemeStyleBlock({ accentId: "crimson-rose", surfaceId: "midnight" });
+    assert.ok(styleBlock.includes("--obs-accent: #f43f5e"));
+    assert.ok(styleBlock.includes("--obs-bg: #060a14"));
+
+    const enriched = buildWebsiteCustomizationPrompt('Build a site for "Vesper Audio"', { accentId: "cyber-cyan" });
+    assert.ok(enriched.includes("Cyber Cyan"));
+    assert.ok(enriched.includes("pricingMatrix"));
+
+    const html = generateStandardCustomWebsiteHtml('Launch "Vesper Audio" studio', "Home Page", false, {
+      accentId: "cyber-cyan",
+      heroLayout: "split",
+      sections: {
+        announcementBar: true,
+        trustMetrics: true,
+        featuresBento: true,
+        pricingMatrix: true,
+        testimonials: true,
+        faqAccordion: true,
+        leadCapture: true,
+        seoSchema: true,
+      },
+      elements: {
+        gradientGlowCta: true,
+        colorfulStatusDots: true,
+        tintedBadges: true,
+        ratingStars: true,
+        accentBorders: true,
+      },
+    });
+    assert.ok(html.includes("Vesper Audio"));
+    assert.ok(html.includes('data-section="pricing"'));
+    assert.ok(html.includes('data-section="faq"'));
+    assert.ok(html.includes('data-obsidian-seo="true"'));
+    assert.ok(!html.includes("images.unsplash.com"));
+  });
+
+  it("reorders Shopify OS 2.0 sections safely without mutating bounds", () => {
+    const start = ["hero", "trust-bar", "featured-products", "reviews", "newsletter"] as const;
+    const moved = reorderShopifySection([...start], "featured-products", "up");
+    assert.deepEqual(moved, ["hero", "featured-products", "trust-bar", "reviews", "newsletter"]);
+    const clamped = reorderShopifySection([...start], "hero", "up");
+    assert.deepEqual(clamped, [...start]);
   });
 });
